@@ -23,7 +23,7 @@ const AdminLayout = () => {
   const fetchMenus = async () => {
     try {
       // ยิงไปขอข้อมูลเมนูจากเซิร์ฟเวอร์ Node.js
-      const response = await fetch('http://localhost:5000/api/menus');
+      const response = await fetch(`${API_URL}/api/menus`);
       if (response.ok) {
         const data = await response.json();
         setDynamicMenus(data); // เอาข้อมูลมาวาดเมนูซ้ายมือ
