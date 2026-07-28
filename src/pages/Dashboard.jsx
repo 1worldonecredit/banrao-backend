@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
-import { API_URL } from '../config';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const Dashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
