@@ -8,6 +8,11 @@ import {
 
 const iconMap = { LayoutDashboard, Landmark, UserCog, Package, Users, WalletCards, Settings };
 
+// ==========================================
+// 🌟 เพิ่มบรรทัดนี้ เพื่อให้ระบบรู้จัก API_URL
+// ==========================================
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company'; 
+
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,7 +27,7 @@ const AdminLayout = () => {
   // ==========================================
   const fetchMenus = async () => {
     try {
-      // ยิงไปขอข้อมูลเมนูจากเซิร์ฟเวอร์ Node.js
+      // ยิงไปขอข้อมูลเมนูจากเซิร์ฟเวอร์ Backend
       const response = await fetch(`${API_URL}/api/menus`);
       if (response.ok) {
         const data = await response.json();
