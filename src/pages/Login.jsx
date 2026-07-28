@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, User, Lock, Loader2 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+import { API_URL } from '../config'; 
 
 export default function Login() {
   const navigate = useNavigate();
