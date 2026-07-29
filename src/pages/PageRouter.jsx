@@ -9,6 +9,7 @@ import OrgStructure from './OrgStructure';
 import UserPermissions from './UserPermissions';
 import AddBankSystem from './AddBankSystem';
 import CustomerList from "./CustomerList";
+import AccountBank from './AccountBank';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -18,7 +19,8 @@ const componentsRegistry = {
   'OrgStructure': OrgStructure,
   'UserPermissions': UserPermissions,
   'AddBankSystem': AddBankSystem,
-  'CustomerList': CustomerList
+  'CustomerList': CustomerList,
+  'AccountBank': AccountBank,
 };
 
 export default function PageRouter() {
