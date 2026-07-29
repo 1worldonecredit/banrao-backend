@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, MapPin, Search, Filter, MoreHorizontal, CheckCircle2, XCircle } from 'lucide-react';
-
+import { Users, UserPlus, MapPin, Search, Filter, MoreHorizontal, CheckCircle2, XCircle, Circle } from 'lucide-react';
 // 🌟 Mockup Data (จำลองข้อมูลลูกค้า)
 // ตั้งค่าวันที่วันนี้เป็น 28/07/2026 ตามเวลาปัจจุบัน
 const TODAY_DATE = '2026-07-28';
