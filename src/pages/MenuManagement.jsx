@@ -195,6 +195,7 @@ const MenuManagement = () => {
                 <option value="UserPermissions">หน้ากำหนดสิทธิ์ (UserPermissions)</option>
                 <option value="AddBankSystem">หน้าเพิ่มบัญชีระบบ (AddBankSystem)</option>
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
+                <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
               </select>
             </div>
 
