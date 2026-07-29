@@ -10,6 +10,8 @@ import UserPermissions from './UserPermissions';
 import AddBankSystem from './AddBankSystem';
 import CustomerList from "./CustomerList";
 import AccountBank from './AccountBank';
+import ManageDeposit from './ManageDeposit';
+import AddNumberViet from './AddNumberViet';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -21,6 +23,8 @@ const componentsRegistry = {
   'AddBankSystem': AddBankSystem,
   'CustomerList': CustomerList,
   'AccountBank': AccountBank,
+  'ManageDeposit': ManageDeposit,
+  'AddNumberViet': AddNumberViet,
 };
 
 export default function PageRouter() {

@@ -196,6 +196,8 @@ const MenuManagement = () => {
                 <option value="AddBankSystem">หน้าเพิ่มบัญชีระบบ (AddBankSystem)</option>
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
                 <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
+                <option value="ManageDeposit">หน้ารายการคำขอฝากเงิน(ManageDeposit)</option>
+                <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
               </select>
             </div>
 
