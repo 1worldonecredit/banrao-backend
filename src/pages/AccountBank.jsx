@@ -13,8 +13,17 @@ const AccountBank = () => {
   const currentAdminName = "ซุปเปอร์ ผู้ดูแลระบบ"; 
 
   // 1. ดึงข้อมูลเมื่อเปิดหน้าจอ
+// 1. ดึงข้อมูลเมื่อเปิดหน้าจอ & ตั้งค่า Auto-refresh
   useEffect(() => {
-    fetchBankRequests();
+    fetchBankRequests(); // ดึงทันทีเมื่อเปิดหน้า
+    
+    // ตั้งเวลาให้แอบไปดึงข้อมูลใหม่ทุกๆ 10 วินาที (10000 มิลลิวินาที)
+    const intervalId = setInterval(() => {
+      fetchBankRequests();
+    }, 10000); 
+
+    // ทำลายวงจรเมื่อเปลี่ยนไปหน้าอื่น (ประหยัดแรม)
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchBankRequests = async () => {
