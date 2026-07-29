@@ -5,6 +5,7 @@ import {
   Settings, Building, ShieldCheck, DollarSign, CreditCard, FileText, Circle
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 const availableIcons = [
   { id: 'LayoutDashboard', name: 'แผงควบคุม', component: LayoutDashboard },
   { id: 'UserCog', name: 'จัดการผู้ใช้/พนักงาน', component: UserCog },
@@ -37,7 +38,7 @@ const MenuManagement = () => {
   // 🌟 1. ดึงข้อมูลจาก API (Database) แทน LocalStorage
   const fetchMenus = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/menus');
+      const response = await fetch(`${API_URL}/api/menus`);
       if (response.ok) {
         const data = await response.json();
         setMenus(data);
@@ -101,9 +102,8 @@ const MenuManagement = () => {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/menus/${editingId}` // ถ้ามี editingId ให้วิ่งไปเส้น PUT (แก้ไข)
-        : 'http://localhost:5000/api/menus';             // ถ้าไม่มี ให้วิ่งไปเส้น POST (เพิ่มใหม่)
-        
+       ? `${API_URL}/api/menus/${editingId}` // ถ้ามี ID (กำลังแก้ไข) ให้วิ่งไปเส้น PUT พร้อมแปะ ID ต่อท้าย
+  :     `${API_URL}/api/menus`;             // ถ้าไม่มี ID (สร้างใหม่) ให้วิ่งไปเส้น POST ปกติ
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -132,7 +132,7 @@ const MenuManagement = () => {
   const handleDelete = async (id) => {
     if(window.confirm('คุณแน่ใจหรือไม่ที่จะลบเมนูนี้?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/menus/${id}`, { method: 'DELETE' });
+        const response = await fetch(`${API_URL}/api/menus/${id}`, { method: 'DELETE' });
         
         if (response.ok) {
           await fetchMenus(); // โหลดข้อมูลใหม่จาก DB
