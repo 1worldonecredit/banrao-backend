@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle, Image as ImageIcon, UploadCloud } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';// 🌟 เปลี่ยนเป็น URL ของ Backend พี่
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company'; // 🌟 ดึง URL อัตโนมัติ
 
 const AddNumberViet = () => {
   const [animalList, setAnimalList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
-  // State สำหรับฟอร์ม
   const [formData, setFormData] = useState({
     animalName: '',
-    imagePreview: null, // สำหรับโชว์รูปหน้าเว็บ
-    imageBase64: '',    // สำหรับส่งไป Database
+    imagePreview: null, 
+    imageBase64: '',    
     lotteryType: '2',
     numberCount: 3,
     num1: '',
@@ -20,7 +19,6 @@ const AddNumberViet = () => {
     num3: ''
   });
 
-  // 🌟 1. API: ดึงข้อมูลจากฐานข้อมูล
   const fetchAnimals = async () => {
     setIsFetching(true);
     try {
@@ -45,16 +43,21 @@ const AddNumberViet = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // 🌟 ฟังก์ชัน: อัปโหลดและแปลงรูปเป็น Base64 เพื่อส่งเข้า Database ง่ายๆ
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // ดักไฟล์ที่ใหญ่เกินไป (กันเหนียว)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("ขนาดไฟล์รูปใหญ่เกิน 5MB กรุณาเลือกรูปใหม่ครับ");
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData({ 
           ...formData, 
-          imagePreview: URL.createObjectURL(file), // พรีวิวรูป
-          imageBase64: reader.result               // ข้อมูลรูปส่งเข้า DB
+          imagePreview: URL.createObjectURL(file), 
+          imageBase64: reader.result               
         });
       };
       reader.readAsDataURL(file);
@@ -69,7 +72,6 @@ const AddNumberViet = () => {
     });
   };
 
-  // 🌟 2. API: ส่งข้อมูลเพิ่มลงฐานข้อมูล
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -93,7 +95,7 @@ const AddNumberViet = () => {
     try {
       const payload = {
         animal_name_th: animalName,
-        image_url: imageBase64, // ส่งรูปเป็น String Base64 
+        image_url: imageBase64, 
         lottery_type: lotteryType,
         num1: num1,
         num2: num2,
@@ -107,6 +109,12 @@ const AddNumberViet = () => {
         body: JSON.stringify(payload)
       });
       
+      // 🌟 ดัก Error แบบละเอียด ถ้ายิง API ไม่เข้า
+      if (!res.ok) {
+        const errText = await res.json();
+        throw new Error(errText.message || `Backend ตอบกลับ Status ${res.status}`);
+      }
+
       const data = await res.json();
       
       if(data.success) { 
@@ -114,11 +122,13 @@ const AddNumberViet = () => {
         fetchAnimals(); 
         setFormData({ animalName: '', imagePreview: null, imageBase64: '', lotteryType: '2', numberCount: 3, num1: '', num2: '', num3: '' });
       } else {
-        alert(data.message); 
+        alert(`❌ ผิดพลาด: ${data.message}`); 
       }
 
     } catch (error) {
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      console.error("🔥 Error Details:", error);
+      // Alert ตัวนี้จะฟ้องสาเหตุที่แท้จริงออกมาเลยครับ
+      alert(`ไม่สามารถบันทึกข้อมูลได้\nสาเหตุ: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -126,14 +136,12 @@ const AddNumberViet = () => {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      
       <div style={{ marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '10px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
           <span style={{ color: '#f97316' }}>|</span> จัดการระบบเลขหวยเวียดนาม
         </h2>
       </div>
 
-      {/* 🌟 Layout หลัก: ซ้ายฟอร์ม (flex: 1), ขวาตาราง (flex: 2) */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
         
         {/* =========================================
@@ -148,7 +156,7 @@ const AddNumberViet = () => {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>โหมดหมู่ (ประเภทหวย) *</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>หมวดหมู่ (ประเภทหวย) *</label>
               <select name="lotteryType" value={formData.lotteryType} onChange={handleInputChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', color: '#0284c7', fontWeight: 'bold' }}>
                 <option value="2">หมวด 2 ตัว</option>
                 <option value="3">หมวด 3 ตัว</option>
@@ -163,22 +171,18 @@ const AddNumberViet = () => {
               <input type="text" name="animalName" value={formData.animalName} onChange={handleInputChange} placeholder="เช่น ปาน้อย (ປານ້ອຍ)" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} required />
             </div>
 
-            {/* 🌟 ระบบอัปโหลดรูป */}
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>อัปโหลดรูปภาพ *</label>
               <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                
                 <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {formData.imagePreview ? <img src={formData.imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ImageIcon size={24} color="#9ca3af" />}
                 </div>
-
                 <div style={{ flex: 1, position: 'relative' }}>
                   <input type="file" accept="image/*" onChange={handleImageUpload} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
                   <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
                     <UploadCloud size={18} /> {formData.imagePreview ? 'เปลี่ยนรูปภาพ' : 'คลิกเพื่อเลือกรูปภาพ'}
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -245,9 +249,8 @@ const AddNumberViet = () => {
                   <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>ยังไม่มีข้อมูลในระบบ</td></tr>
                 ) : (
                   animalList.map((item, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '10px', textAlign: 'center' }}>
-                        {/* 🌟 แสดงรูป Base64 หรือลิงก์จาก DB ได้เลย */}
                         <img src={item.image_url} alt="animal" style={{ width: '40px', height: '40px', objectFit: 'cover', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                       </td>
                       <td style={{ padding: '10px', fontWeight: 'bold', color: '#1f2937', fontSize: '14px' }}>
@@ -268,8 +271,7 @@ const AddNumberViet = () => {
                         </div>
                       </td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>
-                        <span style={{ color: item.is_active ? '#10b981' : '#ef4444', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <span style={{ width: '8px', height: '8px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', borderRadius: '50%' }}></span>
+                        <span style={{ color: item.is_active ? '#10b981' : '#ef4444', fontWeight: 'bold', fontSize: '12px' }}>
                           {item.is_active ? 'เปิดใช้งาน' : 'ปิด'}
                         </span>
                       </td>
