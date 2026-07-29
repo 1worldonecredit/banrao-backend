@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle, Image as ImageIcon, UploadCloud } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company'; // 🌟 ดึง URL อัตโนมัติ
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company'; 
 
 const AddNumberViet = () => {
   const [animalList, setAnimalList] = useState([]);
@@ -46,12 +46,10 @@ const AddNumberViet = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // ดักไฟล์ที่ใหญ่เกินไป (กันเหนียว)
       if (file.size > 5 * 1024 * 1024) {
         alert("ขนาดไฟล์รูปใหญ่เกิน 5MB กรุณาเลือกรูปใหม่ครับ");
         return;
       }
-      
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData({ 
@@ -109,13 +107,12 @@ const AddNumberViet = () => {
         body: JSON.stringify(payload)
       });
       
-      // 🌟 ดัก Error แบบละเอียด ถ้ายิง API ไม่เข้า
-      if (!res.ok) {
-        const errText = await res.json();
-        throw new Error(errText.message || `Backend ตอบกลับ Status ${res.status}`);
-      }
-
       const data = await res.json();
+      
+      // 🌟 ดัก Error และล้วงข้อความจาก SQL Server มาโชว์แบบชัดๆ
+      if (!res.ok) {
+        throw new Error(`${data.message}\n👉 ข้อมูลเชิงลึกจาก SQL: ${data.error || 'ไม่ระบุ'}`);
+      }
       
       if(data.success) { 
         alert('✅ บันทึกข้อมูลสำเร็จ!');
@@ -127,7 +124,7 @@ const AddNumberViet = () => {
 
     } catch (error) {
       console.error("🔥 Error Details:", error);
-      // Alert ตัวนี้จะฟ้องสาเหตุที่แท้จริงออกมาเลยครับ
+      // ข้อความตรงนี้จะโชว์สิ่งที่ SQL Server เถียงกลับมาครับ
       alert(`ไม่สามารถบันทึกข้อมูลได้\nสาเหตุ: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -144,9 +141,7 @@ const AddNumberViet = () => {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
         
-        {/* =========================================
-            ฝั่งซ้าย: ฟอร์มเพิ่มข้อมูล (กรอบสีส้ม-ฟ้า)
-        ========================================= */}
+        {/* ฟอร์มด้านซ้าย */}
         <div style={{ flex: '1 1 320px', backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', borderTop: '4px solid #f97316' }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ backgroundColor: '#f97316', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>NEW</span> 
@@ -220,9 +215,7 @@ const AddNumberViet = () => {
           </form>
         </div>
 
-        {/* =========================================
-            ฝั่งขวา: ตารางแสดงข้อมูล (กรอบสีฟ้า)
-        ========================================= */}
+        {/* ตารางด้านขวา */}
         <div style={{ flex: '2 1 500px', backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', borderTop: '4px solid #0284c7', overflow: 'hidden' }}>
           <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#4b5563', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>รายการที่บันทึกแล้วในระบบ</span>
