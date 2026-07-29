@@ -99,19 +99,19 @@ const AccountBank = () => {
         </p>
       </div>
 
-      {/* 🌟 KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '25px' }}>
-        <div style={{ backgroundColor: '#eff6ff', padding: '20px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-          <div style={{ color: '#2563eb', fontSize: '14px', fontWeight: 'bold' }}>คำขอใหม่ (วันนี้)</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e3a8a' }}>{stats.totalNewToday} <span style={{fontSize:'14px', fontWeight:'normal'}}>รายการ</span></div>
+     {/* 🌟 KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+        <div style={{ backgroundColor: '#eff6ff', padding: '15px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+          <div style={{ color: '#2563eb', fontSize: '13px', fontWeight: 'bold' }}>คำขอใหม่ (วันนี้)</div>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a8a', marginTop: '5px' }}>{stats.totalNewToday} <span style={{fontSize:'13px', fontWeight:'normal'}}>รายการ</span></div>
         </div>
-        <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a' }}>
-          <div style={{ color: '#d97706', fontSize: '14px', fontWeight: 'bold' }}>รอตรวจสอบ (Pending)</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#92400e' }}>{stats.pending} <span style={{fontSize:'14px', fontWeight:'normal'}}>รายการ</span></div>
+        <div style={{ backgroundColor: '#fffbeb', padding: '15px', borderRadius: '12px', border: '1px solid #fde68a' }}>
+          <div style={{ color: '#d97706', fontSize: '13px', fontWeight: 'bold' }}>รอตรวจสอบ (Pending)</div>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#92400e', marginTop: '5px' }}>{stats.pending} <span style={{fontSize:'13px', fontWeight:'normal'}}>รายการ</span></div>
         </div>
-        <div style={{ backgroundColor: '#f0fdf4', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-          <div style={{ color: '#16a34a', fontSize: '14px', fontWeight: 'bold' }}>ตรวจผ่านแล้ว (Approved)</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#14532d' }}>{stats.approved} <span style={{fontSize:'14px', fontWeight:'normal'}}>รายการ</span></div>
+        <div style={{ backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+          <div style={{ color: '#16a34a', fontSize: '13px', fontWeight: 'bold' }}>ตรวจผ่านแล้ว (Approved)</div>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#14532d', marginTop: '5px' }}>{stats.approved} <span style={{fontSize:'13px', fontWeight:'normal'}}>รายการ</span></div>
         </div>
       </div>
 
