@@ -11,7 +11,7 @@ import AddBankSystem from './AddBankSystem';
 import CustomerList from "./CustomerList";
 import AccountBank from './AccountBank';
 import ManageDeposit from './ManageDeposit';
-import AddNumberViet from './AddNumberViet';
+import AddNumberViet from './AddNumberViet'
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -24,7 +24,7 @@ const componentsRegistry = {
   'CustomerList': CustomerList,
   'AccountBank': AccountBank,
   'ManageDeposit': ManageDeposit,
-  'AddNumberViet': AddNumberViet,
+  'AddNumberViet': AddNumberViet
 };
 
 export default function PageRouter() {
