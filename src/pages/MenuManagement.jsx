@@ -194,10 +194,12 @@ const MenuManagement = () => {
                 <option value="OrgStructure">หน้าโครงสร้างองค์กร (OrgStructure)</option>
                 <option value="UserPermissions">หน้ากำหนดสิทธิ์ (UserPermissions)</option>
                 <option value="AddBankSystem">หน้าเพิ่มบัญชีระบบ (AddBankSystem)</option>
+                <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
                 <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
                 <option value="ManageDeposit">หน้ารายการคำขอฝากเงิน(ManageDeposit)</option>
-                <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
+                
+
               </select>
             </div>
 
