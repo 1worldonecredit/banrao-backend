@@ -12,6 +12,10 @@ import CustomerList from "./CustomerList";
 import AccountBank from './AccountBank';
 import ManageDeposit from './ManageDeposit';
 import AddNumberViet from './AddNumberViet';
+import AwardResults from './AwardResults';
+import OverseeThePrize from './OverseeThePrize';
+import DepositRequest from './DepositRequest';
+import DailySales from './DailySales';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -24,7 +28,11 @@ const componentsRegistry = {
   'CustomerList': CustomerList,
   'AccountBank': AccountBank,
   'ManageDeposit': ManageDeposit,
-  'AddNumberViet': AddNumberViet
+  'AddNumberViet': AddNumberViet,
+  'AwardResults': AwardResults,
+  'OverseeThePrize': OverseeThePrize,
+  'DepositRequest': DepositRequest,
+  'DailySales': DailySales
 };
 
 export default function PageRouter() {

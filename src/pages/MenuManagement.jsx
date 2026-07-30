@@ -198,8 +198,9 @@ const MenuManagement = () => {
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
                 <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
                 <option value="ManageDeposit">หน้ารายการคำขอฝากเงิน(ManageDeposit)</option>
-                
-
+                <option value="AwardResults">ผลการออกหวยเวีบด (AwardResults)</option>
+                <option value="DepositRequest">คำขอฝากเงิน(DepositRequest)</option>
+                <option value="DailySales">รายงานยอดขายรายวัน(DailySales)</option>
               </select>
             </div>
 
