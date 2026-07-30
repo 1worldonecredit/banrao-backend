@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-import { Search, CheckCircle, XCircle, AlertTriangle, ZoomIn, Clock, ChevronRight, CheckSquare, Square, X } from 'lucide-react';
+import { Search, CheckCircle, XCircle, AlertTriangle, ZoomIn, Clock, Eye, CheckSquare, Square, X } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -8,13 +7,11 @@ const CustomersRequestBook = () => {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // State สำหรับจัดการหน้าต่างรายละเอียด (Modal)
+  // State สำหรับ Modal ตรวจสอบ และ ซูมรูป
   const [selectedRequest, setSelectedRequest] = useState(null);
-  
-  // State สำหรับแว่นขยายดูรูป
   const [zoomedImage, setZoomedImage] = useState(null);
 
-  // State เก็บค่าว่า "จุดไหนบ้างที่ไม่ผ่าน"
+  // State จุดที่ไม่ผ่าน
   const [invalidFields, setInvalidFields] = useState({
     accountNumber: false,
     currencyCode: false,
@@ -23,11 +20,9 @@ const CustomersRequestBook = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1. ดึงข้อมูลคำขอที่สถานะเป็น 'Pending'
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      // 🌟 ตรงนี้ใช้ API สมมติของฝั่ง Admin พี่อาจจะต้องไปสร้าง Route นี้ใน server.js อีกทีนะครับ
       const res = await fetch(`${API_URL}/api/admin/pending-banks`); 
       const data = await res.json();
       if (data.success) {
@@ -44,32 +39,20 @@ const CustomersRequestBook = () => {
     fetchRequests();
   }, []);
 
-  // เปิดดูรายละเอียด
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
-    // รีเซ็ตค่าการติ๊กผิดทุกครั้งที่เปิดบิลใหม่
-    setInvalidFields({
-      accountNumber: false,
-      currencyCode: false,
-      passbookImage: false
-    });
+    setInvalidFields({ accountNumber: false, currencyCode: false, passbookImage: false });
   };
 
-  // จัดการติ๊ก Checkbox "ไม่ผ่าน"
   const toggleInvalidField = (field) => {
-    setInvalidFields(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+    setInvalidFields(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  // ตรวจสอบว่ามีจุดไหนโดนติ๊ก "ไม่ผ่าน" หรือไม่ (ถ้ามี = true)
+  // 🌟 Logic: ถ้ามีการติ๊กไม่ผ่านแม้แต่ 1 รายการ hasErrors จะเป็น true
   const hasErrors = invalidFields.accountNumber || invalidFields.currencyCode || invalidFields.passbookImage;
 
-  // 🟢 ฟังก์ชัน อนุมัติผ่าน
   const handleApprove = async () => {
-    if (hasErrors) return; // ป้องกันการกดผ่านถ้ามี error
-    
+    if (hasErrors) return; // ป้องกันเหนียวไว้เผื่อปุ่มบัค
     if (!window.confirm('ยืนยันอนุมัติบัญชีนี้ใช่หรือไม่?')) return;
     setIsSubmitting(true);
     
@@ -83,7 +66,7 @@ const CustomersRequestBook = () => {
       if (data.success) {
         alert('อนุมัติบัญชีสำเร็จ');
         setSelectedRequest(null);
-        fetchRequests(); // โหลดข้อมูลใหม่
+        fetchRequests();
       } else {
         alert(data.message);
       }
@@ -94,13 +77,11 @@ const CustomersRequestBook = () => {
     }
   };
 
-  // 🔴 ฟังก์ชัน ส่งกลับให้แก้ไข
   const handleReject = async () => {
     if (!hasErrors) {
       alert('กรุณาติ๊กเลือกรายการที่ไม่ผ่านอย่างน้อย 1 รายการ เพื่อระบุให้ลูกค้าทราบว่าต้องแก้อะไร');
       return;
     }
-
     if (!window.confirm('ยืนยันส่งเรื่องกลับให้ลูกค้าแก้ไขใช่หรือไม่?')) return;
     setIsSubmitting(true);
 
@@ -111,7 +92,7 @@ const CustomersRequestBook = () => {
         body: JSON.stringify({ 
           user_bank_id: selectedRequest.user_bank_id, 
           status: 'Rejected',
-          errors: invalidFields // ส่งไปบอกหลังบ้านว่าอะไรผิดบ้าง ลูกค้าจะได้เห็น
+          errors: invalidFields // 🌟 ส่ง object นี้ไปบอกหลังบ้านว่าอะไรผิด
         })
       });
       const data = await res.json();
@@ -129,151 +110,173 @@ const CustomersRequestBook = () => {
     }
   };
 
-
   return (
-    <div className="app-container" style={{ backgroundColor: '#f9fafb', minHeight: '100vh', position: 'relative' }}>
-      <TopNavbar />
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: '#333', fontSize: '22px' }}>
+          คำขอเพิ่มสมุดบัญชี 
+          {requests.length > 0 && <span style={{ marginLeft: '10px', backgroundColor: '#ef4444', color: 'white', fontSize: '14px', padding: '2px 10px', borderRadius: '12px' }}>รอตรวจ {requests.length} รายการ</span>}
+        </h2>
+      </div>
 
-      <div style={{ padding: '20px' }}>
-        
-        {/* ส่วนหัว + ตัวเลขคำขอใหม่ */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#111', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            รายการขอผูกบัญชี 
-            {requests.length > 0 && (
-              <span style={{ backgroundColor: '#ef4444', color: 'white', fontSize: '12px', padding: '2px 8px', borderRadius: '12px' }}>
-                ใหม่ {requests.length}
-              </span>
+      {/* 🌟 ตารางพร้อมระบบป้องกันการล้นกรอบ (overflow-x) */}
+      <div style={{ backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto', width: '100%' }}>
+        <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+              <th style={{ padding: '15px', color: '#475569' }}>ชื่อลูกค้า</th>
+              <th style={{ padding: '15px', color: '#475569' }}>ข้อมูลบัญชี (ชื่อ/เลขที่)</th>
+              <th style={{ padding: '15px', color: '#475569' }}>วันที่ทำรายการ</th>
+              <th style={{ padding: '15px', color: '#475569', textAlign: 'center' }}>สถานะ</th>
+              <th style={{ padding: '15px', color: '#475569', textAlign: 'center' }}>การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>กำลังโหลด...</td></tr>
+            ) : requests.length === 0 ? (
+              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>ไม่มีรายการรอตรวจสอบ</td></tr>
+            ) : (
+              requests.map((req) => (
+                <tr key={req.user_bank_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '15px' }}>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{req.account_name}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>User ID: {req.user_id}</div>
+                  </td>
+                  <td style={{ padding: '15px' }}>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{req.account_name}</div>
+                    <div style={{ fontSize: '13px', color: '#0f172a' }}>{req.account_number} <span style={{ color: '#0284c7', fontWeight: 'bold' }}>({req.currency_code})</span></div>
+                  </td>
+                  <td style={{ padding: '15px', color: '#64748b' }}>
+                    {new Date(req.created_at).toLocaleString('th-TH')}
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                    <span style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>
+                      รอตรวจ
+                    </span>
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                    <button 
+                      onClick={() => handleViewDetails(req)}
+                      style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 auto', fontWeight: 'bold' }}
+                    >
+                      <Eye size={16} /> View
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
-          </h2>
-        </div>
-
-        {/* รายการคำขอ (List) */}
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '50px 0', color: '#6b7280' }}>กำลังโหลดข้อมูล...</div>
-        ) : requests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '50px 0', backgroundColor: '#fff', borderRadius: '12px', border: '1px dashed #ccc' }}>
-            <CheckCircle size={40} color="#10b981" style={{ margin: '0 auto 10px' }} />
-            <p style={{ margin: 0, color: '#6b7280' }}>ไม่มีรายการรอตรวจสอบ</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {requests.map((req) => (
-              <div 
-                key={req.user_bank_id} 
-                onClick={() => handleViewDetails(req)}
-                style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderLeft: '4px solid #f59e0b' }}
-              >
-                <div>
-                  <h4 style={{ margin: '0 0 5px 0', color: '#111', fontSize: '15px' }}>{req.account_name}</h4>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={12} /> {new Date(req.created_at).toLocaleString('th-TH')}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '6px' }}>รอตรวจสอบ</span>
-                  <ChevronRight size={18} color="#9ca3af" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          </tbody>
+        </table>
       </div>
 
       {/* =========================================
-          🌟 หน้าต่างดูรายละเอียด + ตรวจสอบ (Modal)
+          🌟 Modal รายละเอียดการตรวจสอบ (Desktop View)
       ========================================= */}
       {selectedRequest && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#f9fafb', zIndex: 100, overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           
-          <div style={{ backgroundColor: '#fff', padding: '15px', display: 'flex', alignItems: 'center', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 110 }}>
-            <X size={24} color="#374151" onClick={() => setSelectedRequest(null)} style={{ cursor: 'pointer', marginRight: '10px' }} />
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>ตรวจสอบบัญชี</h2>
-          </div>
-
-          <div style={{ padding: '20px', paddingBottom: '100px' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
             
-            <div style={{ backgroundColor: '#eff6ff', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: '1px solid #bfdbfe' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#3b82f6', fontWeight: 'bold' }}>ชื่อบัญชีลูกค้า</p>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e3a8a' }}>{selectedRequest.account_name}</h3>
+            {/* Modal Header */}
+            <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: '#fff', zIndex: 10 }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#111' }}>ตรวจสอบบัญชี: {selectedRequest.account_name}</h3>
+              <X size={24} color="#6b7280" onClick={() => setSelectedRequest(null)} style={{ cursor: 'pointer' }} />
             </div>
 
-            {/* --- จุดตรวจสอบที่ 1: เลขบัญชี --- */}
-            <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: invalidFields.accountNumber ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#6b7280' }}>เลขที่บัญชี</p>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '20px', color: '#111', letterSpacing: '1px' }}>{selectedRequest.account_number}</h4>
-              <div 
-                onClick={() => toggleInvalidField('accountNumber')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.accountNumber ? '#ef4444' : '#6b7280' }}
-              >
-                {invalidFields.accountNumber ? <CheckSquare size={18} color="#ef4444"/> : <Square size={18} />}
-                <span style={{ fontSize: '14px', fontWeight: invalidFields.accountNumber ? 'bold' : 'normal' }}>เลขบัญชีไม่ถูกต้อง</span>
-              </div>
-            </div>
-
-            {/* --- จุดตรวจสอบที่ 2: สกุลเงิน --- */}
-            <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: invalidFields.currencyCode ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#6b7280' }}>สกุลเงิน</p>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#111' }}>{selectedRequest.currency_code}</h4>
-              <div 
-                onClick={() => toggleInvalidField('currencyCode')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.currencyCode ? '#ef4444' : '#6b7280' }}
-              >
-                {invalidFields.currencyCode ? <CheckSquare size={18} color="#ef4444"/> : <Square size={18} />}
-                <span style={{ fontSize: '14px', fontWeight: invalidFields.currencyCode ? 'bold' : 'normal' }}>สกุลเงินไม่ตรงกับบัญชี</span>
-              </div>
-            </div>
-
-            {/* --- จุดตรวจสอบที่ 3: ภาพสมุดบัญชี --- */}
-            <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: invalidFields.passbookImage ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#6b7280', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                ภาพสมุดบัญชี (Passbook)
-                <button 
-                  onClick={() => setZoomedImage(selectedRequest.passbook_image)}
-                  style={{ background: '#e0f2fe', border: 'none', color: '#0284c7', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  <ZoomIn size={14} /> ขยายดูรูป
-                </button>
-              </p>
+            {/* Modal Body */}
+            <div style={{ padding: '20px' }}>
               
-              <div style={{ width: '100%', height: '150px', backgroundColor: '#f3f4f6', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
-                {selectedRequest.passbook_image ? (
-                   <img src={selectedRequest.passbook_image} alt="Passbook" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                   <div style={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100%', color:'#999', fontSize:'13px' }}>ไม่ได้แนบรูปมา</div>
-                )}
+              <div style={{ backgroundColor: '#f0f9ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #bae6fd' }}>
+                <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#0284c7' }}>ข้อมูลเบื้องต้น</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div><span style={{ color: '#64748b', fontSize: '13px' }}>ชื่อบัญชี:</span> <br/><strong>{selectedRequest.account_name}</strong></div>
+                  <div><span style={{ color: '#64748b', fontSize: '13px' }}>User ID:</span> <br/><strong>{selectedRequest.user_id}</strong></div>
+                </div>
               </div>
 
-              <div 
-                onClick={() => toggleInvalidField('passbookImage')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.passbookImage ? '#ef4444' : '#6b7280' }}
-              >
-                {invalidFields.passbookImage ? <CheckSquare size={18} color="#ef4444"/> : <Square size={18} />}
-                <span style={{ fontSize: '14px', fontWeight: invalidFields.passbookImage ? 'bold' : 'normal' }}>รูปภาพไม่ชัดเจน / ไม่ถูกต้อง</span>
+              <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>ตรวจเช็คความถูกต้อง (ติ๊กถ้ารายการไม่ผ่าน)</h4>
+
+              {/* Check 1: เลขบัญชี */}
+              <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: invalidFields.accountNumber ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>เลขที่บัญชี</p>
+                    <h4 style={{ margin: 0, fontSize: '18px', color: '#111' }}>{selectedRequest.account_number}</h4>
+                  </div>
+                  <div onClick={() => toggleInvalidField('accountNumber')} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.accountNumber ? '#ef4444' : '#94a3b8' }}>
+                    {invalidFields.accountNumber ? <CheckSquare size={24} /> : <Square size={24} />}
+                    <span style={{ fontWeight: invalidFields.accountNumber ? 'bold' : 'normal' }}>ข้อมูลผิด</span>
+                  </div>
+                </div>
               </div>
+
+              {/* Check 2: สกุลเงิน */}
+              <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', marginBottom: '10px', border: invalidFields.currencyCode ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>สกุลเงิน</p>
+                    <h4 style={{ margin: 0, fontSize: '16px', color: '#111' }}>{selectedRequest.currency_code}</h4>
+                  </div>
+                  <div onClick={() => toggleInvalidField('currencyCode')} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.currencyCode ? '#ef4444' : '#94a3b8' }}>
+                    {invalidFields.currencyCode ? <CheckSquare size={24} /> : <Square size={24} />}
+                    <span style={{ fontWeight: invalidFields.currencyCode ? 'bold' : 'normal' }}>ข้อมูลผิด</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Check 3: รูปสมุดบัญชี */}
+              <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: invalidFields.passbookImage ? '2px solid #ef4444' : '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>ภาพหน้าสมุดบัญชี</p>
+                  <div onClick={() => toggleInvalidField('passbookImage')} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: invalidFields.passbookImage ? '#ef4444' : '#94a3b8' }}>
+                    {invalidFields.passbookImage ? <CheckSquare size={24} /> : <Square size={24} />}
+                    <span style={{ fontWeight: invalidFields.passbookImage ? 'bold' : 'normal' }}>รูปผิด/ไม่ชัดเจน</span>
+                  </div>
+                </div>
+                
+                <div style={{ position: 'relative', width: '100%', height: '200px', backgroundColor: '#f1f5f9', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  {selectedRequest.passbook_image ? (
+                     <>
+                       <img src={selectedRequest.passbook_image} alt="Passbook" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                       <button 
+                         onClick={() => setZoomedImage(selectedRequest.passbook_image)}
+                         style={{ position: 'absolute', bottom: '10px', right: '10px', background: '#0284c7', border: 'none', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
+                       >
+                         <ZoomIn size={16} /> ขยายดูรูป
+                       </button>
+                     </>
+                  ) : (
+                     <div style={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100%', color:'#94a3b8' }}>ไม่มีรูปภาพ</div>
+                  )}
+                </div>
+              </div>
+
             </div>
 
-          </div>
+            {/* Modal Footer (ปุ่มอนุมัติ / ปฏิเสธ) */}
+            <div style={{ padding: '20px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '15px', backgroundColor: '#f8fafc', borderRadius: '0 0 12px 12px' }}>
+              
+              {/* 🌟 ถ้ากด "ไม่ผ่าน" แม้แต่ 1 อัน ปุ่มนี้จะใช้งานได้ */}
+              <button 
+                onClick={handleReject}
+                disabled={!hasErrors || isSubmitting}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', border: 'none', cursor: hasErrors ? 'pointer' : 'not-allowed', backgroundColor: hasErrors ? '#ef4444' : '#fca5a5', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+              >
+                <AlertTriangle size={18} /> ส่งกลับให้ลูกค้าแก้ไข
+              </button>
+              
+              {/* 🌟 ถ้ามี "ไม่ผ่าน" ปุ่มอนุมัติจะโดนล็อคทันที */}
+              <button 
+                onClick={handleApprove}
+                disabled={hasErrors || isSubmitting}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', border: 'none', cursor: !hasErrors ? 'pointer' : 'not-allowed', backgroundColor: !hasErrors ? '#10b981' : '#a7f3d0', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+              >
+                <CheckCircle size={18} /> อนุมัติข้อมูลถูกต้อง
+              </button>
 
-          {/* แถบปุ่มด้านล่าง (Fixed Bottom) */}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: '15px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '10px', boxShadow: '0 -4px 10px rgba(0,0,0,0.05)' }}>
-            
-            <button 
-              onClick={handleReject}
-              disabled={!hasErrors || isSubmitting}
-              style={{ flex: 1, padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: hasErrors ? 'pointer' : 'not-allowed', backgroundColor: hasErrors ? '#ef4444' : '#fca5a5', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-            >
-              <AlertTriangle size={18} /> ส่งกลับให้แก้ไข
-            </button>
-            
-            <button 
-              onClick={handleApprove}
-              disabled={hasErrors || isSubmitting}
-              style={{ flex: 1, padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: !hasErrors ? 'pointer' : 'not-allowed', backgroundColor: !hasErrors ? '#10b981' : '#a7f3d0', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-            >
-              <CheckCircle size={18} /> อนุมัติผ่าน
-            </button>
-
+            </div>
           </div>
         </div>
       )}
@@ -282,14 +285,14 @@ const CustomersRequestBook = () => {
           🌟 แว่นขยายดูรูป (Image Lightbox Modal)
       ========================================= */}
       {zoomedImage && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
           <button 
             onClick={() => setZoomedImage(null)}
             style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
           >
-            <X size={32} />
+            <X size={40} />
           </button>
-          <img src={zoomedImage} alt="Zoomed Passbook" style={{ maxWidth: '95%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '8px' }} />
+          <img src={zoomedImage} alt="Zoomed" style={{ maxWidth: '90%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} />
         </div>
       )}
 
