@@ -201,7 +201,7 @@ const MenuManagement = () => {
                 <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
                 <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
-        
+                <option value= "CustomersRequestBook">คำขอเพิ่มบัญชีธนาคาร(CustomersRequestBook)</option>
               </select>
             </div>
 
