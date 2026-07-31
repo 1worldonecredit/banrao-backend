@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import TopNavbar from '../components/TopNavbar';
-import BottomNavbar from '../components/BottomNavbar';
 import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
