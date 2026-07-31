@@ -21,6 +21,7 @@ import CustomersWinning  from './CustomersWinning';
 import WithdrawalRequest from './WithdrawalRequest';
 import ReportDeposit from './ReportDeposit';
 import OderNumber from './OderNumber';
+import ChatMessage from './ChatMessage';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -42,7 +43,8 @@ const componentsRegistry = {
   'CustomersWinning': CustomersWinning ,
   'WithdrawalRequest': WithdrawalRequest,
   'ReportDeposit': ReportDeposit,
-  'OderNumber': OderNumber
+  'OderNumber': OderNumber,
+  'ChatMessage': ChatMessage
 };
 
 export default function PageRouter() {

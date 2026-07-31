@@ -207,6 +207,7 @@ const MenuManagement = () => {
                 <option value="WithdrawalRequest">คำขอถอนเงิน(WithdrawalRequest)</option>
                 <option value="ReportDeposit">รายงานสรุปเงินฝาก(ReportDeposit)</option>
                 <option value="OderNumber">รายงานขายรายวัน(OderNumber)</option>
+                <option value="ChatMessage">ข้อความพูดคุย(ChatMessage)</option>
               </select>
             </div>
 
