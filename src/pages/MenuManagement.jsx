@@ -196,11 +196,11 @@ const MenuManagement = () => {
                 <option value="AddBankSystem">หน้าเพิ่มบัญชีระบบ (AddBankSystem)</option>
                 <option value="ManageDeposit">หน้ารายการคำขอฝากเงิน(ManageDeposit)</option>
                 <option value="AwardResults">ผลการออกหวยเวีบด (AwardResults)</option>
-                <option value="DepositRequest">คำขอฝากเงิน(DepositRequest)</option>
                 <option value="DailySales">รายงานยอดขายรายวัน(DailySales)</option>
                 <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
                 <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
                 <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
+                <option value="DepositRequest">คำขอฝากเงิน(DepositRequest)</option>
                 <option value= "CustomersRequestBook">คำขอเพิ่มบัญชีธนาคาร(CustomersRequestBook)</option>
               </select>
             </div>
