@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X, Clock, CheckSquare, XSquare, Calendar } from 'lucide-react';
+import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X, Clock, CheckSquare, XSquare, Calendar, Bell } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -8,25 +8,21 @@ const DepositRequest = () => {
   const [monthlySummary, setMonthlySummary] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   
-  // State สำหรับ Tabs ('Pending', 'Approved', 'Rejected')
   const [activeTab, setActiveTab] = useState('Pending');
 
-  // State สำหรับ Popup
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewImageOpen, setIsPreviewImageOpen] = useState(false);
   
   const [rejectionReasons, setRejectionReasons] = useState({
-    invalidSlip: false,
-    amountMismatch: false,
-    dateMismatch: false,
-    timeMismatch: false
+    invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const fetchRequests = async () => {
-    setIsLoading(true);
+  // 🌟 ฟังก์ชันดึงข้อมูล (isSilent = true จะไม่แสดงคำว่า "กำลังโหลด" ป้องกันจอกะพริบตอนรีเฟรช 10 วิ)
+  const fetchRequests = async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/deposit-requests`);
       const data = await response.json();
@@ -41,15 +37,20 @@ const DepositRequest = () => {
     }
   };
 
+  // 🌟 โหลดข้อมูลครั้งแรก และตั้งเวลารีเฟรชอัตโนมัติทุกๆ 10 วินาที
   useEffect(() => {
-    fetchRequests();
+    fetchRequests(false); // โหลดแบบแสดง Loading ครั้งแรก
+    
+    const interval = setInterval(() => {
+      fetchRequests(true); // โหลดแบบเงียบๆ ทุกๆ 10 วินาที
+    }, 10000);
+
+    return () => clearInterval(interval); // ล้าง Interval เมื่อปิดหน้านี้
   }, []);
 
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
-    setRejectionReasons({
-      invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false
-    });
+    setRejectionReasons({ invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false });
     setIsModalOpen(true);
   };
 
@@ -73,7 +74,7 @@ const DepositRequest = () => {
       if (data.success) {
         alert("✅ อนุมัติและเติมเงินสำเร็จ");
         setIsModalOpen(false);
-        fetchRequests();
+        fetchRequests(true);
       } else {
         alert("❌ " + data.message);
       }
@@ -106,7 +107,7 @@ const DepositRequest = () => {
       if (data.success) {
         alert("⚠️ ส่งกลับให้ลูกค้าแก้ไขเรียบร้อยแล้ว");
         setIsModalOpen(false);
-        fetchRequests();
+        fetchRequests(true);
       } else {
         alert("❌ " + data.message);
       }
@@ -121,49 +122,60 @@ const DepositRequest = () => {
     return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
-  // กรองรายการตาม Tab ที่เลือก
   const filteredRequests = requests.filter(req => req.status === activeTab);
+  
+  // 🌟 คำนวณจำนวนคำขอที่รอตรวจสอบ
+  const pendingCount = requests.filter(req => req.status === 'Pending').length;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       
-      {/* 🌟 กล่องสรุปยอดเงินรายเดือน */}
+      {/* กล่องสรุปยอดเงินรายเดือน */}
       <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ backgroundColor: '#22c55e', padding: '10px', borderRadius: '50%', color: 'white' }}>
             <Calendar size={24} />
           </div>
           <div>
-            <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>สรุปยอดฝากอนุมัติแล้ว (เดือนนี้)</h3>
-            <p style={{ margin: 0, color: '#15803d', fontSize: '13px' }}>ข้อมูลอัปเดตแบบเรียลไทม์</p>
+            <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>สรุปยอดฝากกระทบยอดสำเร็จ (เดือนนี้)</h3>
+            <p style={{ margin: 0, color: '#15803d', fontSize: '13px' }}>ข้อมูลอัปเดตแบบเรียลไทม์อัตโนมัติ</p>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          {monthlySummary['THB'] && (
+          {monthlySummary['THB'] ? (
             <p style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#0369a1' }}>
               {formatCurrency(monthlySummary['THB'])} THB
             </p>
-          )}
-          {monthlySummary['LAK'] && (
-            <p style={{ margin: '5px 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#be185d' }}>
-              {formatCurrency(monthlySummary['LAK'])} LAK
-            </p>
-          )}
-          {(!monthlySummary['THB'] && !monthlySummary['LAK']) && (
-            <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#666' }}>0.00</p>
+          ) : (
+            <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#666' }}>0.00 THB</p>
           )}
         </div>
       </div>
 
-      <h2 style={{ fontSize: '22px', marginBottom: '15px', color: '#333' }}>ระบบจัดการคำขอฝากเงิน</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h2 style={{ fontSize: '22px', margin: 0, color: '#333' }}>ระบบจัดการคำขอฝากเงิน</h2>
+        
+        {/* 🌟 แสดงป้ายแจ้งเตือนด้านมุมขวา */}
+        {pendingCount > 0 && (
+          <div style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', animation: 'pulse 2s infinite' }}>
+            <Bell size={16} /> มีคำขอใหม่ {pendingCount} รายการ
+          </div>
+        )}
+      </div>
 
-      {/* 🌟 ระบบ Tabs */}
+      {/* ระบบ Tabs */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '10px' }}>
         <button 
           onClick={() => setActiveTab('Pending')}
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Pending' ? '#fef3c7' : 'transparent', color: activeTab === 'Pending' ? '#d97706' : '#6b7280' }}
         >
-          <Clock size={18} /> รอตรวจสอบ
+          <Clock size={18} /> รอตรวจสอบ 
+          {/* 🌟 Badge จำนวนในปุ่ม */}
+          {pendingCount > 0 && (
+            <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginLeft: '4px' }}>
+              {pendingCount}
+            </span>
+          )}
         </button>
         <button 
           onClick={() => setActiveTab('Approved')}
@@ -200,9 +212,9 @@ const DepositRequest = () => {
                   {formatCurrency(req.amount)} {req.currency_code}
                 </p>
                 <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+                  {/* 🌟 โชว์เวลาให้ครบวินาทีในหน้ารายการ */}
                   ส่งคำขอเมื่อ: {new Date(req.created_at).toLocaleString('th-TH')}
                 </p>
-                {/* ถ้าเป็นสถานะ Rejected ให้โชว์เหตุผลในหน้ารายการเลย */}
                 {req.status === 'Rejected' && (
                   <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>
                     เหตุผลที่ตีกลับ: {req.reject_reason}
@@ -242,7 +254,9 @@ const DepositRequest = () => {
                 <div><span style={{ color: '#64748b' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name}</strong></div>
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
                 <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('th-TH')}</strong></div>
-                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</strong></div>
+                
+                {/* 🌟 เปลี่ยนเวลาตรงนี้ให้โชว์วินาทีด้วย { hour, minute, second } */}
+                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                 <span style={{ color: '#64748b', fontSize: '15px' }}>ยอดเงินที่แจ้งโอน</span><br/>
@@ -268,7 +282,6 @@ const DepositRequest = () => {
               </div>
             </div>
 
-            {/* ถ้าเป็น Pending ให้แสดงเครื่องมือตรวจสอบ ถ้าไม่ใช่ให้แสดงสถานะ */}
             {selectedRequest.status === 'Pending' ? (
               <>
                 <div style={{ backgroundColor: '#fff1f2', padding: '20px', borderRadius: '8px', border: '1px solid #fecdd3', marginBottom: '25px' }}>
@@ -309,7 +322,6 @@ const DepositRequest = () => {
                 </div>
               </>
             ) : (
-              // แสดงสถานะสำหรับรายการที่ผ่านการตรวจแล้ว
               <div style={{ backgroundColor: selectedRequest.status === 'Approved' ? '#dcfce7' : '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', color: selectedRequest.status === 'Approved' ? '#166534' : '#b91c1c' }}>
                 {selectedRequest.status === 'Approved' ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><CheckCircle size={24} /> รายการนี้ได้รับการอนุมัติเรียบร้อยแล้ว</div>
