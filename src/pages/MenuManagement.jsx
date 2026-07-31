@@ -205,7 +205,8 @@ const MenuManagement = () => {
                 <option value="OverseeThePrize">จัดการออกเลข คั้งค่าควบคุม(OverseeThePrize)</option>
                 <option value="CustomersWinning">ลูกค้าถูกเลข(CustomersWinning)</option>
                 <option value="WithdrawalRequest">คำขอถอนเงิน(WithdrawalRequest)</option>
-                <option value="ReportDeposit">รายงานสรถปเงินฝาก(ReportDeposit)</option>
+                <option value="ReportDeposit">รายงานสรุปเงินฝาก(ReportDeposit)</option>
+                <option value="OderNumber">รายงานขายรายวัน(OderNumber)</option>
               </select>
             </div>
 

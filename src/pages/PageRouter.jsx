@@ -20,6 +20,7 @@ import CustomersRequestBook from './CustomersRequestBook';
 import CustomersWinning  from './CustomersWinning';
 import WithdrawalRequest from './WithdrawalRequest';
 import ReportDeposit from './ReportDeposit';
+import OderNumber from './OderNumber';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -40,7 +41,8 @@ const componentsRegistry = {
   'CustomersRequestBook': CustomersRequestBook,
   'CustomersWinning': CustomersWinning ,
   'WithdrawalRequest': WithdrawalRequest,
-  'ReportDeposit': ReportDeposit
+  'ReportDeposit': ReportDeposit,
+  'OderNumber': OderNumber
 };
 
 export default function PageRouter() {
