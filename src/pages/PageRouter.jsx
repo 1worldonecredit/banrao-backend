@@ -22,6 +22,7 @@ import WithdrawalRequest from './WithdrawalRequest';
 import ReportDeposit from './ReportDeposit';
 import OderNumber from './OderNumber';
 import ChatMessage from './ChatMessage';
+import MaliciousIP from './MaliciousIP';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -44,7 +45,8 @@ const componentsRegistry = {
   'WithdrawalRequest': WithdrawalRequest,
   'ReportDeposit': ReportDeposit,
   'OderNumber': OderNumber,
-  'ChatMessage': ChatMessage
+  'ChatMessage': ChatMessage,
+  'MaliciousIP': MaliciousIP
 };
 
 export default function PageRouter() {
