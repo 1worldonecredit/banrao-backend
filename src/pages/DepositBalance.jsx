@@ -204,6 +204,7 @@ const DepositBalance = () => {
         </div>
 
         {/* ตารางแสดงรายงานและตัวกรอง */}
+        {/* ตารางแสดงรายงานและตัวกรอง */}
         <div style={{ flex: '999 1 500px', maxWidth: '100%', backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', boxSizing: 'border-box', minWidth: 0 }}>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px', gap: '15px' }}>
@@ -231,7 +232,7 @@ const DepositBalance = () => {
                   <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>วัน-เวลาโอน</th>
                   <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>ธนาคาร / เลขบัญชี</th>
                   <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>ยอดเงิน</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>สถานะจับคู่</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>สถานะ</th>
                   <th style={{ padding: '12px', borderBottom: '2px solid #e5e7eb' }}>ผู้บันทึก</th>
                 </tr>
               </thead>
@@ -242,13 +243,14 @@ const DepositBalance = () => {
                     <td style={{ padding: '12px' }}>{r.bank_name} <br/><span style={{fontSize: '12px', color: '#888'}}>{r.account_number}</span></td>
                     <td style={{ padding: '12px', fontWeight: 'bold', color: '#0369a1' }}>{formatCurrency(r.amount)} {r.currency || 'THB'}</td>
                     <td style={{ padding: '12px' }}>
+                      {/* 🌟 เปลี่ยนคำตามที่ฝ่ายบัญชีต้องการตรงนี้ครับ */}
                       {r.is_reconciled ? (
                         <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                          <CheckCircle size={12} /> จับคู่แล้ว
+                          <CheckCircle size={12} /> สำเร็จ
                         </span>
                       ) : (
                         <span style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                          <Clock size={12} /> รอจับคู่
+                          <Clock size={12} /> รอกระทบยอด
                         </span>
                       )}
                     </td>
@@ -264,6 +266,8 @@ const DepositBalance = () => {
             </table>
           </div>
         </div>
+
+
       </div>
     </div>
   );
