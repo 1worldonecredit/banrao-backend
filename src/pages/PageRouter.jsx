@@ -23,6 +23,7 @@ import ReportDeposit from './ReportDeposit';
 import OderNumber from './OderNumber';
 import ChatMessage from './ChatMessage';
 import MaliciousIP from './MaliciousIP';
+import DepositBalance from './DepositBalance';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -46,6 +47,7 @@ const componentsRegistry = {
   'ReportDeposit': ReportDeposit,
   'OderNumber': OderNumber,
   'ChatMessage': ChatMessage,
+  'DepositBalance': DepositBalance,
   'MaliciousIP': MaliciousIP
 };
 

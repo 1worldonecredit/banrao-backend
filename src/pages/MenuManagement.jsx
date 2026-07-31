@@ -208,6 +208,7 @@ const MenuManagement = () => {
                 <option value="ReportDeposit">รายงานสรุปเงินฝาก(ReportDeposit)</option>
                 <option value="OderNumber">รายงานขายรายวัน(OderNumber)</option>
                 <option value="ChatMessage">ข้อความพูดคุย(ChatMessage)</option>
+                <option value="DepositBalance">คีย์ยอดฝากเงินที่ลูกค้าโอนมา (DepositBalance)</option>
                 <option value="MaliciousIP">IP ที่ต้องระวัง(MaliciousIP)</option>
               </select>
             </div>
