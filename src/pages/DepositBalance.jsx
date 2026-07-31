@@ -17,10 +17,10 @@ const DepositBalance = () => {
   
   const [transferDate, setTransferDate] = useState(getTodayDate());
   const [transferTime, setTransferTime] = useState('');
-  const adminName = "ผู้ดูแลระบบ";
+  const adminName = "ผู้ดูแลระบบ"; // สมมติชื่อแอดมิน (สามารถดึงจาก Context/Session ได้)
 
   const [records, setRecords] = useState([]);
-  const [summary, setSummary] = useState({ todayTotal: 0, monthlyTotal: 0 });
+  const [summaryList, setSummaryList] = useState([]); // เก็บข้อมูลสรุปแยกตามบัญชี
   const [startDate, setStartDate] = useState(getTodayDate());
   const [endDate, setEndDate] = useState(getTodayDate());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,20 +28,29 @@ const DepositBalance = () => {
   useEffect(() => {
     fetchBanks();
     fetchReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchBanks = async () => {
-    const res = await fetch(`${API_URL}/api/admin/banks`);
-    const data = await res.json();
-    if (data.success) setBanks(data.banks);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/banks`);
+      const data = await res.json();
+      if (data.success) setBanks(data.banks);
+    } catch (error) {
+      console.error("Error fetching banks:", error);
+    }
   };
 
   const fetchReport = async () => {
-    const res = await fetch(`${API_URL}/api/admin/statement-report?startDate=${startDate}&endDate=${endDate}`);
-    const data = await res.json();
-    if (data.success) {
-      setRecords(data.records);
-      setSummary({ todayTotal: data.todayTotal, monthlyTotal: data.monthlyTotal });
+    try {
+      const res = await fetch(`${API_URL}/api/admin/statement-report?startDate=${startDate}&endDate=${endDate}`);
+      const data = await res.json();
+      if (data.success) {
+        setRecords(data.records);
+        setSummaryList(data.summary || []);
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
     }
   };
 
@@ -72,7 +81,7 @@ const DepositBalance = () => {
         alert(data.message);
         setAmount('');
         setTransferTime('');
-        fetchReport();
+        fetchReport(); // ดึงข้อมูลใหม่หลังบันทึกเสร็จ
       } else {
         alert("เกิดข้อผิดพลาด: " + data.message);
       }
@@ -97,9 +106,9 @@ const DepositBalance = () => {
         req.statement_id,
         req.bank_name,
         req.account_number,
-        req.amount,
-        new Date(req.transfer_date).toLocaleDateString(),
-        req.transfer_time,
+        `${formatCurrency(req.amount)} ${req.currency || ''}`, 
+        new Date(req.transfer_date).toLocaleDateString('th-TH'),
+        req.time_formatted || req.transfer_time,
         req.is_reconciled ? 'Matched' : 'Pending',
         req.recorded_by
       ];
@@ -122,19 +131,39 @@ const DepositBalance = () => {
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', width: '100%', boxSizing: 'border-box' }}>
       
-      {/* 🌟 กล่องสรุปยอด: ปรับเป็น flex-wrap เพื่อให้จัดเรียงลงมาได้ในมือถือ */}
+      {/* 🌟 กล่องสรุปยอด: วนลูปสร้างกล่องแยกตาม "เลขบัญชี" อัตโนมัติ */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
-        <div style={{ flex: '1 1 250px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '20px', borderRadius: '12px', minWidth: '200px' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#166534', fontSize: '16px' }}>ยอดเงินฝากเข้า (วันนี้)</h3>
-          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#15803d' }}>{formatCurrency(summary.todayTotal)} ฿</p>
-        </div>
-        <div style={{ flex: '1 1 250px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '20px', borderRadius: '12px', minWidth: '200px' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#1e40af', fontSize: '16px' }}>สรุปยอดรายเดือน (เดือนนี้)</h3>
-          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#1d4ed8' }}>{formatCurrency(summary.monthlyTotal)} ฿</p>
-        </div>
+        {summaryList.length === 0 ? (
+          <div style={{ flex: '1 1 250px', backgroundColor: '#f9fafb', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+            <p style={{ margin: 0, color: '#6b7280', textAlign: 'center' }}>ยังไม่มีข้อมูลสรุปยอด</p>
+          </div>
+        ) : (
+          summaryList.map((acc, idx) => {
+            const isLAK = acc.currency === 'LAK';
+            const bgColor = isLAK ? '#fffbeb' : '#f0fdf4';
+            const borderColor = isLAK ? '#fde68a' : '#bbf7d0';
+            const textColor = isLAK ? '#b45309' : '#15803d';
+            
+            return (
+              <div key={idx} style={{ flex: '1 1 300px', backgroundColor: bgColor, border: `1px solid ${borderColor}`, padding: '20px', borderRadius: '12px', minWidth: '250px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                {/* แสดงชื่อธนาคาร และเลขบัญชี */}
+                <h2 style={{ margin: '0 0 15px 0', color: '#111', fontSize: '15px', fontWeight: 'bold' }}>
+                  {acc.bank_name} <br/><span style={{fontSize: '13px', color: '#666', fontWeight: 'normal'}}>({acc.account_number})</span>
+                </h2>
+                
+                <h3 style={{ margin: '0 0 5px 0', color: textColor, fontSize: '14px' }}>ยอดรับวันนี้ ({acc.currency})</h3>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: textColor }}>{formatCurrency(acc.todayTotal)}</p>
+                
+                <hr style={{ border: 'none', borderTop: `1px solid ${borderColor}`, margin: '12px 0' }} />
+                
+                <h3 style={{ margin: '0 0 5px 0', color: textColor, fontSize: '13px' }}>สรุปยอดรายเดือน ({acc.currency})</h3>
+                <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: textColor }}>{formatCurrency(acc.monthlyTotal)}</p>
+              </div>
+            )
+          })
+        )}
       </div>
 
-      {/* 🌟 โครงสร้างหลัก: ปรับให้ยืดหยุ่น (Responsive) เมื่อจอเล็กจะปัดฟอร์มและตารางเรียงลงล่างอัตโนมัติ */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
         
         {/* ฟอร์มคีย์ยอด */}
@@ -195,7 +224,6 @@ const DepositBalance = () => {
             </button>
           </div>
 
-          {/* 🌟 ปรับให้ตารางมี Scrollbar แนวนอนในมือถือ เพื่อกันล้นจอ */}
           <div style={{ overflowX: 'auto', width: '100%' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '600px' }}>
               <thead>
@@ -210,13 +238,13 @@ const DepositBalance = () => {
               <tbody>
                 {records.map((r, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '12px' }}>{new Date(r.transfer_date).toLocaleDateString('th-TH')} <br/><span style={{color: '#666'}}>{r.transfer_time}</span></td>
+                    <td style={{ padding: '12px' }}>{new Date(r.transfer_date).toLocaleDateString('th-TH')} <br/><span style={{color: '#666'}}>{r.time_formatted || r.transfer_time}</span></td>
                     <td style={{ padding: '12px' }}>{r.bank_name} <br/><span style={{fontSize: '12px', color: '#888'}}>{r.account_number}</span></td>
-                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#0369a1' }}>{formatCurrency(r.amount)}</td>
+                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#0369a1' }}>{formatCurrency(r.amount)} {r.currency || 'THB'}</td>
                     <td style={{ padding: '12px' }}>
                       {r.is_reconciled ? (
                         <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                          <CheckCircle size={12} /> อนุมัติแล้ว
+                          <CheckCircle size={12} /> จับคู่แล้ว
                         </span>
                       ) : (
                         <span style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
@@ -235,7 +263,6 @@ const DepositBalance = () => {
               </tbody>
             </table>
           </div>
-
         </div>
       </div>
     </div>
