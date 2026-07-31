@@ -1,6 +1,4 @@
 import React from 'react';
-
-
 const CustomersWinning = () => {
   return (
     <div className="app-container">
