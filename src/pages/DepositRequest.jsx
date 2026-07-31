@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -188,15 +188,30 @@ const DepositRequest = () => {
 
             <div style={{ marginBottom: '25px' }}>
               <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '15px' }}>หลักฐานการโอน (สลิป):</p>
-              <div style={{ position: 'relative', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center' }}>
-                <img src={selectedRequest.slip_image} alt="Slip" style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain' }} />
-                <button 
-                  onClick={() => setIsPreviewImageOpen(true)}
-                  style={{ position: 'absolute', bottom: '15px', right: '15px', backgroundColor: 'rgba(0,0,0,0.75)', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  <Search size={18} /> ขยายรูป
-                </button>
+              {/* 🌟 ปรับปรุงส่วนรูปภาพ: เปลี่ยนเมาส์เป็นแว่นขยาย และกดที่รูปได้เลย */}
+              <div 
+                onClick={() => setIsPreviewImageOpen(true)}
+                title="คลิกเพื่อขยายรูปสลิป"
+                style={{ 
+                  position: 'relative', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '8px', 
+                  overflow: 'hidden', 
+                  backgroundColor: '#f3f4f6', 
+                  display: 'flex', 
+                  justifyContent: 'center',
+                  cursor: 'zoom-in' // เปลี่ยนเมาส์เป็นแว่นขยาย
+                }}
+              >
+                <img 
+                  src={selectedRequest.slip_image} 
+                  alt="Slip" 
+                  style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain' }} 
+                />
               </div>
+              <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280', textAlign: 'center' }}>
+                * นำเมาส์วางและคลิกที่รูปเพื่อขยาย
+              </p>
             </div>
 
             <div style={{ backgroundColor: '#fff1f2', padding: '20px', borderRadius: '8px', border: '1px solid #fecdd3', marginBottom: '25px' }}>
@@ -257,6 +272,7 @@ const DepositRequest = () => {
         <div 
           onClick={() => setIsPreviewImageOpen(false)}
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }}
+          title="คลิกเพื่อปิด"
         >
           <img src={selectedRequest.slip_image} alt="Slip Full" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain' }} />
         </div>
