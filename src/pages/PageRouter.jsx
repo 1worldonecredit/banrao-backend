@@ -19,6 +19,7 @@ import DailySales from './DailySales';
 import CustomersRequestBook from './CustomersRequestBook';
 import CustomersWinning  from './CustomersWinning';
 import WithdrawalRequest from './WithdrawalRequest';
+import ReportDeposit from './ReportDeposit';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -38,7 +39,8 @@ const componentsRegistry = {
   'DailySales': DailySales,
   'CustomersRequestBook': CustomersRequestBook,
   'CustomersWinning': CustomersWinning ,
-  'WithdrawalRequest': WithdrawalRequest
+  'WithdrawalRequest': WithdrawalRequest,
+  'ReportDeposit': ReportDeposit
 };
 
 export default function PageRouter() {
