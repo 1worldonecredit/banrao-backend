@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X, Clock, CheckSquare, XSquare, Calendar, Bell, Image as ImageIcon } from 'lucide-react';
+import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X, Clock, CheckSquare, XSquare, Calendar, Bell } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -14,34 +14,13 @@ const DepositRequest = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewImageOpen, setIsPreviewImageOpen] = useState(false);
   
-  // State แว่นขยาย
-  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
-  const [showZoom, setShowZoom] = useState(false);
-
-  // State Checkbox กันมือลั่น
-  const [isConfirmChecked, setIsConfirmChecked] = useState(false);
-  
   const [rejectionReasons, setRejectionReasons] = useState({
     invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const formatRejectReasons = (reasonStr) => {
-    if (!reasonStr) return '-';
-    try {
-      const reasons = JSON.parse(reasonStr);
-      let textArr = [];
-      if (reasons.invalidSlip) textArr.push("สลิปปลอม/ภาพไม่ถูกต้อง");
-      if (reasons.amountMismatch) textArr.push("จำนวนเงินไม่ตรง");
-      if (reasons.dateMismatch) textArr.push("วันที่โอนไม่ตรง");
-      if (reasons.timeMismatch) textArr.push("เวลาโอนไม่ตรง");
-      return textArr.join(", ");
-    } catch (e) {
-      return reasonStr; 
-    }
-  };
-
+  // 🌟 ฟังก์ชันดึงข้อมูล (isSilent = true จะไม่แสดงคำว่า "กำลังโหลด" ป้องกันจอกะพริบตอนรีเฟรช 10 วิ)
   const fetchRequests = async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
     try {
@@ -58,43 +37,32 @@ const DepositRequest = () => {
     }
   };
 
+  // 🌟 โหลดข้อมูลครั้งแรก และตั้งเวลารีเฟรชอัตโนมัติทุกๆ 10 วินาที
   useEffect(() => {
-    fetchRequests(false);
+    fetchRequests(false); // โหลดแบบแสดง Loading ครั้งแรก
     
     const interval = setInterval(() => {
-      fetchRequests(true);
+      fetchRequests(true); // โหลดแบบเงียบๆ ทุกๆ 10 วินาที
     }, 10000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // ล้าง Interval เมื่อปิดหน้านี้
   }, []);
 
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
     setRejectionReasons({ invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false });
-    setIsConfirmChecked(false);
     setIsModalOpen(true);
   };
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setRejectionReasons(prev => ({ ...prev, [name]: checked }));
-    setIsConfirmChecked(false);
-  };
-
-  const handleMouseMove = (e) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomPos({ x, y });
   };
 
   const hasRejectionReasons = Object.values(rejectionReasons).some(value => value === true);
 
   const handleApprove = async () => {
-    if (hasRejectionReasons) return;
-    if (!isConfirmChecked) return; 
     if (!window.confirm("ยืนยันการ 'อนุมัติ' รายการนี้ และเติมเงินเข้ากระเป๋าลูกค้า?")) return;
-    
     setIsProcessing(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/deposit-approve`, {
@@ -104,7 +72,7 @@ const DepositRequest = () => {
       });
       const data = await response.json();
       if (data.success) {
-        alert("✅ " + data.message);
+        alert("✅ อนุมัติและเติมเงินสำเร็จ");
         setIsModalOpen(false);
         fetchRequests(true);
       } else {
@@ -120,20 +88,24 @@ const DepositRequest = () => {
   const handleReject = async () => {
     if (!window.confirm("ยืนยันการ 'ส่งกลับแก้ไข' ใช่หรือไม่?")) return;
     
+    let reasonsText = [];
+    if (rejectionReasons.invalidSlip) reasonsText.push("สลิปไม่ถูกต้อง/ภาพไม่ชัด");
+    if (rejectionReasons.amountMismatch) reasonsText.push("จำนวนเงินไม่ตรงกับสลิป");
+    if (rejectionReasons.dateMismatch) reasonsText.push("วันที่โอนไม่ตรงกับสลิป");
+    if (rejectionReasons.timeMismatch) reasonsText.push("เวลาโอนไม่ตรงกับสลิป");
+
+    const finalReason = reasonsText.join(", ");
+
     setIsProcessing(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/deposit-reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          depositId: selectedRequest.deposit_id, 
-          userId: selectedRequest.user_id,
-          rejectReasons: rejectionReasons 
-        })
+        body: JSON.stringify({ depositId: selectedRequest.deposit_id, reason: finalReason })
       });
       const data = await response.json();
       if (data.success) {
-        alert(data.message); 
+        alert("⚠️ ส่งกลับให้ลูกค้าแก้ไขเรียบร้อยแล้ว");
         setIsModalOpen(false);
         fetchRequests(true);
       } else {
@@ -150,8 +122,9 @@ const DepositRequest = () => {
     return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
-  // 🌟 [แก้ไข] ยึดตาม Logic ดั้งเดิมของคุณเป๊ะๆ เพื่อให้พอกดอนุมัติแล้วงานหายไปรอกระทบยอด
   const filteredRequests = requests.filter(req => req.status === activeTab);
+  
+  // 🌟 คำนวณจำนวนคำขอที่รอตรวจสอบ
   const pendingCount = requests.filter(req => req.status === 'Pending').length;
 
   return (
@@ -182,6 +155,7 @@ const DepositRequest = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <h2 style={{ fontSize: '22px', margin: 0, color: '#333' }}>ระบบจัดการคำขอฝากเงิน</h2>
         
+        {/* 🌟 แสดงป้ายแจ้งเตือนด้านมุมขวา */}
         {pendingCount > 0 && (
           <div style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', animation: 'pulse 2s infinite' }}>
             <Bell size={16} /> มีคำขอใหม่ {pendingCount} รายการ
@@ -196,6 +170,7 @@ const DepositRequest = () => {
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Pending' ? '#fef3c7' : 'transparent', color: activeTab === 'Pending' ? '#d97706' : '#6b7280' }}
         >
           <Clock size={18} /> รอตรวจสอบ 
+          {/* 🌟 Badge จำนวนในปุ่ม */}
           {pendingCount > 0 && (
             <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginLeft: '4px' }}>
               {pendingCount}
@@ -232,23 +207,17 @@ const DepositRequest = () => {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <div>
-                <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#1f2937', display: 'flex', alignItems: 'center' }}>
-                  ผู้ใช้: {req.customer_name}
-                  {req.edit_count > 0 && (
-                    <span style={{ marginLeft: '10px', fontSize: '12px', backgroundColor: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '12px' }}>
-                      แก้ไขแล้ว {req.edit_count} ครั้ง
-                    </span>
-                  )}
-                </p>
+                <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#1f2937' }}>ผู้ใช้: {req.customer_name}</p>
                 <p style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#0369a1' }}>
                   {formatCurrency(req.amount)} {req.currency_code}
                 </p>
                 <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+                  {/* 🌟 โชว์เวลาให้ครบวินาทีในหน้ารายการ */}
                   ส่งคำขอเมื่อ: {new Date(req.created_at).toLocaleString('th-TH')}
                 </p>
                 {req.status === 'Rejected' && (
                   <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>
-                    เหตุผลที่ตีกลับ: {formatRejectReasons(req.reject_reasons)}
+                    เหตุผลที่ตีกลับ: {req.reject_reason}
                   </p>
                 )}
               </div>
@@ -279,13 +248,6 @@ const DepositRequest = () => {
               <X size={24} color="#6b7280" onClick={() => setIsModalOpen(false)} style={{ cursor: 'pointer' }} />
             </div>
 
-            {selectedRequest.edit_count > 0 && (
-              <div style={{ backgroundColor: '#fffbeb', color: '#b45309', padding: '12px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={18} />
-                <b>ข้อควรระวัง:</b> ลูกค้ารายนี้ส่งแก้ไขคำขอนี้มาแล้ว {selectedRequest.edit_count} ครั้ง โปรดตรวจสอบข้อมูลอย่างละเอียด
-              </div>
-            )}
-
             <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
               <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}><strong>ผู้แจ้ง:</strong> {selectedRequest.customer_name} (ID: {selectedRequest.user_id})</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
@@ -293,7 +255,8 @@ const DepositRequest = () => {
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
                 <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('th-TH')}</strong></div>
                 
-                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
+                {/* 🌟 เปลี่ยนเวลาตรงนี้ให้โชว์วินาทีด้วย { hour, minute, second } */}
+                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                 <span style={{ color: '#64748b', fontSize: '15px' }}>ยอดเงินที่แจ้งโอน</span><br/>
@@ -302,38 +265,20 @@ const DepositRequest = () => {
             </div>
 
             <div style={{ marginBottom: '25px' }}>
-              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '15px' }}>หลักฐานการโอน (สลิป): ชี้เพื่อซูม</p>
-              
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '15px' }}>หลักฐานการโอน (สลิป):</p>
               <div 
                 onClick={() => setIsPreviewImageOpen(true)}
-                onMouseMove={handleMouseMove}
-                onMouseEnter={() => setShowZoom(true)}
-                onMouseLeave={() => setShowZoom(false)}
-                title="คลิกเพื่อขยายดูเต็มจอ"
+                title="คลิกเพื่อขยายรูปสลิป"
                 style={{ 
                   position: 'relative', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', 
-                  backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', cursor: 'zoom-in',
-                  height: '350px' 
+                  backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', cursor: 'zoom-in' 
                 }}
               >
                 <img 
                   src={selectedRequest.slip_image} 
                   alt="Slip" 
-                  style={{ 
-                    maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', 
-                    opacity: showZoom ? 0 : 1, transition: 'opacity 0.2s' 
-                  }} 
+                  style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain' }} 
                 />
-                {showZoom && (
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    backgroundImage: `url(${selectedRequest.slip_image})`,
-                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-                    backgroundSize: '250%', 
-                    backgroundRepeat: 'no-repeat',
-                    pointerEvents: 'none'
-                  }} />
-                )}
               </div>
             </div>
 
@@ -361,21 +306,6 @@ const DepositRequest = () => {
                   </label>
                 </div>
 
-                {!hasRejectionReasons && (
-                  <div style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input 
-                      type="checkbox" 
-                      id="confirm-approve"
-                      checked={isConfirmChecked}
-                      onChange={(e) => setIsConfirmChecked(e.target.checked)}
-                      style={{ transform: 'scale(1.3)', cursor: 'pointer' }}
-                    />
-                    <label htmlFor="confirm-approve" style={{ cursor: 'pointer', color: '#166534', fontWeight: 'bold', fontSize: '13px' }}>
-                      ข้อมูลถูกต้องทั้งหมด ยืนยันการอนุมัติสลิปนี้
-                    </label>
-                  </div>
-                )}
-
                 <div style={{ display: 'flex', gap: '15px' }}>
                   <button 
                     onClick={handleReject} disabled={!hasRejectionReasons || isProcessing}
@@ -384,8 +314,8 @@ const DepositRequest = () => {
                     <XCircle size={22} /> ส่งกลับให้ลูกค้าแก้ไข
                   </button>
                   <button 
-                    onClick={handleApprove} disabled={hasRejectionReasons || isProcessing || !isConfirmChecked}
-                    style={{ flex: 1, padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: (!hasRejectionReasons && isConfirmChecked) ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: (!hasRejectionReasons && isConfirmChecked) ? '#22c55e' : '#f3f4f6', color: (!hasRejectionReasons && isConfirmChecked) ? 'white' : '#9ca3af' }}
+                    onClick={handleApprove} disabled={hasRejectionReasons || isProcessing}
+                    style={{ flex: 1, padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: !hasRejectionReasons ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: !hasRejectionReasons ? '#22c55e' : '#f3f4f6', color: !hasRejectionReasons ? 'white' : '#9ca3af' }}
                   >
                     <CheckCircle size={22} /> ข้อมูลถูกต้อง (ตรวจผ่าน)
                   </button>
@@ -398,7 +328,7 @@ const DepositRequest = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><XCircle size={24} /> รายการนี้ถูกส่งกลับไปให้แก้ไข</div>
-                    <span style={{ fontWeight: 'normal', fontSize: '14px', color: '#ef4444' }}>เหตุผล: {formatRejectReasons(selectedRequest.reject_reasons)}</span>
+                    <span style={{ fontWeight: 'normal', fontSize: '14px', color: '#ef4444' }}>เหตุผล: {selectedRequest.reject_reason}</span>
                   </div>
                 )}
               </div>
