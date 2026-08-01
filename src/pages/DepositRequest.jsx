@@ -18,7 +18,7 @@ const DepositRequest = () => {
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [showZoom, setShowZoom] = useState(false);
 
-  // 🌟 State Checkbox กันมือลั่น
+  // State Checkbox กันมือลั่น
   const [isConfirmChecked, setIsConfirmChecked] = useState(false);
   
   const [rejectionReasons, setRejectionReasons] = useState({
@@ -71,7 +71,6 @@ const DepositRequest = () => {
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
     setRejectionReasons({ invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false });
-    // 🌟 รีเซ็ตค่า Checkbox กันมือลั่นทุกครั้งที่เปิดบิลใหม่
     setIsConfirmChecked(false);
     setIsModalOpen(true);
   };
@@ -79,7 +78,6 @@ const DepositRequest = () => {
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setRejectionReasons(prev => ({ ...prev, [name]: checked }));
-    // 🌟 ถ้าติ๊กว่ามีอันไหนผิด ให้ปลดล็อคการยืนยันอนุมัติออก
     setIsConfirmChecked(false);
   };
 
@@ -94,7 +92,7 @@ const DepositRequest = () => {
 
   const handleApprove = async () => {
     if (hasRejectionReasons) return;
-    if (!isConfirmChecked) return; // 🌟 ดักไว้เผื่อแอดมินยังไม่กดยืนยัน
+    if (!isConfirmChecked) return; 
     if (!window.confirm("ยืนยันการ 'อนุมัติ' รายการนี้ และเติมเงินเข้ากระเป๋าลูกค้า?")) return;
     
     setIsProcessing(true);
@@ -152,8 +150,9 @@ const DepositRequest = () => {
     return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
-  const filteredRequests = requests.filter(req => req.status === activeTab || (activeTab === 'Pending' && req.status === 'Slip Verified'));
-  const pendingCount = requests.filter(req => req.status === 'Pending' || req.status === 'Slip Verified').length;
+  // 🌟 [แก้ไข] ยึดตาม Logic ดั้งเดิมของคุณเป๊ะๆ เพื่อให้พอกดอนุมัติแล้วงานหายไปรอกระทบยอด
+  const filteredRequests = requests.filter(req => req.status === activeTab);
+  const pendingCount = requests.filter(req => req.status === 'Pending').length;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
@@ -290,11 +289,11 @@ const DepositRequest = () => {
             <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
               <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}><strong>ผู้แจ้ง:</strong> {selectedRequest.customer_name} (ID: {selectedRequest.user_id})</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
-                <div><span style={{ color: '#64748b' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name || 'ไม่ระบุ'}</strong></div>
+                <div><span style={{ color: '#64748b' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name}</strong></div>
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
                 <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('th-TH')}</strong></div>
                 
-                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
+                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                 <span style={{ color: '#64748b', fontSize: '15px' }}>ยอดเงินที่แจ้งโอน</span><br/>
@@ -303,13 +302,14 @@ const DepositRequest = () => {
             </div>
 
             <div style={{ marginBottom: '25px' }}>
-              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '15px' }}>หลักฐานการโอน (สลิป): ชี้เพื่อซูม หรือคลิกเพื่อดูเต็มจอ</p>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '15px' }}>หลักฐานการโอน (สลิป): ชี้เพื่อซูม</p>
+              
               <div 
                 onClick={() => setIsPreviewImageOpen(true)}
                 onMouseMove={handleMouseMove}
                 onMouseEnter={() => setShowZoom(true)}
                 onMouseLeave={() => setShowZoom(false)}
-                title="คลิกเพื่อดูเต็มจอ"
+                title="คลิกเพื่อขยายดูเต็มจอ"
                 style={{ 
                   position: 'relative', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', 
                   backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', cursor: 'zoom-in',
@@ -339,7 +339,7 @@ const DepositRequest = () => {
 
             {selectedRequest.status === 'Pending' ? (
               <>
-                <div style={{ backgroundColor: '#fff1f2', padding: '20px', borderRadius: '8px', border: '1px solid #fecdd3', marginBottom: '15px' }}>
+                <div style={{ backgroundColor: '#fff1f2', padding: '20px', borderRadius: '8px', border: '1px solid #fecdd3', marginBottom: '25px' }}>
                   <p style={{ margin: '0 0 15px 0', fontWeight: 'bold', color: '#be185d', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <AlertTriangle size={20} /> หากข้อมูลไม่ถูกต้อง กรุณาติ๊กเลือกด้านล่าง
                   </p>
@@ -361,7 +361,6 @@ const DepositRequest = () => {
                   </label>
                 </div>
 
-                {/* 🌟 กล่อง Checkbox ยืนยันข้อมูลถูกต้อง (กันมือลั่น) */}
                 {!hasRejectionReasons && (
                   <div style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input 
@@ -384,8 +383,6 @@ const DepositRequest = () => {
                   >
                     <XCircle size={22} /> ส่งกลับให้ลูกค้าแก้ไข
                   </button>
-                  
-                  {/* 🌟 ปุ่มอนุมัติ จะกดได้เมื่อติ๊ก Checkbox เท่านั้น */}
                   <button 
                     onClick={handleApprove} disabled={hasRejectionReasons || isProcessing || !isConfirmChecked}
                     style={{ flex: 1, padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: (!hasRejectionReasons && isConfirmChecked) ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: (!hasRejectionReasons && isConfirmChecked) ? '#22c55e' : '#f3f4f6', color: (!hasRejectionReasons && isConfirmChecked) ? 'white' : '#9ca3af' }}
