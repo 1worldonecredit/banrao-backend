@@ -20,7 +20,22 @@ const DepositRequest = () => {
   
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🌟 ฟังก์ชันดึงข้อมูล (isSilent = true จะไม่แสดงคำว่า "กำลังโหลด" ป้องกันจอกะพริบตอนรีเฟรช 10 วิ)
+  // 🌟 ฟังก์ชันแปลง JSON เหตุผลการตีกลับให้อ่านง่าย
+  const formatRejectReasons = (reasonStr) => {
+    if (!reasonStr) return '-';
+    try {
+      const reasons = JSON.parse(reasonStr);
+      let textArr = [];
+      if (reasons.invalidSlip) textArr.push("สลิปปลอม/ภาพไม่ถูกต้อง");
+      if (reasons.amountMismatch) textArr.push("จำนวนเงินไม่ตรง");
+      if (reasons.dateMismatch) textArr.push("วันที่โอนไม่ตรง");
+      if (reasons.timeMismatch) textArr.push("เวลาโอนไม่ตรง");
+      return textArr.join(", ");
+    } catch (e) {
+      return reasonStr; // รองรับข้อมูลเก่าที่อาจยังเป็น Text ธรรมดา
+    }
+  };
+
   const fetchRequests = async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
     try {
@@ -37,19 +52,19 @@ const DepositRequest = () => {
     }
   };
 
-  // 🌟 โหลดข้อมูลครั้งแรก และตั้งเวลารีเฟรชอัตโนมัติทุกๆ 10 วินาที
   useEffect(() => {
-    fetchRequests(false); // โหลดแบบแสดง Loading ครั้งแรก
+    fetchRequests(false);
     
     const interval = setInterval(() => {
-      fetchRequests(true); // โหลดแบบเงียบๆ ทุกๆ 10 วินาที
+      fetchRequests(true);
     }, 10000);
 
-    return () => clearInterval(interval); // ล้าง Interval เมื่อปิดหน้านี้
+    return () => clearInterval(interval);
   }, []);
 
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
+    // 🌟 เคลียร์ค่า Checkbox ทุกครั้งที่เปิด Modal
     setRejectionReasons({ invalidSlip: false, amountMismatch: false, dateMismatch: false, timeMismatch: false });
     setIsModalOpen(true);
   };
@@ -72,7 +87,7 @@ const DepositRequest = () => {
       });
       const data = await response.json();
       if (data.success) {
-        alert("✅ อนุมัติและเติมเงินสำเร็จ");
+        alert("✅ " + data.message);
         setIsModalOpen(false);
         fetchRequests(true);
       } else {
@@ -85,27 +100,25 @@ const DepositRequest = () => {
     }
   };
 
+  // 🌟 ฟังก์ชันส่งข้อมูลตีกลับแบบ Object เพื่อให้ลูกค้ารู้ว่าต้องแก้อะไร
   const handleReject = async () => {
     if (!window.confirm("ยืนยันการ 'ส่งกลับแก้ไข' ใช่หรือไม่?")) return;
     
-    let reasonsText = [];
-    if (rejectionReasons.invalidSlip) reasonsText.push("สลิปไม่ถูกต้อง/ภาพไม่ชัด");
-    if (rejectionReasons.amountMismatch) reasonsText.push("จำนวนเงินไม่ตรงกับสลิป");
-    if (rejectionReasons.dateMismatch) reasonsText.push("วันที่โอนไม่ตรงกับสลิป");
-    if (rejectionReasons.timeMismatch) reasonsText.push("เวลาโอนไม่ตรงกับสลิป");
-
-    const finalReason = reasonsText.join(", ");
-
     setIsProcessing(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/deposit-reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ depositId: selectedRequest.deposit_id, reason: finalReason })
+        body: JSON.stringify({ 
+          depositId: selectedRequest.deposit_id, 
+          userId: selectedRequest.user_id,
+          rejectReasons: rejectionReasons // ส่งค่าเป็น Object { invalidSlip: true, ... }
+        })
       });
       const data = await response.json();
       if (data.success) {
-        alert("⚠️ ส่งกลับให้ลูกค้าแก้ไขเรียบร้อยแล้ว");
+        // 🌟 แสดง Alert เตือนหากระบบตรวจพบว่าเป็นผู้ก่อกวน (Spammer)
+        alert(data.message); 
         setIsModalOpen(false);
         fetchRequests(true);
       } else {
@@ -123,8 +136,6 @@ const DepositRequest = () => {
   };
 
   const filteredRequests = requests.filter(req => req.status === activeTab);
-  
-  // 🌟 คำนวณจำนวนคำขอที่รอตรวจสอบ
   const pendingCount = requests.filter(req => req.status === 'Pending').length;
 
   return (
@@ -155,7 +166,6 @@ const DepositRequest = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <h2 style={{ fontSize: '22px', margin: 0, color: '#333' }}>ระบบจัดการคำขอฝากเงิน</h2>
         
-        {/* 🌟 แสดงป้ายแจ้งเตือนด้านมุมขวา */}
         {pendingCount > 0 && (
           <div style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', animation: 'pulse 2s infinite' }}>
             <Bell size={16} /> มีคำขอใหม่ {pendingCount} รายการ
@@ -170,7 +180,6 @@ const DepositRequest = () => {
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Pending' ? '#fef3c7' : 'transparent', color: activeTab === 'Pending' ? '#d97706' : '#6b7280' }}
         >
           <Clock size={18} /> รอตรวจสอบ 
-          {/* 🌟 Badge จำนวนในปุ่ม */}
           {pendingCount > 0 && (
             <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginLeft: '4px' }}>
               {pendingCount}
@@ -207,17 +216,24 @@ const DepositRequest = () => {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <div>
-                <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#1f2937' }}>ผู้ใช้: {req.customer_name}</p>
+                <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#1f2937', display: 'flex', alignItems: 'center' }}>
+                  ผู้ใช้: {req.customer_name}
+                  {/* 🌟 แสดงจำนวนครั้งที่ลูกค้าถูกส่งกลับไปแก้ไข */}
+                  {req.edit_count > 0 && (
+                    <span style={{ marginLeft: '10px', fontSize: '12px', backgroundColor: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '12px' }}>
+                      แก้ไขแล้ว {req.edit_count} ครั้ง
+                    </span>
+                  )}
+                </p>
                 <p style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#0369a1' }}>
                   {formatCurrency(req.amount)} {req.currency_code}
                 </p>
                 <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
-                  {/* 🌟 โชว์เวลาให้ครบวินาทีในหน้ารายการ */}
                   ส่งคำขอเมื่อ: {new Date(req.created_at).toLocaleString('th-TH')}
                 </p>
                 {req.status === 'Rejected' && (
                   <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>
-                    เหตุผลที่ตีกลับ: {req.reject_reason}
+                    เหตุผลที่ตีกลับ: {formatRejectReasons(req.reject_reasons)}
                   </p>
                 )}
               </div>
@@ -248,6 +264,14 @@ const DepositRequest = () => {
               <X size={24} color="#6b7280" onClick={() => setIsModalOpen(false)} style={{ cursor: 'pointer' }} />
             </div>
 
+            {/* 🌟 แสดงคำเตือนภายใน Modal หากลูกค้ารายนี้มีการแก้ไขข้อมูลหลายครั้ง */}
+            {selectedRequest.edit_count > 0 && (
+              <div style={{ backgroundColor: '#fffbeb', color: '#b45309', padding: '12px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} />
+                <b>ข้อควรระวัง:</b> ลูกค้ารายนี้ส่งแก้ไขคำขอนี้มาแล้ว {selectedRequest.edit_count} ครั้ง โปรดตรวจสอบข้อมูลอย่างละเอียด
+              </div>
+            )}
+
             <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
               <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}><strong>ผู้แจ้ง:</strong> {selectedRequest.customer_name} (ID: {selectedRequest.user_id})</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
@@ -255,7 +279,6 @@ const DepositRequest = () => {
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
                 <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('th-TH')}</strong></div>
                 
-                {/* 🌟 เปลี่ยนเวลาตรงนี้ให้โชว์วินาทีด้วย { hour, minute, second } */}
                 <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
@@ -328,7 +351,7 @@ const DepositRequest = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><XCircle size={24} /> รายการนี้ถูกส่งกลับไปให้แก้ไข</div>
-                    <span style={{ fontWeight: 'normal', fontSize: '14px', color: '#ef4444' }}>เหตุผล: {selectedRequest.reject_reason}</span>
+                    <span style={{ fontWeight: 'normal', fontSize: '14px', color: '#ef4444' }}>เหตุผล: {formatRejectReasons(selectedRequest.reject_reasons)}</span>
                   </div>
                 )}
               </div>
