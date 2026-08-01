@@ -326,8 +326,17 @@ const DepositRequest = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
                     <div><span style={{ color: '#166534' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name || 'ไม่ระบุ'}</strong></div>
                     <div><span style={{ color: '#166534' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
+                    
+                    {/* 🌟 อัปเดตให้แสดงวันที่แบบมาตรฐาน */}
                     <div><span style={{ color: '#166534' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{selectedRequest.deposit_datetime.split('T')[0]}</strong></div>
-                    <div><span style={{ color: '#166534' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{selectedRequest.deposit_datetime.split('T')[1].substring(0, 5)}</strong></div>
+                    
+                    {/* 🌟 อัปเดตให้แสดงเวลาโอนเต็มๆ (ชั่วโมง:นาที:วินาที AM/PM) */}
+                    <div>
+                      <span style={{ color: '#166534' }}>เวลาโอน:</span><br/>
+                      <strong style={{ color: '#b45309' }}>
+                        {new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </strong>
+                    </div>
                   </div>
                   <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px dashed #86efac', textAlign: 'center' }}>
                     <span style={{ color: '#166534', fontSize: '14px' }}>ยอดเงินที่แจ้งโอน</span><br/>
