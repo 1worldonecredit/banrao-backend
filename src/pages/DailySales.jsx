@@ -9,7 +9,6 @@ const DailySales = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ดึงข้อมูลเมื่อเปิดหน้า หรือเปลี่ยนวันที่
   useEffect(() => {
     fetchDailySales();
   }, [selectedDate]);
@@ -30,10 +29,8 @@ const DailySales = () => {
     }
   };
 
-  // แยกรายการที่ถูกรางวัลออกมา เพื่อดูง่ายๆ เวลาโอนเงิน
   const winnersList = salesData.filter(item => item.status === 'ถูกรางวัล');
 
-  // ฟังก์ชันจัดสีสถานะบิล
   const getStatusBadge = (status) => {
     switch (status) {
       case 'ถูกรางวัล':
@@ -108,7 +105,7 @@ const DailySales = () => {
 
       </div>
 
-      {/* 🌟 รายชื่อผู้ถูกรางวัล (โชว์เฉพาะถ้ามีคนถูกรางวัล) */}
+      {/* 🌟 รายชื่อผู้ถูกรางวัล */}
       {winnersList.length > 0 && (
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px', border: '1px solid #bbf7d0' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
@@ -129,7 +126,12 @@ const DailySales = () => {
                 {winnersList.map((winner, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '12px', fontWeight: 'bold' }}>{winner.username}</td>
-                    <td style={{ padding: '12px' }}>หวย {winner.lottery_type} ตัว <span style={{ color: '#dc2626', fontWeight: 'bold', marginLeft: '5px' }}>[{winner.selected_number}]</span></td>
+                    <td style={{ padding: '12px' }}>
+                      หวย {winner.lottery_type} ตัว 
+                      <span style={{ color: '#dc2626', fontWeight: 'bold', marginLeft: '5px' }}>
+                        [{winner.selected_number}] {winner.animal_name && `(${winner.animal_name})`}
+                      </span>
+                    </td>
                     <td style={{ padding: '12px' }}>{winner.price.toLocaleString()} {winner.currency_code}</td>
                     <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {winner.prize_amount.toLocaleString()}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -145,7 +147,7 @@ const DailySales = () => {
         </div>
       )}
 
-      {/* 🌟 ตารางยอดขายทั้งหมด */}
+      {/* 🌟 ตารางยอดขายทั้งหมด (เพิ่มชื่อสัตว์) */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#334155', fontSize: '16px' }}>รายการซื้อหวยทั้งหมด ({selectedDate})</h4>
         
@@ -171,7 +173,17 @@ const DailySales = () => {
                   <tr key={sale.item_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
                     <td style={{ padding: '12px', color: '#64748b' }}>{sale.buy_time}</td>
                     <td style={{ padding: '12px', fontWeight: 'bold', color: '#334155' }}>{sale.username}</td>
-                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{sale.selected_number}</td>
+                    
+                    {/* 🌟 โชว์ตัวเลข พร้อมชื่อสัตว์ (ถ้ามี) */}
+                    <td style={{ padding: '12px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{sale.selected_number}</span>
+                      {sale.animal_name && (
+                        <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '6px', fontWeight: 'normal' }}>
+                          ({sale.animal_name})
+                        </span>
+                      )}
+                    </td>
+                    
                     <td style={{ padding: '12px' }}>{sale.lottery_type} ตัว</td>
                     <td style={{ padding: '12px' }}>{sale.price.toLocaleString()} <span style={{ color: '#94a3b8', fontSize: '12px' }}>{sale.currency_code}</span></td>
                     <td style={{ padding: '12px' }}>{getStatusBadge(sale.status)}</td>
