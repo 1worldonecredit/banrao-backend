@@ -12,8 +12,6 @@ const DailySales = () => {
   
   const [expandedRows, setExpandedRows] = useState({});
   const [numberStats, setNumberStats] = useState([]);
-  
-  // 🌟 เพิ่ม State สำหรับ Tab กรองชนิดเลขในตารางสถิติ
   const [activeStatTab, setActiveStatTab] = useState('all');
 
   useEffect(() => {
@@ -44,6 +42,7 @@ const DailySales = () => {
     }
   };
 
+  // 🌟 ฟังก์ชันคำนวณสถิติ แยก THB และ LAK
   useEffect(() => {
     if (!salesData || salesData.length === 0) {
       setNumberStats([]);
@@ -51,49 +50,69 @@ const DailySales = () => {
     }
 
     const statsMap = {};
-    let totalDailySales = summary.dailyTotal || 1; 
+    let totalDailySalesCombined = 0; 
+    const exchangeRate = 600; // สมมติเรท 1 THB = 600 LAK สำหรับคำนวณสัดส่วนความเสี่ยงรวม
 
     salesData.forEach(order => {
       if (!order.items) return;
+      const isLAK = order.currency_code === 'LAK';
+
       order.items.forEach(item => {
         const key = `${item.lottery_type}-${item.selected_number}`;
         const betAmount = Number(item.price) || 0;
 
-        if (!statsMap[key]) {
-          let multiplier = 0;
-          if (item.lottery_type === '2') multiplier = 90;
-          if (item.lottery_type === '3') multiplier = 900;
-          if (item.lottery_type === '4') multiplier = 7000;
-          if (item.lottery_type === '6') multiplier = 400000;
-          if (item.lottery_type === '8') multiplier = 1000000;
+        let multiplier = 0;
+        if (item.lottery_type === '2') multiplier = 90;
+        if (item.lottery_type === '3') multiplier = 900;
+        if (item.lottery_type === '4') multiplier = 7000;
+        if (item.lottery_type === '6') multiplier = 400000;
+        if (item.lottery_type === '8') multiplier = 1000000;
 
+        const payoutAmount = betAmount * multiplier;
+
+        if (!statsMap[key]) {
           statsMap[key] = {
             number: item.selected_number,
             type: item.lottery_type,
-            totalBet: 0,
-            potentialPayout: 0,
-            multiplier: multiplier
+            betTHB: 0,
+            betLAK: 0,
+            payoutTHB: 0,
+            payoutLAK: 0,
+            combinedValue: 0, // ค่าสมมติในหน่วย THB เพื่อใช้เรียงลำดับ Top 10
+            combinedPayoutValue: 0
           };
         }
 
-        statsMap[key].totalBet += betAmount;
-        statsMap[key].potentialPayout += betAmount * statsMap[key].multiplier;
+        // แยกจับยัดใส่ THB หรือ LAK
+        if (isLAK) {
+          statsMap[key].betLAK += betAmount;
+          statsMap[key].payoutLAK += payoutAmount;
+          statsMap[key].combinedValue += (betAmount / exchangeRate);
+          statsMap[key].combinedPayoutValue += (payoutAmount / exchangeRate);
+          totalDailySalesCombined += (betAmount / exchangeRate);
+        } else {
+          statsMap[key].betTHB += betAmount;
+          statsMap[key].payoutTHB += payoutAmount;
+          statsMap[key].combinedValue += betAmount;
+          statsMap[key].combinedPayoutValue += payoutAmount;
+          totalDailySalesCombined += betAmount;
+        }
       });
     });
 
-    // 🌟 ดึงข้อมูลทั้งหมดมาเรียงลำดับ (ยังไม่ตัด Top 10 เพื่อเอาไป Filter ในแท็บก่อน)
+    if (totalDailySalesCombined === 0) totalDailySalesCombined = 1;
+
     const statsArray = Object.values(statsMap)
       .map(stat => ({
         ...stat,
-        salesPercent: (stat.totalBet / totalDailySales) * 100,
-        riskPercent: (stat.potentialPayout / totalDailySales) * 100
+        salesPercent: (stat.combinedValue / totalDailySalesCombined) * 100,
+        riskPercent: (stat.combinedPayoutValue / totalDailySalesCombined) * 100
       }))
-      .sort((a, b) => b.totalBet - a.totalBet);
+      .sort((a, b) => b.combinedValue - a.combinedValue);
 
     setNumberStats(statsArray);
-  }, [salesData, summary.dailyTotal]);
+  }, [salesData]);
 
-  // 🌟 ฟิลเตอร์และตัดเอาแค่ Top 10 ตาม Tab ที่เลือก
   const filteredStats = numberStats
     .filter(stat => activeStatTab === 'all' || stat.type === activeStatTab)
     .slice(0, 10);
@@ -117,6 +136,10 @@ const DailySales = () => {
         return <span style={{ backgroundColor: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> รอผลตรวจ</span>;
     }
   };
+
+  // Helper formats
+  const formatTHB = (val) => val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatLAK = (val) => val.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -144,8 +167,8 @@ const DailySales = () => {
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #0ea5e9', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายวันนี้</p>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {summary.dailyTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}</h3>
+              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายวันนี้ (ประมาณการ)</p>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {formatTHB(summary.dailyTotal || 0)}</h3>
             </div>
             <div style={{ backgroundColor: '#e0f2fe', padding: '10px', borderRadius: '50%' }}>
               <DollarSign color="#0ea5e9" size={24} />
@@ -157,7 +180,7 @@ const DailySales = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายสะสมเดือนนี้</p>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {summary.monthlyTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}</h3>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {formatTHB(summary.monthlyTotal || 0)}</h3>
             </div>
             <div style={{ backgroundColor: '#ede9fe', padding: '10px', borderRadius: '50%' }}>
               <Calendar color="#8b5cf6" size={24} />
@@ -169,7 +192,7 @@ const DailySales = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดจ่ายเงินรางวัลวันนี้</p>
-              <h3 style={{ margin: 0, color: '#10b981', fontSize: '24px' }}>฿ {summary.dailyPayout.toLocaleString('th-TH', {minimumFractionDigits: 2})}</h3>
+              <h3 style={{ margin: 0, color: '#10b981', fontSize: '24px' }}>฿ {formatTHB(summary.dailyPayout || 0)}</h3>
             </div>
             <div style={{ backgroundColor: '#d1fae5', padding: '10px', borderRadius: '50%' }}>
               <Award color="#10b981" size={24} />
@@ -178,13 +201,12 @@ const DailySales = () => {
         </div>
       </div>
 
-      {/* 🌟 สถิติความเสี่ยงเลขขายดี */}
+      {/* 🌟 สถิติความเสี่ยงเลขขายดี (แยก THB/LAK) */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px' }}>
         <h4 style={{ margin: '0 0 15px 0', color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
           <TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง (Top 10)
         </h4>
 
-        {/* 🌟 Tabs กรองชนิดเลข */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           {[
             { id: 'all', label: 'รวมทั้งหมด' },
@@ -217,15 +239,16 @@ const DailySales = () => {
           <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>ยังไม่มีข้อมูลการซื้อในหมวดหมู่นี้</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '800px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '950px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '12px' }}>เลขที่ซื้อ</th>
                   <th style={{ padding: '12px' }}>ประเภท</th>
-                  <th style={{ padding: '12px', textAlign: 'right' }}>ยอดซื้อรวม (THB)</th>
-                  <th style={{ padding: '12px' }}>สัดส่วนยอดขาย</th>
-                  <th style={{ padding: '12px', textAlign: 'right' }}>ถ้าถูก ต้องจ่าย (THB)</th>
-                  <th style={{ padding: '12px' }}>อัตราความเสี่ยง</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ยอดซื้อ (THB)</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ยอดซื้อ (LAK)</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ต้องจ่าย (THB)</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ต้องจ่าย (LAK)</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>อัตราความเสี่ยงรวม</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,25 +261,23 @@ const DailySales = () => {
                       </span>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#0ea5e9' }}>
-                      {stat.totalBet.toLocaleString()}
+                      {stat.betTHB > 0 ? formatTHB(stat.betTHB) : '-'}
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '100px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.min(stat.salesPercent, 100)}%`, height: '100%', backgroundColor: '#0ea5e9' }}></div>
-                        </div>
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>{stat.salesPercent.toFixed(1)}%</span>
-                      </div>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>
+                      {stat.betLAK > 0 ? formatLAK(stat.betLAK) : '-'}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#b91c1c' }}>
-                      {stat.potentialPayout.toLocaleString()}
+                      {stat.payoutTHB > 0 ? formatTHB(stat.payoutTHB) : '-'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#b91c1c' }}>
+                      {stat.payoutLAK > 0 ? formatLAK(stat.payoutLAK) : '-'}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '100px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <div style={{ width: '80px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                           <div style={{ width: `${Math.min(stat.riskPercent, 100)}%`, height: '100%', backgroundColor: stat.riskPercent > 50 ? '#ef4444' : (stat.riskPercent > 20 ? '#f59e0b' : '#10b981') }}></div>
                         </div>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: stat.riskPercent > 50 ? '#ef4444' : '#64748b' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: stat.riskPercent > 50 ? '#ef4444' : '#64748b', width: '40px' }}>
                           {stat.riskPercent.toFixed(1)}%
                         </span>
                         {stat.riskPercent > 80 && <AlertOctagon size={14} color="#ef4444" title="ความเสี่ยงสูงมาก" />}
@@ -288,25 +309,32 @@ const DailySales = () => {
                 </tr>
               </thead>
               <tbody>
-                {winnersList.map((winner, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{winner.username}</td>
-                    <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {winner.animal_image && <img src={winner.animal_image} alt={winner.animal_name} style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover' }} />}
-                      <div>
-                        <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '16px' }}>{winner.selected_number}</span> 
-                        <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '6px' }}>({winner.lottery_type} ตัว) {winner.animal_name}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px' }}>{winner.price.toLocaleString()} {winner.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', fontSize: '16px' }}>+ {winner.prize_amount.toLocaleString()}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)' }}>
-                        โอนเงินเข้า Wallet
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {winnersList.map((winner, idx) => {
+                  const isTHB = winner.currency_code === 'THB';
+                  return (
+                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{winner.username}</td>
+                      <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {winner.animal_image && <img src={winner.animal_image} alt={winner.animal_name} style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover' }} />}
+                        <div>
+                          <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '16px' }}>{winner.selected_number}</span> 
+                          <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '6px' }}>({winner.lottery_type} ตัว) {winner.animal_name}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {isTHB ? formatTHB(winner.price) : formatLAK(winner.price)} {winner.currency_code}
+                      </td>
+                      <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', fontSize: '16px' }}>
+                        + {isTHB ? formatTHB(winner.prize_amount) : formatLAK(winner.prize_amount)}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)' }}>
+                          โอนเงินเข้า Wallet
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -338,58 +366,62 @@ const DailySales = () => {
                 </tr>
               </thead>
               <tbody>
-                {salesData.map((order) => (
-                  <React.Fragment key={order.order_id}>
-                    
-                    <tr 
-                      onClick={() => toggleRow(order.order_id)} 
-                      style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', backgroundColor: expandedRows[order.order_id] ? '#f8fafc' : 'white', transition: 'all 0.2s' }}
-                    >
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>
-                        {expandedRows[order.order_id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                      </td>
-                      <td style={{ padding: '12px', color: '#64748b' }}>{order.buy_time.substring(11, 16)}</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#0ea5e9' }}>#{order.order_id.toString().padStart(5, '0')}</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#334155' }}>{order.username}</td>
-                      <td style={{ padding: '12px', color: '#64748b' }}><Receipt size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}/> {order.items.length} รายการ</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.total_amount.toLocaleString()} <span style={{ color: '#94a3b8', fontSize: '12px' }}>{order.currency_code}</span></td>
-                      <td style={{ padding: '12px' }}>{getStatusBadge(order.order_status)}</td>
-                    </tr>
-
-                    {expandedRows[order.order_id] && (
-                      <tr style={{ backgroundColor: '#fcfcfc' }}>
-                        <td colSpan="7" style={{ padding: '15px 30px', borderBottom: '1px solid #e2e8f0' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
-                            {order.items.map((item) => (
-                              <div key={item.item_id} style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                                
-                                {item.animal_image ? (
-                                  <img src={item.animal_image} alt={item.animal_name} style={{ width: '35px', height: '35px', borderRadius: '6px', objectFit: 'cover' }} />
-                                ) : (
-                                  <div style={{ width: '35px', height: '35px', borderRadius: '6px', backgroundColor: '#f1f5f9', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{item.lottery_type}ต</span>
-                                  </div>
-                                )}
-
-                                <div>
-                                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                    <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{item.selected_number}</span>
-                                    {item.animal_name && <span style={{ fontSize: '11px', color: '#64748b' }}>({item.animal_name})</span>}
-                                  </div>
-                                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{item.price.toLocaleString()} {order.currency_code}</span>
-                                    {item.item_status === 'ถูกรางวัล' && <span style={{ color: '#16a34a', fontWeight: 'bold' }}>ถูกรางวัล!</span>}
-                                  </div>
-                                </div>
-                                
-                              </div>
-                            ))}
-                          </div>
+                {salesData.map((order) => {
+                  const isTHB = order.currency_code === 'THB';
+                  return (
+                    <React.Fragment key={order.order_id}>
+                      <tr 
+                        onClick={() => toggleRow(order.order_id)} 
+                        style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', backgroundColor: expandedRows[order.order_id] ? '#f8fafc' : 'white', transition: 'all 0.2s' }}
+                      >
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>
+                          {expandedRows[order.order_id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </td>
+                        <td style={{ padding: '12px', color: '#64748b' }}>{order.buy_time.substring(11, 16)}</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#0ea5e9' }}>#{order.order_id.toString().padStart(5, '0')}</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#334155' }}>{order.username}</td>
+                        <td style={{ padding: '12px', color: '#64748b' }}><Receipt size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}/> {order.items.length} รายการ</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>
+                          {isTHB ? formatTHB(order.total_amount) : formatLAK(order.total_amount)} <span style={{ color: '#94a3b8', fontSize: '12px' }}>{order.currency_code}</span>
+                        </td>
+                        <td style={{ padding: '12px' }}>{getStatusBadge(order.order_status)}</td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
+
+                      {expandedRows[order.order_id] && (
+                        <tr style={{ backgroundColor: '#fcfcfc' }}>
+                          <td colSpan="7" style={{ padding: '15px 30px', borderBottom: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
+                              {order.items.map((item) => (
+                                <div key={item.item_id} style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                  
+                                  {item.animal_image ? (
+                                    <img src={item.animal_image} alt={item.animal_name} style={{ width: '35px', height: '35px', borderRadius: '6px', objectFit: 'cover' }} />
+                                  ) : (
+                                    <div style={{ width: '35px', height: '35px', borderRadius: '6px', backgroundColor: '#f1f5f9', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>{item.lottery_type}ต</span>
+                                    </div>
+                                  )}
+
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                      <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{item.selected_number}</span>
+                                      {item.animal_name && <span style={{ fontSize: '11px', color: '#64748b' }}>({item.animal_name})</span>}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <span>{isTHB ? formatTHB(item.price) : formatLAK(item.price)} {order.currency_code}</span>
+                                      {item.item_status === 'ถูกรางวัล' && <span style={{ color: '#16a34a', fontWeight: 'bold' }}>ถูกรางวัล!</span>}
+                                    </div>
+                                  </div>
+                                  
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
