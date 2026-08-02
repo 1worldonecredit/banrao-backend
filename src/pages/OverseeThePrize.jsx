@@ -17,10 +17,12 @@ const OverseeThePrize = () => {
   // 🌟 State สำหรับเรทแลกเปลี่ยนเงิน
   const [exchangeRateLAK, setExchangeRateLAK] = useState(0);
 
+  // 🌟 State สำหรับระบบจำลองความเสี่ยง
   const [simulatedNumber, setSimulatedNumber] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // 🌟 State สำหรับระบบตั้งเป้าหมาย (0-100%)
   const [targetPercent, setTargetPercent] = useState(50);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
@@ -42,7 +44,7 @@ const OverseeThePrize = () => {
   useEffect(() => { 
     fetchSettings(); 
     fetchPrizeRates(); 
-    fetchExchangeRates();
+    fetchExchangeRates(); // ดึงเรทเงินตอนเปิดหน้า
   }, []);
 
   useEffect(() => { fetchDrawHistory(selectedDate); }, [selectedDate]);
@@ -68,7 +70,7 @@ const OverseeThePrize = () => {
     } catch (err) {}
   };
 
-  // 🌟 ดึงเรทแลกเปลี่ยนเงิน
+  // 🌟 ดึงเรทแลกเปลี่ยนเงิน (THB_LAK)
   const fetchExchangeRates = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/exchange-rates`);
@@ -111,10 +113,11 @@ const OverseeThePrize = () => {
         body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK })
       });
       const data = await res.json();
-      if (data.success) alert('✅ อัปเดตเรทเงิน กีบ (LAK) สำเร็จ! มีผลกับการคำนวณความเสี่ยงทันที');
+      if (data.success) alert('✅ อัปเดตเรทเงิน กีบ (LAK) สำเร็จ! (มีผลกับการคำนวณความเสี่ยงทันที)');
     } catch (err) { alert('❌ อัปเดตไม่สำเร็จ'); }
   };
 
+  // 🌟 ฟังก์ชันวิเคราะห์เลขแบบกำหนดเอง (พิมพ์เอง)
   const handleAnalyzeDraw = async () => {
     if (simulatedNumber.length !== 6) return alert('กรุณากรอกเลขให้ครบ 6 หลัก');
     setIsAnalyzing(true);
@@ -128,6 +131,7 @@ const OverseeThePrize = () => {
     } catch (err) {} finally { setIsAnalyzing(false); }
   };
 
+  // 🌟 ฟังก์ชันให้ระบบคำนวณและเสนอเลขตาม % ที่กำหนด
   const handleSuggestDraw = async () => {
     setIsSuggesting(true);
     try {
@@ -153,7 +157,7 @@ const OverseeThePrize = () => {
         {/* กล่องตั้งเรทเงิน */}
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยนเงินปัจจุบัน (ใช้คำนวณยอดขาย)
+            <DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยนเงินปัจจุบัน (ใช้แปลงค่า LAK เป็น THB)
           </h4>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
             <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>1 THB = </span>
@@ -215,10 +219,10 @@ const OverseeThePrize = () => {
 
       </div>
 
-      {/* 🌟 โซนจำลองและคุมงบประมาณ */}
+      {/* 🌟 โซนจำลองและคุมงบประมาณ (มีระบบแถบเลื่อน 0-100%) */}
       <div style={{ backgroundColor: '#fffbeb', padding: '25px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Crosshair size={24} /> วิเคราะห์และคุมงบประมาณก่อนออกเลข (เลข 6 หลัก)
+          <Crosshair size={24} /> วิเคราะห์และคุมงบประมาณก่อนออกเลข (วิเคราะห์เฉพาะเลข 6 ตัว)
         </h4>
 
         {/* ระบบตั้ง % */}
@@ -241,7 +245,7 @@ const OverseeThePrize = () => {
               {isSuggesting ? 'กำลังค้นหาเลข...' : 'สุ่มหาเลขที่ยอดจ่ายไม่เกินกำหนด'}
             </button>
           </div>
-          <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>* เลื่อนแถบไปที่ 0% ถ่ายอดขายคุณน้อยมาก และไม่อยากจ่ายให้ใครถูกเลย (ระบบกินเรียบ)</p>
+          <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>* เลื่อนแถบไปที่ 0% ถ้ายอดขายคุณน้อยมาก และไม่อยากจ่ายให้ใครถูกเลย (ระบบกินเรียบ)</p>
         </div>
 
         {/* ระบบกรอกเอง */}
@@ -315,6 +319,25 @@ const OverseeThePrize = () => {
             })()}
           </div>
         )}
+      </div>
+
+      {/* 🌟 ส่วนที่ 4: ผลการออกรางวัลจริง */}
+      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px', textAlign: 'center' }}>
+        <h3 style={{ margin: '0 0 20px 0', color: '#1e293b', fontSize: '20px' }}>ผลการออกรางวัลจริง งวดวันที่ <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span></h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+          {[
+            { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
+            { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
+            { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
+            { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
+            { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
+          ].map(p => (
+            <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px' }}>
+              <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
+              <h2 style={{ margin: 0, color: p.color, fontSize: '32px', letterSpacing: '1px' }}>{p.val}</h2>
+            </div>
+          ))}
+        </div>
       </div>
 
     </div>
