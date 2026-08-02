@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Play, Download, Trophy, Clock, Power, PlayCircle, StopCircle } from 'lucide-react';
+import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const OverseeThePrize = () => {
-  // 🌟 เพิ่ม State รองรับเวลาทั้ง 3 ช่วง
   const [settings, setSettings] = useState({ 
-    close_time: '17:00:00', 
-    open_time: '18:00:00',
-    draw_time: '17:30:00',
+    close_time: '17:00', 
+    open_time: '18:00',
+    draw_time: '17:30',
     is_sales_open: true 
   });
   
@@ -19,9 +18,32 @@ const OverseeThePrize = () => {
   const [activeTab, setActiveTab] = useState('all'); 
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // 🌟 เพิ่ม State เลือกวันที่ (ค่าเริ่มต้นคือวันนี้แบบ ค.ศ.)
+  const getTodayDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+
+  // 🌟 ฟังก์ชันแปลง ค.ศ. เป็น วันที่ภาษาไทย พ.ศ. (เช่น 2 สิงหาคม 2569)
+  const formatThaiDateFull = (dateStr) => {
+    if (!dateStr) return '';
+    const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const [y, m, d] = dateStr.split('-');
+    const thaiYear = parseInt(y, 10) + 543;
+    const thaiMonth = months[parseInt(m, 10) - 1];
+    const thaiDay = parseInt(d, 10);
+    return `${thaiDay} ${thaiMonth} ${thaiYear}`;
+  };
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // 🌟 เมื่อเปลี่ยนวันที่ ให้ไปดึงประวัติมาโชว์
+  useEffect(() => {
+    fetchDrawHistory(selectedDate);
+  }, [selectedDate]);
 
   const fetchSettings = async () => {
     try {
@@ -29,7 +51,6 @@ const OverseeThePrize = () => {
       const data = await res.json();
       if (data.success && data.data) {
         setSettings({
-          // 🌟 รับค่า HH:mm จาก Database มาใส่ตรงๆ เลย ถ้าไม่มีก็ให้ Default เป็นเวลาเดิม
           close_time: data.data.close_time || '17:00',
           open_time: data.data.open_time || '18:00',
           draw_time: data.data.draw_time || '17:30',
@@ -37,6 +58,28 @@ const OverseeThePrize = () => {
         });
       }
     } catch (err) { console.error('Error fetching settings:', err); }
+  };
+
+  // 🌟 ฟังก์ชันดึงประวัติผลรางวัลตามวันที่
+  const fetchDrawHistory = async (date) => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/draw-history?date=${date}`);
+      const data = await res.json();
+      if (data.success) {
+        if (data.results) {
+          setResults(data.results);
+        } else {
+          // ถ้าไม่มีผล ให้ขึ้นขีด
+          setResults({ prize_8: '-', prize_6: '-', prize_4: '-', prize_3: '-', prize_2: '-' });
+        }
+        setWinners(data.winners || []);
+      }
+    } catch (err) { 
+      console.error('Error fetching draw history:', err); 
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleUpdateSettings = async (field, value) => {
@@ -52,7 +95,6 @@ const OverseeThePrize = () => {
     } catch (err) { alert('❌ เกิดข้อผิดพลาดในการบันทึก'); }
   };
 
-  // ฟังก์ชันบันทึกเวลาพร้อมกันทั้งหมด
   const handleSaveAllTimes = async () => {
     try {
       await fetch(`${API_URL}/api/admin/settings`, {
@@ -64,47 +106,12 @@ const OverseeThePrize = () => {
     } catch (err) { alert('❌ เกิดข้อผิดพลาดในการบันทึกเวลา'); }
   };
 
-  const handleDrawNumbers = async () => {
-    if (settings.is_sales_open) {
-      alert('⚠️ กรุณา "บังคับปิดรับซื้อ" ก่อนทำการออกรางวัล!');
-      return;
-    }
-    
-    if (!window.confirm('ยืนยันการออกรางวัล? (ระบบจะตรวจบิลลูกค้าทั้งหมดทันที)')) return;
-
-    setIsProcessing(true);
-
-    const num8 = Math.floor(10000000 + Math.random() * 90000000).toString();
-    const num6 = Math.floor(100000 + Math.random() * 900000).toString();
-    const num4 = num6.slice(-4);
-    const num3 = num6.slice(-3);
-    const num2 = num6.slice(-2);
-
-    const generatedResults = { prize_8: num8, prize_6: num6, prize_4: num4, prize_3: num3, prize_2: num2 };
-    setResults(generatedResults);
-
-    try {
-      const res = await fetch(`${API_URL}/api/admin/draw-results`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(generatedResults)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setWinners(data.winners);
-        alert('🎉 ออกรางวัลและตรวจบิลสำเร็จ!');
-      }
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const exportPDF = () => {
     const doc = new jsPDF();
+    doc.addFont('THSarabunNew', 'normal');
     doc.setFontSize(18);
-    doc.text(`Winners Report - ${new Date().toLocaleDateString()}`, 14, 20);
+    // เปลี่ยนหัว PDF เป็น พ.ศ.
+    doc.text(`Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
     
     const tableColumn = ["Username", "Type", "Number", "Bet Amount", "Prize Amount", "Currency"];
     const tableRows = [];
@@ -127,7 +134,7 @@ const OverseeThePrize = () => {
       startY: 30,
     });
     
-    doc.save(`winners_report_${activeTab}.pdf`);
+    doc.save(`winners_report_${selectedDate}.pdf`);
   };
 
   const filteredWinners = activeTab === 'all' ? winners : winners.filter(w => w.lottery_type === activeTab);
@@ -136,10 +143,9 @@ const OverseeThePrize = () => {
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>จัดการผลรางวัล (Oversee The Prize)</h2>
       
-      {/* 🌟 โซนตั้งค่าระบบ (จัด Layout เป็น Grid ให้สวย และ Responsive) */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Settings size={20} color="#0ea5e9" /> ตั้งเวลาการทำงานของระบบ
+          <Settings size={20} color="#0ea5e9" /> ตั้งเวลาการทำงานของระบบ (ออกรางวัลอัตโนมัติตามเวลา)
         </h4>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' }}>
@@ -192,41 +198,55 @@ const OverseeThePrize = () => {
         </div>
       </div>
 
-      {/* 🌟 โซนออกรางวัล (แก้ปัญหาจอล้นด้วย flexWrap: 'wrap') */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px', textAlign: 'center' }}>
-        <h3 style={{ margin: '0 0 20px 0', color: '#1e293b' }}>ผลการออกรางวัลประจำงวด</h3>
         
-        {/* 🌟 แก้ไข: เพิ่ม flexWrap เพื่อให้กล่องไหลลงมาอัตโนมัติเมื่อจอเล็ก ไม่ล้นออกข้าง */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '30px' }}>
-          {[
-            { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
-            { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
-            { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
-            { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
-            { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
-          ].map(p => (
-            <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px', maxWidth: '200px' }}>
-              <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
-              <h2 style={{ margin: 0, color: p.color, fontSize: '32px', letterSpacing: '1px' }}>{p.val}</h2>
-            </div>
-          ))}
+        {/* 🌟 เครื่องมือเลือกวันที่ และ หัวข้อภาษาไทย */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, color: '#1e293b', fontSize: '22px' }}>
+            ผลการออกรางวัลประจำงวดวันที่ <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span>
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '5px 15px', borderRadius: '20px' }}>
+            <Calendar size={18} color="#64748b" />
+            <input 
+              type="date" 
+              value={selectedDate} 
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', fontSize: '15px', fontWeight: 'bold', color: '#334155' }}
+            />
+          </div>
         </div>
 
-        <button 
-          onClick={handleDrawNumbers} 
-          disabled={isProcessing}
-          style={{ padding: '15px 40px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '30px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 10px rgba(234, 179, 8, 0.3)' }}
-        >
-          {isProcessing ? 'กำลังประมวลผล...' : <><Play size={24} /> สุ่มออกรางวัล & ตรวจบิล</>}
-        </button>
+        {isProcessing ? (
+          <div style={{ padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+            {[
+              { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
+              { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
+              { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
+              { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
+              { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
+            ].map(p => (
+              <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px', maxWidth: '200px' }}>
+                <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
+                <h2 style={{ margin: 0, color: p.color, fontSize: '32px', letterSpacing: '1px' }}>{p.val}</h2>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* 🌟 ลบปุ่มกดสุ่มรางวัลทิ้งไปแล้ว ให้ระบบทำงานเอง */}
+        <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '20px' }}>
+          * ระบบจะทำการออกรางวัลอัตโนมัติตาม <b>"เวลาออกเลข"</b> ที่ตั้งค่าไว้ด้านบน
+        </p>
+
       </div>
 
-      {/* 🌟 โซนผู้ชนะ & ส่งออก PDF */}
       {winners.length > 0 && (
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h4 style={{ margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-              <Trophy size={24} /> รายชื่อผู้ถูกรางวัล
+              <Trophy size={24} /> รายชื่อผู้ถูกรางวัล (งวด {formatThaiDateFull(selectedDate)})
             </h4>
             <button onClick={exportPDF} style={{ padding: '10px 20px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
               <Download size={18} /> โหลดไฟล์ PDF
