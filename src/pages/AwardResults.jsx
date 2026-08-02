@@ -1,108 +1,137 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Search, Trophy, CheckSquare, Lock, Send, AlertTriangle } from 'lucide-react';
+import { Calendar, Search, Trophy, CheckSquare, Lock, Send, AlertTriangle, FileText, Filter, List } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const AwardResults = () => {
-  // 🌟 ฟังก์ชันตั้งค่าเริ่มต้นเป็นวันนี้ (ค.ศ.)
+  // 🌟 วันที่ปัจจุบัน
   const getTodayDate = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // 🌟 วันที่ 1 ของเดือนปัจจุบัน (สำหรับตารางย้อนหลัง)
+  const getFirstDayOfMonth = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  };
+
+  // State โซนรายวัน (ด้านบน)
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [results, setResults] = useState(null);
   const [winners, setWinners] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // State โซนประวัติรายเดือน (ด้านล่าง)
+  const [historyStartDate, setHistoryStartDate] = useState(getFirstDayOfMonth());
+  const [historyEndDate, setHistoryEndDate] = useState(getTodayDate());
+  const [monthlyHistory, setMonthlyHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   // State สำหรับระบบโอนเงิน
   const [selectedWinners, setSelectedWinners] = useState([]);
   const [adminPassword, setAdminPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🌟 ฟังก์ชันแปลง ค.ศ. เป็น วันที่ภาษาไทย พ.ศ. (เช่น 2 สิงหาคม 2569)
+  // 🌟 ฟังก์ชันแปลง ค.ศ. เป็น วันที่ภาษาไทย พ.ศ. (แบบเต็ม)
   const formatThaiDateFull = (dateStr) => {
     if (!dateStr) return '';
-    const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    const [y, m, d] = dateStr.split('-');
-    const thaiYear = parseInt(y, 10) + 543;
-    const thaiMonth = months[parseInt(m, 10) - 1];
-    const thaiDay = parseInt(d, 10);
-    return `${thaiDay} ${thaiMonth} ${thaiYear}`;
+    try {
+      const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      const [y, m, d] = dateStr.split('T')[0].split('-');
+      const thaiYear = parseInt(y, 10) + 543;
+      const thaiMonth = months[parseInt(m, 10) - 1];
+      const thaiDay = parseInt(d, 10);
+      return `${thaiDay} ${thaiMonth} ${thaiYear}`;
+    } catch { return dateStr; }
+  };
+
+  // 🌟 ฟังก์ชันแปลง ค.ศ. เป็น วันที่ภาษาไทย พ.ศ. (แบบย่อ สำหรับตาราง)
+  const formatThaiDateShort = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('T')[0].split('-');
+      return `${d}/${m}/${parseInt(y, 10) + 543}`;
+    } catch { return dateStr; }
   };
 
   const formatCurrency = (amt) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 }).format(amt);
 
-  // ดึงข้อมูลเมื่อเปลี่ยนวันที่
+  // ==========================================
+  // ดึงข้อมูล 2 ส่วนเมื่อโหลดหน้าหรือเปลี่ยนวันที่
+  // ==========================================
   useEffect(() => {
-    fetchDrawResults(selectedDate);
+    fetchDrawResultsDaily(selectedDate);
   }, [selectedDate]);
 
-  const fetchDrawResults = async (date) => {
+  useEffect(() => {
+    fetchMonthlyHistory();
+    // eslint-disable-next-line
+  }, []);
+
+  // ดึงผลรายวัน (ด้านบน)
+  const fetchDrawResultsDaily = async (date) => {
     setIsLoading(true);
     setSearchTerm('');
     setAdminPassword('');
     try {
-      // 🌟 ใช้ API ตัวเดียวกับหน้า OverseeThePrize ได้เลย!
       const res = await fetch(`${API_URL}/api/admin/draw-history?date=${date}`);
       const data = await res.json();
       if (data.success) {
         setResults(data.results || null);
         const winnersList = data.winners || [];
         setWinners(winnersList);
-        
-        // 🌟 ตั้งค่าเริ่มต้นให้ Checked เลือกทุกคนที่รอยอดโอน
         setSelectedWinners(winnersList.map(w => w.order_item_id || w.username + w.selected_number)); 
       }
-    } catch (err) {
-      console.error('Error fetching results:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (err) { console.error('Error fetching daily results:', err); } 
+    finally { setIsLoading(false); }
   };
 
-  // 🌟 ระบบค้นหา (ฟิลเตอร์)
+  // ดึงผลย้อนหลังรายเดือน (ด้านล่าง)
+  const fetchMonthlyHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/draw-history-range?startDate=${historyStartDate}&endDate=${historyEndDate}`);
+      const data = await res.json();
+      if (data.success) setMonthlyHistory(data.history || []);
+    } catch (err) { console.error('Error fetching monthly history:', err); } 
+    finally { setIsLoadingHistory(false); }
+  };
+
+  // ==========================================
+  // ระบบจัดการการโอนเงิน (รายวัน)
+  // ==========================================
   const filteredWinners = winners.filter(w => 
     w.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.selected_number.includes(searchTerm) ||
     w.prize_amount.toString().includes(searchTerm)
   );
 
-  // 🌟 ระบบ Checkbox
   const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedWinners(filteredWinners.map(w => w.order_item_id || w.username + w.selected_number));
-    } else {
-      setSelectedWinners([]);
-    }
+    if (e.target.checked) setSelectedWinners(filteredWinners.map(w => w.order_item_id || w.username + w.selected_number));
+    else setSelectedWinners([]);
   };
 
   const handleSelectOne = (id) => {
-    if (selectedWinners.includes(id)) {
-      setSelectedWinners(selectedWinners.filter(itemId => itemId !== id));
-    } else {
-      setSelectedWinners([...selectedWinners, id]);
-    }
+    if (selectedWinners.includes(id)) setSelectedWinners(selectedWinners.filter(itemId => itemId !== id));
+    else setSelectedWinners([...selectedWinners, id]);
   };
 
   const totalPayout = filteredWinners
     .filter(w => selectedWinners.includes(w.order_item_id || w.username + w.selected_number))
     .reduce((sum, w) => sum + Number(w.prize_amount), 0);
 
-  // 🌟 จำลองฟังก์ชันโอนเงิน
   const handleTransfer = async () => {
     if (selectedWinners.length === 0) return alert("กรุณาเลือกรายการที่ต้องการโอนเงิน");
     if (!adminPassword) return alert("กรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน");
-    
-    // อนาคต: ตรวจสอบรหัสผ่าน / ส่ง OTP ที่นี่
     if (!window.confirm(`ยืนยันการโอนเงินจำนวน ${formatCurrency(totalPayout)} ให้กับลูกค้า ${selectedWinners.length} รายการ?`)) return;
 
     setIsProcessing(true);
     try {
-      // อนาคต: ยิง API สั่งจ่ายเงินให้ลูกค้า
-      // await fetch('/api/admin/payout-winners', { ... })
-      
+      // จำลองการโอนเงิน
       setTimeout(() => {
         alert("✅ โอนเงินรางวัลให้ลูกค้าเรียบร้อยแล้ว!");
         setAdminPassword('');
@@ -115,13 +144,48 @@ const AwardResults = () => {
     }
   };
 
+  // ==========================================
+  // ระบบ Export PDF (ตารางย้อนหลังรายเดือน)
+  // ==========================================
+  const exportHistoryPDF = () => {
+    const doc = new jsPDF();
+    doc.addFont('THSarabunNew', 'normal');
+    doc.setFontSize(18);
+    doc.text(`Draw Results History (${formatThaiDateShort(historyStartDate)} - ${formatThaiDateShort(historyEndDate)})`, 14, 20);
+    
+    const tableColumn = ["Date (พ.ศ.)", "Super (8 Digits)", "1st Prize (6 Digits)", "4 Digits", "3 Digits", "2 Digits"];
+    const tableRows = [];
+
+    monthlyHistory.forEach(h => {
+      tableRows.push([
+        formatThaiDateShort(h.draw_date),
+        h.prize_8 || '-',
+        h.prize_6 || '-',
+        h.prize_4 || '-',
+        h.prize_3 || '-',
+        h.prize_2 || '-'
+      ]);
+    });
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 10, halign: 'center' },
+      headStyles: { fillColor: [14, 165, 233] } // สีฟ้า Tailwind
+    });
+    
+    doc.save(`Draw_History_${historyStartDate}_to_${historyEndDate}.pdf`);
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>ประวัติการออกรางวัลและจ่ายเงิน</h2>
       
+      {/* ==========================================
+          โซนที่ 1: ผลรางวัลประจำวัน (ด้านบน)
+      ========================================== */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-        
-        {/* 🌟 เครื่องมือเลือกวันที่ และ หัวข้อภาษาไทย */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px' }}>
             ผลการออกรางวัลประจำงวด <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span>
@@ -137,7 +201,6 @@ const AwardResults = () => {
           </div>
         </div>
 
-        {/* 🌟 โชว์เลขที่ออกประจำงวด */}
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</div>
         ) : !results ? (
@@ -161,12 +224,14 @@ const AwardResults = () => {
           </div>
         )}
 
-        {/* 🌟 รายชื่อผู้ถูกรางวัล และ ระบบจัดการโอนเงิน */}
+        {/* ==========================================
+            โซนที่ 2: รายชื่อผู้ถูกรางวัลประจำวัน
+        ========================================== */}
         {winners.length > 0 && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
               <h4 style={{ margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-                <Trophy size={24} /> รายชื่อผู้ถูกรางวัล ({filteredWinners.length} รายการ)
+                <Trophy size={24} /> รายชื่อผู้ถูกรางวัล ประจำวันที่ {formatThaiDateShort(selectedDate)}
               </h4>
               <div style={{ position: 'relative' }}>
                 <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -234,7 +299,6 @@ const AwardResults = () => {
               </table>
             </div>
 
-            {/* 🌟 โซนยืนยันการโอนเงิน (ใส่รหัสผ่าน) */}
             <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '20px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
               <div>
                 <span style={{ color: '#b45309', fontSize: '14px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):</span>
@@ -273,8 +337,83 @@ const AwardResults = () => {
 
           </div>
         )}
-
       </div>
+
+      {/* ==========================================
+          โซนที่ 3: ตารางสรุปประวัติย้อนหลัง (รายเดือน)
+      ========================================== */}
+      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+          <h3 style={{ margin: 0, color: '#0ea5e9', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <List size={24} /> ตารางสรุปผลการออกรางวัลย้อนหลัง
+          </h3>
+          
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input 
+              type="date" 
+              value={historyStartDate} 
+              onChange={(e) => setHistoryStartDate(e.target.value)} 
+              style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} 
+            />
+            <span>ถึง</span>
+            <input 
+              type="date" 
+              value={historyEndDate} 
+              onChange={(e) => setHistoryEndDate(e.target.value)} 
+              style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} 
+            />
+            <button 
+              onClick={fetchMonthlyHistory} 
+              style={{ backgroundColor: '#4b5563', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Filter size={16} /> กรอง
+            </button>
+            <button 
+              onClick={exportHistoryPDF} 
+              disabled={monthlyHistory.length === 0}
+              style={{ backgroundColor: monthlyHistory.length > 0 ? '#0284c7' : '#9ca3af', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: monthlyHistory.length > 0 ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileText size={16} /> โหลด PDF
+            </button>
+          </div>
+        </div>
+
+        {isLoadingHistory ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>กำลังโหลดข้อมูลย้อนหลัง...</div>
+        ) : (
+          <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#e0f2fe', color: '#0369a1', borderBottom: '2px solid #bae6fd' }}>
+                  <th style={{ padding: '12px' }}>งวดวันที่ (พ.ศ.)</th>
+                  <th style={{ padding: '12px' }}>8 ตัว (ซูเปอร์)</th>
+                  <th style={{ padding: '12px' }}>6 ตัว (ที่ 1)</th>
+                  <th style={{ padding: '12px' }}>4 ตัวท้าย</th>
+                  <th style={{ padding: '12px' }}>3 ตัวท้าย</th>
+                  <th style={{ padding: '12px' }}>2 ตัวท้าย</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyHistory.map((h, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: idx % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#475569' }}>{formatThaiDateShort(h.draw_date)}</td>
+                    <td style={{ padding: '12px', color: '#ec4899', fontWeight: 'bold' }}>{h.prize_8 || '-'}</td>
+                    <td style={{ padding: '12px', color: '#8b5cf6', fontWeight: 'bold' }}>{h.prize_6 || '-'}</td>
+                    <td style={{ padding: '12px', color: '#f59e0b', fontWeight: 'bold' }}>{h.prize_4 || '-'}</td>
+                    <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>{h.prize_3 || '-'}</td>
+                    <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>{h.prize_2 || '-'}</td>
+                  </tr>
+                ))}
+                {monthlyHistory.length === 0 && (
+                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>ไม่มีประวัติการออกรางวัลในช่วงวันที่เลือก</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
