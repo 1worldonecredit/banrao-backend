@@ -10,19 +10,18 @@ const DailySales = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // 🌟 State สำหรับเก็บว่าบิลไหนกำลังถูกกดขยายดูอยู่บ้าง
   const [expandedRows, setExpandedRows] = useState({});
-  
-  // 🌟 State สำหรับเก็บสถิติเลขขายดี & ความเสี่ยง
   const [numberStats, setNumberStats] = useState([]);
+  
+  // 🌟 เพิ่ม State สำหรับ Tab กรองชนิดเลขในตารางสถิติ
+  const [activeStatTab, setActiveStatTab] = useState('all');
 
   useEffect(() => {
     fetchDailySales();
-    setExpandedRows({}); // เคลียร์การพับบิลเมื่อเปลี่ยนวัน
-
-    // 🌟 ระบบรีเฟรชข้อมูลอัตโนมัติทุก 1 นาที (60000 ms)
+    setExpandedRows({});
+    
     const interval = setInterval(() => {
-      fetchDailySales(true); // true = ไม่ต้องโชว์ Loading ตอน Auto-refresh หน้าจะได้ไม่กระตุก
+      fetchDailySales(true); 
     }, 60000);
 
     return () => clearInterval(interval);
@@ -45,7 +44,6 @@ const DailySales = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันคำนวณสถิติยอดซื้อและความเสี่ยง (คำนวณสดจากข้อมูลบิล)
   useEffect(() => {
     if (!salesData || salesData.length === 0) {
       setNumberStats([]);
@@ -53,7 +51,7 @@ const DailySales = () => {
     }
 
     const statsMap = {};
-    let totalDailySales = summary.dailyTotal || 1; // ป้องกันหารด้วย 0
+    let totalDailySales = summary.dailyTotal || 1; 
 
     salesData.forEach(order => {
       if (!order.items) return;
@@ -62,7 +60,6 @@ const DailySales = () => {
         const betAmount = Number(item.price) || 0;
 
         if (!statsMap[key]) {
-          // กำหนดตัวคูณ (อิงจากฐานข้อมูล) เพื่อคำนวณความเสี่ยงที่ต้องจ่ายถ้าเลขนี้ออก
           let multiplier = 0;
           if (item.lottery_type === '2') multiplier = 90;
           if (item.lottery_type === '3') multiplier = 900;
@@ -84,20 +81,23 @@ const DailySales = () => {
       });
     });
 
-    // แปลง Object เป็น Array แล้วเรียงลำดับตามยอดซื้อ (เอาเฉพาะ Top 10)
+    // 🌟 ดึงข้อมูลทั้งหมดมาเรียงลำดับ (ยังไม่ตัด Top 10 เพื่อเอาไป Filter ในแท็บก่อน)
     const statsArray = Object.values(statsMap)
       .map(stat => ({
         ...stat,
         salesPercent: (stat.totalBet / totalDailySales) * 100,
-        riskPercent: (stat.potentialPayout / totalDailySales) * 100 // ความเสี่ยงเทียบกับรายได้รวมของวัน
+        riskPercent: (stat.potentialPayout / totalDailySales) * 100
       }))
-      .sort((a, b) => b.totalBet - a.totalBet)
-      .slice(0, 10); 
+      .sort((a, b) => b.totalBet - a.totalBet);
 
     setNumberStats(statsArray);
   }, [salesData, summary.dailyTotal]);
 
-  // ฟังก์ชันกด ขยาย/พับ บิล
+  // 🌟 ฟิลเตอร์และตัดเอาแค่ Top 10 ตาม Tab ที่เลือก
+  const filteredStats = numberStats
+    .filter(stat => activeStatTab === 'all' || stat.type === activeStatTab)
+    .slice(0, 10);
+
   const toggleRow = (orderId) => {
     setExpandedRows(prev => ({
       ...prev,
@@ -121,7 +121,6 @@ const DailySales = () => {
   return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      {/* 🌟 Header & Date Picker */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px' }}>รายงานยอดขายรายวัน</h2>
@@ -141,7 +140,6 @@ const DailySales = () => {
         </div>
       </div>
       
-      {/* 🌟 Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '25px' }}>
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #0ea5e9', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -180,14 +178,43 @@ const DailySales = () => {
         </div>
       </div>
 
-      {/* 🌟 สถิติความเสี่ยงเลขขายดี (Top 10) */}
+      {/* 🌟 สถิติความเสี่ยงเลขขายดี */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px' }}>
-        <h4 style={{ margin: '0 0 20px 0', color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+        <h4 style={{ margin: '0 0 15px 0', color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
           <TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง (Top 10)
         </h4>
+
+        {/* 🌟 Tabs กรองชนิดเลข */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
+          {[
+            { id: 'all', label: 'รวมทั้งหมด' },
+            { id: '2', label: '2 ตัวท้าย' },
+            { id: '3', label: '3 ตัวท้าย' },
+            { id: '4', label: '4 ตัวท้าย' },
+            { id: '6', label: '6 ตัว (ที่ 1)' },
+            { id: '8', label: '8 ตัว (ซูเปอร์)' }
+          ].map(tab => (
+            <button 
+              key={tab.id} 
+              onClick={() => setActiveStatTab(tab.id)}
+              style={{ 
+                padding: '8px 15px', 
+                backgroundColor: activeStatTab === tab.id ? '#0ea5e9' : 'transparent', 
+                color: activeStatTab === tab.id ? 'white' : '#64748b', 
+                border: 'none', 
+                borderRadius: '20px', 
+                cursor: 'pointer', 
+                fontWeight: 'bold',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         
-        {numberStats.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>ยังไม่มีข้อมูลการซื้อในวันนี้</div>
+        {filteredStats.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>ยังไม่มีข้อมูลการซื้อในหมวดหมู่นี้</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '800px' }}>
@@ -202,7 +229,7 @@ const DailySales = () => {
                 </tr>
               </thead>
               <tbody>
-                {numberStats.map((stat, idx) => (
+                {filteredStats.map((stat, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{stat.number}</td>
                     <td style={{ padding: '12px' }}>
@@ -314,7 +341,6 @@ const DailySales = () => {
                 {salesData.map((order) => (
                   <React.Fragment key={order.order_id}>
                     
-                    {/* 🟢 บรรทัดหลัก (บิล) */}
                     <tr 
                       onClick={() => toggleRow(order.order_id)} 
                       style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', backgroundColor: expandedRows[order.order_id] ? '#f8fafc' : 'white', transition: 'all 0.2s' }}
@@ -330,7 +356,6 @@ const DailySales = () => {
                       <td style={{ padding: '12px' }}>{getStatusBadge(order.order_status)}</td>
                     </tr>
 
-                    {/* 🟡 บรรทัดขยาย (แสดงเลขที่ซื้อในบิล) */}
                     {expandedRows[order.order_id] && (
                       <tr style={{ backgroundColor: '#fcfcfc' }}>
                         <td colSpan="7" style={{ padding: '15px 30px', borderBottom: '1px solid #e2e8f0' }}>
