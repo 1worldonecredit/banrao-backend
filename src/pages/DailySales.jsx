@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, Award, Clock, CheckCircle, XCircle, Gift, ChevronDown, ChevronUp, Receipt, TrendingUp, AlertOctagon, BarChart2 } from 'lucide-react';
+import { Calendar, DollarSign, Award, Clock, CheckCircle, XCircle, Gift, ChevronDown, ChevronUp, Receipt, TrendingUp, AlertOctagon, BarChart2, Filter } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -12,7 +12,10 @@ const DailySales = () => {
   
   const [expandedRows, setExpandedRows] = useState({});
   const [numberStats, setNumberStats] = useState([]);
+  
+  // 🌟 State สำหรับกรอง Tab และ จำนวน Top (10, 20, 30, ทั้งหมด)
   const [activeStatTab, setActiveStatTab] = useState('all');
+  const [topLimit, setTopLimit] = useState(10);
 
   useEffect(() => {
     fetchDailySales();
@@ -42,7 +45,28 @@ const DailySales = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันคำนวณสถิติ แยก THB และ LAK
+  // 🌟 คำนวณยอดขายและยอดจ่าย แยก ไทย(THB) และ ลาว(LAK) แบบ Real-time จากบิล
+  let totalSalesTHB = 0;
+  let totalSalesLAK = 0;
+  salesData.forEach(order => {
+    if (order.currency_code === 'LAK') {
+      totalSalesLAK += Number(order.total_amount) || 0;
+    } else {
+      totalSalesTHB += Number(order.total_amount) || 0;
+    }
+  });
+
+  let totalPayoutTHB = 0;
+  let totalPayoutLAK = 0;
+  winnersList.forEach(winner => {
+    if (winner.currency_code === 'LAK') {
+      totalPayoutLAK += Number(winner.prize_amount) || 0;
+    } else {
+      totalPayoutTHB += Number(winner.prize_amount) || 0;
+    }
+  });
+
+  // ฟังก์ชันคำนวณสถิติ แยก THB และ LAK
   useEffect(() => {
     if (!salesData || salesData.length === 0) {
       setNumberStats([]);
@@ -78,12 +102,11 @@ const DailySales = () => {
             betLAK: 0,
             payoutTHB: 0,
             payoutLAK: 0,
-            combinedValue: 0, // ค่าสมมติในหน่วย THB เพื่อใช้เรียงลำดับ Top 10
+            combinedValue: 0,
             combinedPayoutValue: 0
           };
         }
 
-        // แยกจับยัดใส่ THB หรือ LAK
         if (isLAK) {
           statsMap[key].betLAK += betAmount;
           statsMap[key].payoutLAK += payoutAmount;
@@ -113,9 +136,10 @@ const DailySales = () => {
     setNumberStats(statsArray);
   }, [salesData]);
 
+  // 🌟 ฟิลเตอร์และตัดจำนวนตาม Top (10, 20, 30, ทั้งหมด)
   const filteredStats = numberStats
     .filter(stat => activeStatTab === 'all' || stat.type === activeStatTab)
-    .slice(0, 10);
+    .slice(0, topLimit === 'all' ? numberStats.length : Number(topLimit));
 
   const toggleRow = (orderId) => {
     setExpandedRows(prev => ({
@@ -163,12 +187,15 @@ const DailySales = () => {
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '25px' }}>
+      {/* 🌟 Summary Cards (แยกไทย/ลาว ชัดเจน) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '25px' }}>
+        
+        {/* กล่องยอดขาย ไทย */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #0ea5e9', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายวันนี้ (ประมาณการ)</p>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {formatTHB(summary.dailyTotal || 0)}</h3>
+              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายฝั่งไทย (THB)</p>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '26px' }}>฿ {formatTHB(totalSalesTHB)}</h3>
             </div>
             <div style={{ backgroundColor: '#e0f2fe', padding: '10px', borderRadius: '50%' }}>
               <DollarSign color="#0ea5e9" size={24} />
@@ -176,36 +203,63 @@ const DailySales = () => {
           </div>
         </div>
 
+        {/* กล่องยอดขาย ลาว */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #8b5cf6', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายสะสมเดือนนี้</p>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '24px' }}>฿ {formatTHB(summary.monthlyTotal || 0)}</h3>
+              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายฝั่งลาว (LAK)</p>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '26px' }}>₭ {formatLAK(totalSalesLAK)}</h3>
             </div>
             <div style={{ backgroundColor: '#ede9fe', padding: '10px', borderRadius: '50%' }}>
-              <Calendar color="#8b5cf6" size={24} />
+              <DollarSign color="#8b5cf6" size={24} />
             </div>
           </div>
         </div>
 
+        {/* กล่องยอดต้องจ่ายเงินรางวัล */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดจ่ายเงินรางวัลวันนี้</p>
-              <h3 style={{ margin: 0, color: '#10b981', fontSize: '24px' }}>฿ {formatTHB(summary.dailyPayout || 0)}</h3>
+            <div style={{ width: '100%' }}>
+              <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดต้องจ่ายเงินรางวัลวันนี้</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ color: '#166534', fontWeight: 'bold' }}>ไทย:</span>
+                <span style={{ color: '#10b981', fontSize: '18px', fontWeight: 'bold' }}>฿ {formatTHB(totalPayoutTHB)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#5b21b6', fontWeight: 'bold' }}>ลาว:</span>
+                <span style={{ color: '#8b5cf6', fontSize: '18px', fontWeight: 'bold' }}>₭ {formatLAK(totalPayoutLAK)}</span>
+              </div>
             </div>
-            <div style={{ backgroundColor: '#d1fae5', padding: '10px', borderRadius: '50%' }}>
+            <div style={{ backgroundColor: '#d1fae5', padding: '10px', borderRadius: '50%', marginLeft: '15px' }}>
               <Award color="#10b981" size={24} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 🌟 สถิติความเสี่ยงเลขขายดี (แยก THB/LAK) */}
+      {/* 🌟 สถิติความเสี่ยงเลขขายดี (เพิ่ม Option Top 10, 20, 30) */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-          <TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง (Top 10)
-        </h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+          <h4 style={{ margin: 0, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+            <TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง
+          </h4>
+
+          {/* 🌟 ตัวเลือก Top 10, 20, 30 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f1f5f9', padding: '5px 15px', borderRadius: '8px' }}>
+            <Filter size={16} color="#64748b" />
+            <span style={{ fontSize: '14px', color: '#475569', fontWeight: 'bold' }}>แสดง:</span>
+            <select 
+              value={topLimit}
+              onChange={(e) => setTopLimit(e.target.value)}
+              style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', fontWeight: 'bold', color: '#0ea5e9', cursor: 'pointer' }}
+            >
+              <option value={10}>Top 10</option>
+              <option value={20}>Top 20</option>
+              <option value={30}>Top 30</option>
+              <option value="all">ทั้งหมด</option>
+            </select>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
           {[
@@ -238,10 +292,11 @@ const DailySales = () => {
         {filteredStats.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>ยังไม่มีข้อมูลการซื้อในหมวดหมู่นี้</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxHeight: '500px' }}> {/* เพิ่ม maxHeight ให้ Scroll ดูง่ายๆ */}
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '950px' }}>
-              <thead>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px' }}>ลำดับ</th>
                   <th style={{ padding: '12px' }}>เลขที่ซื้อ</th>
                   <th style={{ padding: '12px' }}>ประเภท</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>ยอดซื้อ (THB)</th>
@@ -254,6 +309,7 @@ const DailySales = () => {
               <tbody>
                 {filteredStats.map((stat, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px', color: '#94a3b8', fontWeight: 'bold' }}>{idx + 1}</td>
                     <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{stat.number}</td>
                     <td style={{ padding: '12px' }}>
                       <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', color: '#475569', fontWeight: 'bold' }}>
