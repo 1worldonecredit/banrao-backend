@@ -263,8 +263,9 @@ const DepositRequest = () => {
                 <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
                   โอนเข้า: <strong>{req.bank_name || 'ไม่ระบุ'}</strong> ({req.account_number})
                 </p>
+                {/* 🌟 เปลี่ยนเป็น en-GB เพื่อให้แสดงเป็น ค.ศ. */}
                 <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
-                  แจ้งเมื่อ: {new Date(req.created_at).toLocaleString('th-TH')}
+                  แจ้งเมื่อ: {new Date(req.created_at).toLocaleString('en-GB')}
                 </p>
                 {req.status === 'Rejected' && (
                   <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#ef4444', fontWeight: 'bold', backgroundColor: '#fef2f2', padding: '5px 10px', borderRadius: '4px', display: 'inline-block' }}>
@@ -315,7 +316,8 @@ const DepositRequest = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
                 <div><span style={{ color: '#64748b' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name || 'ไม่ระบุ'}</strong></div>
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
-                <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('th-TH')}</strong></div>
+                {/* 🌟 เปลี่ยนเป็น en-GB เพื่อให้แสดงเป็น ค.ศ. */}
+                <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('en-GB')}</strong></div>
                 <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
