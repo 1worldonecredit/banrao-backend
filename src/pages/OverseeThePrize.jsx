@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, Crosshair, DollarSign } from 'lucide-react';
+import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, Crosshair, DollarSign, Search } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -39,6 +39,13 @@ const OverseeThePrize = () => {
 
   const [targetPercent, setTargetPercent] = useState(50);
   const [isSuggesting, setIsSuggesting] = useState(false);
+
+  // ==========================================
+  // 🌟 State สำหรับค้นหารายชื่อคนซื้อจากเลข (ระบบใหม่)
+  // ==========================================
+  const [searchNumber, setSearchNumber] = useState('');
+  const [searchedBuyers, setSearchedBuyers] = useState(null); // ใช้ null เพื่อให้รู้ว่ายังไม่ได้ค้นหา
+  const [isSearchingBuyers, setIsSearchingBuyers] = useState(false);
 
   // ==========================================
   // 🌟 ฟังก์ชัน Utilities
@@ -196,6 +203,25 @@ const OverseeThePrize = () => {
         setAnalysisResult({ totalSales: data.totalSales, analysis: data.analysis });
       }
     } catch (err) { console.error(err); } finally { setIsSuggesting(false); }
+  };
+
+  // ==========================================
+  // 🌟 ฟังก์ชัน ค้นหาคนซื้อจากเลข (ระบบใหม่)
+  // ==========================================
+  const handleSearchBuyers = async () => {
+    if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
+    setIsSearchingBuyers(true);
+    setSearchedBuyers(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/search-buyers`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: searchNumber })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSearchedBuyers(data.buyers);
+      }
+    } catch (err) { console.error(err); } finally { setIsSearchingBuyers(false); }
   };
 
   const exportPDF = () => {
@@ -356,7 +382,7 @@ const OverseeThePrize = () => {
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: '#fffbeb', padding: '25px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Crosshair size={24} /> วิเคราะห์ความเสี่ยงก่อนตั้งผล (Risk Analyzer - เฉพาะ 6 ตัว)
+          <Crosshair size={24} /> วิเคราะห์ความเสี่ยงก่อนตั้งผล (ดึงข้อมูลเฉพาะรอบที่เปิดรับซื้อล่าสุด)
         </h4>
 
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
@@ -438,13 +464,27 @@ const OverseeThePrize = () => {
               </div>
             </div>
             
+            {/* 🌟 อัปเดตตรรกะข้อความกำไรตามที่คุณสั่ง */}
             {(() => {
               const totalPayout = analysisResult.analysis.reduce((sum, item) => sum + item.total_payout, 0);
               const riskPercent = analysisResult.totalSales > 0 ? (totalPayout / analysisResult.totalSales) * 100 : 0;
+              let alertColor = '#166534'; 
+              let alertBg = '#f0fdf4'; 
+              let alertText = '(ปลอดภัย ระบบมีกำไร)';
+
+              if (riskPercent > 100) { 
+                alertColor = '#b91c1c'; alertBg = '#fef2f2'; alertText = '(ขาดทุนยับ!)'; 
+              } else if (riskPercent >= 90) { 
+                // 🌟 ถ้าแตะ 90% ขึ้นไป ถือว่ากำไรน้อยมาก จะไม่บอกว่าปลอดภัยแล้ว
+                alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก/เกือบเท่าทุน)'; 
+              } else if (riskPercent > targetPercent) { 
+                alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(ยอดจ่ายสูงกว่าเป้าหมายที่ตั้งไว้)'; 
+              }
+
               return (
-                <div style={{ marginTop: '15px', textAlign: 'center', padding: '12px', backgroundColor: riskPercent > targetPercent ? '#fef2f2' : '#f0fdf4', borderRadius: '8px', color: riskPercent > targetPercent ? '#b91c1c' : '#166534', fontWeight: 'bold' }}>
+                <div style={{ marginTop: '15px', textAlign: 'center', padding: '12px', backgroundColor: alertBg, borderRadius: '8px', color: alertColor, fontWeight: 'bold' }}>
                   <AlertTriangle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }} />
-                  สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {riskPercent > 100 ? '(ขาดทุนยับ!)' : (riskPercent > targetPercent ? '(ยอดจ่ายสูงกว่าเป้าหมายที่ตั้งไว้)' : '(ปลอดภัย ระบบมีกำไร)')}
+                  สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {alertText}
                 </div>
               );
             })()}
@@ -500,7 +540,7 @@ const OverseeThePrize = () => {
       {/* 5. โซนตารางรายชื่อผู้ถูกรางวัล (โค้ดเก่าของคุณ 100%) */}
       {/* ------------------------------------------------------------------------- */}
       {winners.length > 0 && (
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h4 style={{ margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
               <Trophy size={24} /> รายชื่อผู้ถูกรางวัล (งวด {formatThaiDateFull(selectedDate)})
@@ -558,6 +598,65 @@ const OverseeThePrize = () => {
           </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 6. โซนค้นหารายชื่อคนซื้อตามเลขที่ระบุ (เพิ่มเข้ามาใหม่ล่าสุด ตามที่คุณสั่ง) */}
+      {/* ------------------------------------------------------------------------- */}
+      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Search size={20} color="#0ea5e9" /> ค้นหาข้อมูลผู้ซื้อจากหมายเลข (อิงจากเวลาเปิด-ปิดรับซื้อรอบล่าสุด)
+        </h4>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <input 
+            type="text" 
+            placeholder="กรอกตัวเลขที่ต้องการค้นหา" 
+            value={searchNumber}
+            onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))}
+            style={{ padding: '10px 15px', fontSize: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', width: '250px' }}
+          />
+          <button 
+            onClick={handleSearchBuyers} 
+            disabled={isSearchingBuyers}
+            style={{ padding: '10px 20px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหา'}
+          </button>
+        </div>
+
+        {/* 🌟 ไม่ค้นหา ไม่แสดงอะไรเลย (ตามคำสั่ง) */}
+        {searchedBuyers !== null && (
+          <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ผู้ใช้ (Username)</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ประเภท</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>จะได้รางวัล (ถ้าถูก)</th>
+                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เวลาซื้อ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchedBuyers.map((w, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '12px' }}>{w.lottery_type} ตัว</td>
+                    <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
+                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
+                  </tr>
+                ))}
+                {searchedBuyers.length === 0 && (
+                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>ไม่พบรายการซื้อหมายเลข "{searchNumber}" ในรอบบิลนี้</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
