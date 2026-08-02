@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, Award, Clock, CheckCircle, XCircle, Gift, ChevronDown, ChevronUp, Receipt } from 'lucide-react';
+import { Calendar, DollarSign, Award, Clock, CheckCircle, XCircle, Gift, ChevronDown, ChevronUp, Receipt, TrendingUp, AlertOctagon, BarChart2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -12,21 +12,31 @@ const DailySales = () => {
   
   // 🌟 State สำหรับเก็บว่าบิลไหนกำลังถูกกดขยายดูอยู่บ้าง
   const [expandedRows, setExpandedRows] = useState({});
+  
+  // 🌟 State สำหรับเก็บสถิติเลขขายดี & ความเสี่ยง
+  const [numberStats, setNumberStats] = useState([]);
 
   useEffect(() => {
     fetchDailySales();
     setExpandedRows({}); // เคลียร์การพับบิลเมื่อเปลี่ยนวัน
+
+    // 🌟 ระบบรีเฟรชข้อมูลอัตโนมัติทุก 1 นาที (60000 ms)
+    const interval = setInterval(() => {
+      fetchDailySales(true); // true = ไม่ต้องโชว์ Loading ตอน Auto-refresh หน้าจะได้ไม่กระตุก
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, [selectedDate]);
 
-  const fetchDailySales = async () => {
-    setIsLoading(true);
+  const fetchDailySales = async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/daily-sales?date=${selectedDate}`);
       const data = await res.json();
       if (data.success) {
         setSummary(data.summary);
-        setSalesData(data.salesDetails); // ข้อมูลที่เป็นบิลจัดกลุ่มมาแล้ว
-        setWinnersList(data.winners); // คนที่ถูกรางวัล
+        setSalesData(data.salesDetails); 
+        setWinnersList(data.winners); 
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -34,6 +44,58 @@ const DailySales = () => {
       setIsLoading(false);
     }
   };
+
+  // 🌟 ฟังก์ชันคำนวณสถิติยอดซื้อและความเสี่ยง (คำนวณสดจากข้อมูลบิล)
+  useEffect(() => {
+    if (!salesData || salesData.length === 0) {
+      setNumberStats([]);
+      return;
+    }
+
+    const statsMap = {};
+    let totalDailySales = summary.dailyTotal || 1; // ป้องกันหารด้วย 0
+
+    salesData.forEach(order => {
+      if (!order.items) return;
+      order.items.forEach(item => {
+        const key = `${item.lottery_type}-${item.selected_number}`;
+        const betAmount = Number(item.price) || 0;
+
+        if (!statsMap[key]) {
+          // กำหนดตัวคูณ (อิงจากฐานข้อมูล) เพื่อคำนวณความเสี่ยงที่ต้องจ่ายถ้าเลขนี้ออก
+          let multiplier = 0;
+          if (item.lottery_type === '2') multiplier = 90;
+          if (item.lottery_type === '3') multiplier = 900;
+          if (item.lottery_type === '4') multiplier = 7000;
+          if (item.lottery_type === '6') multiplier = 400000;
+          if (item.lottery_type === '8') multiplier = 1000000;
+
+          statsMap[key] = {
+            number: item.selected_number,
+            type: item.lottery_type,
+            totalBet: 0,
+            potentialPayout: 0,
+            multiplier: multiplier
+          };
+        }
+
+        statsMap[key].totalBet += betAmount;
+        statsMap[key].potentialPayout += betAmount * statsMap[key].multiplier;
+      });
+    });
+
+    // แปลง Object เป็น Array แล้วเรียงลำดับตามยอดซื้อ (เอาเฉพาะ Top 10)
+    const statsArray = Object.values(statsMap)
+      .map(stat => ({
+        ...stat,
+        salesPercent: (stat.totalBet / totalDailySales) * 100,
+        riskPercent: (stat.potentialPayout / totalDailySales) * 100 // ความเสี่ยงเทียบกับรายได้รวมของวัน
+      }))
+      .sort((a, b) => b.totalBet - a.totalBet)
+      .slice(0, 10); 
+
+    setNumberStats(statsArray);
+  }, [salesData, summary.dailyTotal]);
 
   // ฟังก์ชันกด ขยาย/พับ บิล
   const toggleRow = (orderId) => {
@@ -57,13 +119,15 @@ const DailySales = () => {
   };
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       {/* 🌟 Header & Date Picker */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px' }}>รายงานยอดขายรายวัน</h2>
-          <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>สรุปยอดซื้อและรายการถูกรางวัลประจำวัน</p>
+          <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>
+            สรุปยอดซื้อและรายการถูกรางวัลประจำวัน <span style={{ color: '#0ea5e9', fontWeight: 'bold' }}>(อัปเดตอัตโนมัติทุก 1 นาที)</span>
+          </p>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '8px 15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
@@ -72,7 +136,7 @@ const DailySales = () => {
             type="date" 
             value={selectedDate} 
             onChange={(e) => setSelectedDate(e.target.value)}
-            style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ border: 'none', outline: 'none', color: '#334155', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
           />
         </div>
       </div>
@@ -116,14 +180,77 @@ const DailySales = () => {
         </div>
       </div>
 
+      {/* 🌟 สถิติความเสี่ยงเลขขายดี (Top 10) */}
+      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px' }}>
+        <h4 style={{ margin: '0 0 20px 0', color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+          <TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง (Top 10)
+        </h4>
+        
+        {numberStats.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>ยังไม่มีข้อมูลการซื้อในวันนี้</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '12px' }}>ประเภท</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ยอดซื้อรวม (THB)</th>
+                  <th style={{ padding: '12px' }}>สัดส่วนยอดขาย</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ถ้าถูก ต้องจ่าย (THB)</th>
+                  <th style={{ padding: '12px' }}>อัตราความเสี่ยง</th>
+                </tr>
+              </thead>
+              <tbody>
+                {numberStats.map((stat, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{stat.number}</td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', color: '#475569', fontWeight: 'bold' }}>
+                        {stat.type} ตัว
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#0ea5e9' }}>
+                      {stat.totalBet.toLocaleString()}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '100px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.min(stat.salesPercent, 100)}%`, height: '100%', backgroundColor: '#0ea5e9' }}></div>
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>{stat.salesPercent.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#b91c1c' }}>
+                      {stat.potentialPayout.toLocaleString()}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '100px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.min(stat.riskPercent, 100)}%`, height: '100%', backgroundColor: stat.riskPercent > 50 ? '#ef4444' : (stat.riskPercent > 20 ? '#f59e0b' : '#10b981') }}></div>
+                        </div>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: stat.riskPercent > 50 ? '#ef4444' : '#64748b' }}>
+                          {stat.riskPercent.toFixed(1)}%
+                        </span>
+                        {stat.riskPercent > 80 && <AlertOctagon size={14} color="#ef4444" title="ความเสี่ยงสูงมาก" />}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* 🌟 รายชื่อผู้ถูกรางวัล */}
       {winnersList.length > 0 && (
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '25px', border: '1px solid #bbf7d0' }}>
-          <h4 style={{ margin: '0 0 15px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
-            <Gift size={20} /> รายชื่อผู้ถูกรางวัลประจำวัน (เตรียมโอนเงิน)
+          <h4 style={{ margin: '0 0 15px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+            <Gift size={22} /> รายชื่อผู้ถูกรางวัลประจำวัน (เตรียมโอนเงิน)
           </h4>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '700px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f0fdf4', color: '#166534' }}>
                   <th style={{ padding: '12px', borderBottom: '2px solid #bbf7d0' }}>ผู้ซื้อ (Username)</th>
@@ -138,16 +265,16 @@ const DailySales = () => {
                   <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '12px', fontWeight: 'bold' }}>{winner.username}</td>
                     <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {winner.animal_image && <img src={winner.animal_image} alt={winner.animal_name} style={{ width: '25px', height: '25px', borderRadius: '4px', objectFit: 'cover' }} />}
+                      {winner.animal_image && <img src={winner.animal_image} alt={winner.animal_name} style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover' }} />}
                       <div>
                         <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '16px' }}>{winner.selected_number}</span> 
                         <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '6px' }}>({winner.lottery_type} ตัว) {winner.animal_name}</span>
                       </div>
                     </td>
                     <td style={{ padding: '12px' }}>{winner.price.toLocaleString()} {winner.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {winner.prize_amount.toLocaleString()}</td>
+                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', fontSize: '16px' }}>+ {winner.prize_amount.toLocaleString()}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
+                      <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)' }}>
                         โอนเงินเข้า Wallet
                       </button>
                     </td>
@@ -161,7 +288,9 @@ const DailySales = () => {
 
       {/* 🌟 ตารางยอดขายทั้งหมด (แบบบิล ยุบ/ขยายได้) */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 20px 0', color: '#334155', fontSize: '16px' }}>รายการสั่งซื้อทั้งหมด ({selectedDate})</h4>
+        <h4 style={{ margin: '0 0 20px 0', color: '#334155', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BarChart2 size={22} color="#64748b" /> รายการสั่งซื้อทั้งหมด ({selectedDate})
+        </h4>
         
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</div>
@@ -169,7 +298,7 @@ const DailySales = () => {
           <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>ไม่มีรายการขายในวันที่เลือก</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '800px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#64748b' }}>
                   <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', width: '40px' }}></th>
