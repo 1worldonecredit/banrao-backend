@@ -10,9 +10,11 @@ const DepositBalance = () => {
   const [selectedBank, setSelectedBank] = useState('');
   const [amount, setAmount] = useState('');
   
+  // 🌟 แก้ไข: บังคับให้วันที่ปัจจุบันเป็น ปี พ.ศ. (+543) ทันที
   const getTodayDate = () => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const yearBE = d.getFullYear() + 543; 
+    return `${yearBE}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   
   const [transferDate, setTransferDate] = useState(getTodayDate());
@@ -28,33 +30,15 @@ const DepositBalance = () => {
   const [activeTab, setActiveTab] = useState('pending'); 
   const [editingId, setEditingId] = useState(null); 
 
-  // ==========================================
-  // 🌟 ฟังก์ชันจัดการวันที่ ป้องกันการบันทึก ปี พ.ศ. ลงฐานข้อมูล
-  // ==========================================
-  const handleDateChange = (setter) => (e) => {
-    let val = e.target.value;
-    if (val) {
-      const [year, month, day] = val.split('-');
-      let y = parseInt(year, 10);
-      // ถ้าแอดมินพิมพ์ 2569 (ปี พ.ศ.) ระบบจะลบ 543 กลับเป็น ค.ศ. ให้อัตโนมัติ
-      if (y > 2500) {
-        y -= 543;
-        val = `${y}-${month}-${day}`;
-      }
-    }
-    setter(val);
-  };
-
-  // 🌟 แปลงวันที่เป็น พ.ศ. สวยๆ สำหรับตารางและรายงาน PDF
+  // 🌟 แก้ไข: ฟังก์ชันฟอร์แมตวันที่แบบ Custom ไม่ใช้ Date() ของ JS เพื่อป้องกันปี พ.ศ. เพี้ยนเป็นปี 3112
   const formatThaiDate = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('th-TH', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    });
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    let y = parseInt(year, 10);
+    // ถ้าข้อมูลเก่าในระบบยังเป็น ค.ศ. อยู่ (น้อยกว่า 2500) ให้บวก 543 เพื่อโชว์สวยๆ
+    if (y < 2500) y += 543; 
+    return `${day}/${month}/${y}`;
   };
-  // ==========================================
 
   useEffect(() => {
     fetchBanks();
@@ -89,7 +73,12 @@ const DepositBalance = () => {
     setEditingId(record.statement_id);
     setSelectedBank(record.bank_id.toString());
     setAmount(record.amount);
-    setTransferDate(new Date(record.transfer_date).toISOString().split('T')[0]);
+    
+    // ดึงค่ามาใส่ช่อง Edit ต้องมั่นใจว่าเป็น พ.ศ.
+    const [year, month, day] = record.transfer_date.split('T')[0].split('-');
+    let y = parseInt(year, 10);
+    if (y < 2500) y += 543;
+    setTransferDate(`${y}-${month}-${day}`);
     
     let timeStr = record.transfer_time;
     if (record.time_formatted) timeStr = record.time_formatted;
@@ -129,7 +118,7 @@ const DepositBalance = () => {
           bankName: bankObj.bank_name,
           accountNumber: bankObj.account_number,
           amount: amount,
-          transferDate: transferDate,
+          transferDate: transferDate, // ส่งปี 2569 กลับไปให้ API ดื้อๆ เลย
           transferTime: transferTime,
           adminName: adminName
         })
@@ -158,7 +147,6 @@ const DepositBalance = () => {
     const doc = new jsPDF();
     doc.addFont('THSarabunNew', 'normal');
     doc.setFontSize(18);
-    // เปลี่ยนหัวข้อ PDF เป็น พ.ศ. ด้วย
     doc.text(`Deposit Report (${formatThaiDate(startDate)} to ${formatThaiDate(endDate)})`, 14, 20);
     const tableColumn = ["ID", "Bank", "Account", "Amount", "Date", "Time", "Status"];
     const tableRows = [];
@@ -168,7 +156,7 @@ const DepositBalance = () => {
         req.bank_name, 
         req.account_number, 
         req.amount, 
-        formatThaiDate(req.transfer_date), // ดึง พ.ศ. ไปใส่ใน PDF
+        formatThaiDate(req.transfer_date), 
         req.time_formatted || req.transfer_time, 
         req.is_reconciled ? 'Matched' : 'Pending'
       ]);
@@ -180,7 +168,6 @@ const DepositBalance = () => {
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', width: '100%', boxSizing: 'border-box' }}>
       
-      {/* กล่องสรุปยอด */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
         {summaryList.length === 0 ? (
            <p style={{ margin: 0, color: '#6b7280' }}>ยังไม่มีข้อมูลสรุปยอด</p>
@@ -200,7 +187,6 @@ const DepositBalance = () => {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
         
-        {/* 🌟 ฟอร์มคีย์ยอด / แก้ไข */}
         <div style={{ flex: '1 1 320px', maxWidth: '100%', backgroundColor: editingId ? '#fffbea' : 'white', padding: '20px', borderRadius: '12px', border: `1px solid ${editingId ? '#fde047' : '#e5e7eb'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', boxSizing: 'border-box' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '15px', color: editingId ? '#a16207' : '#111', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
             {editingId ? '✏️ แก้ไขรายการที่คีย์ผิด' : 'คีย์ยอดเงินฝากเข้า'}
@@ -218,8 +204,7 @@ const DepositBalance = () => {
               <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }} />
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              {/* 🌟 เปลี่ยนมาใช้ handleDateChange แทน */}
-              <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>วันที่</label><input type="date" value={transferDate} onChange={handleDateChange(setTransferDate)} required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }} /></div>
+              <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>วันที่</label><input type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }} /></div>
               <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>เวลา</label><input type="time" step="1" value={transferTime} onChange={(e) => setTransferTime(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }} /></div>
             </div>
 
@@ -240,21 +225,18 @@ const DepositBalance = () => {
           </form>
         </div>
 
-        {/* 🌟 ตารางประวัติ (มีแยกแท็บ และ ปุ่มแก้ไข) */}
         <div style={{ flex: '999 1 500px', maxWidth: '100%', backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', boxSizing: 'border-box' }}>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px' }}>
             <h2 style={{ fontSize: '18px', margin: '0', color: '#111' }}>ประวัติคีย์ยอดและกระทบยอด</h2>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              {/* 🌟 เปลี่ยนมาใช้ handleDateChange แทน */}
-              <input type="date" value={startDate} onChange={handleDateChange(setStartDate)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
               <span>ถึง</span>
-              <input type="date" value={endDate} onChange={handleDateChange(setEndDate)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }} />
               <button onClick={fetchReport} style={{ backgroundColor: '#4b5563', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}><Filter size={16} style={{verticalAlign:'middle'}}/> กรอง</button>
             </div>
           </div>
 
-          {/* 🌟 แท็บแยกประเภท */}
           <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px' }}>
             <button onClick={() => setActiveTab('pending')} style={{ flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent', fontSize: '16px', fontWeight: 'bold', color: activeTab === 'pending' ? '#d97706' : '#6b7280', borderBottom: activeTab === 'pending' ? '3px solid #d97706' : 'none', cursor: 'pointer' }}>
               ⏳ รอกระทบยอด ({records.filter(r => !r.is_reconciled).length})
@@ -278,7 +260,6 @@ const DepositBalance = () => {
               <tbody>
                 {filteredRecords.map((r, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6', backgroundColor: editingId === r.statement_id ? '#fffbea' : 'transparent' }}>
-                    {/* 🌟 นำ formatThaiDate มาใช้แสดงผล พ.ศ. ให้สวยงาม */}
                     <td style={{ padding: '12px' }}>{formatThaiDate(r.transfer_date)} <br/><span style={{color: '#666'}}>{r.time_formatted || r.transfer_time}</span></td>
                     <td style={{ padding: '12px' }}>{r.bank_name} <br/><span style={{fontSize: '12px', color: '#888'}}>{r.account_number}</span></td>
                     <td style={{ padding: '12px', fontWeight: 'bold', color: '#0369a1' }}>{formatCurrency(r.amount)} {r.currency || 'THB'}</td>
