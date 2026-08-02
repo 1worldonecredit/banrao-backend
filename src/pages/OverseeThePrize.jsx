@@ -29,13 +29,14 @@ const OverseeThePrize = () => {
       const data = await res.json();
       if (data.success && data.data) {
         setSettings({
-          close_time: data.data.close_time ? data.data.close_time.substring(0, 5) : '17:00',
-          open_time: data.data.open_time ? data.data.open_time.substring(0, 5) : '18:00',
-          draw_time: data.data.draw_time ? data.data.draw_time.substring(0, 5) : '17:30',
+          // 🌟 รับค่า HH:mm จาก Database มาใส่ตรงๆ เลย ถ้าไม่มีก็ให้ Default เป็นเวลาเดิม
+          close_time: data.data.close_time || '17:00',
+          open_time: data.data.open_time || '18:00',
+          draw_time: data.data.draw_time || '17:30',
           is_sales_open: data.data.is_sales_open
         });
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error('Error fetching settings:', err); }
   };
 
   const handleUpdateSettings = async (field, value) => {
