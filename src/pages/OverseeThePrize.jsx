@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, Crosshair, DollarSign, Search } from 'lucide-react';
+import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, Crosshair, DollarSign, Search, CheckCircle, Eye, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const OverseeThePrize = () => {
   // ==========================================
-  // 🌟 State เดิมของคุณ (ตั้งเวลา, ผลรางวัล)
+  // 🌟 State หลัก
   // ==========================================
   const [settings, setSettings] = useState({
     close_time: '17:00',
@@ -28,7 +28,7 @@ const OverseeThePrize = () => {
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
   // ==========================================
-  // 🌟 State ใหม่ (เรทเงิน, เรทจ่าย, วิเคราะห์ความเสี่ยง)
+  // 🌟 State ระบบวิเคราะห์ & เรท
   // ==========================================
   const [prizeRates, setPrizeRates] = useState([]);
   const [exchangeRateLAK, setExchangeRateLAK] = useState(0);
@@ -39,13 +39,19 @@ const OverseeThePrize = () => {
 
   const [targetPercent, setTargetPercent] = useState(50);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isExecutingDraw, setIsExecutingDraw] = useState(false);
 
   // ==========================================
-  // 🌟 State สำหรับค้นหารายชื่อคนซื้อจากเลข (ระบบใหม่)
+  // 🌟 State สำหรับค้นหารายชื่อคนซื้อจากเลข
   // ==========================================
   const [searchNumber, setSearchNumber] = useState('');
-  const [searchedBuyers, setSearchedBuyers] = useState(null); // ใช้ null เพื่อให้รู้ว่ายังไม่ได้ค้นหา
+  const [searchedBuyers, setSearchedBuyers] = useState(null); 
   const [isSearchingBuyers, setIsSearchingBuyers] = useState(false);
+
+  // 🌟 State ใหม่สำหรับโชว์ Modal คนแทงจากหน้าวิเคราะห์
+  const [showSimulatedUsers, setShowSimulatedUsers] = useState(false);
+  const [simulatedUsersList, setSimulatedUsersList] = useState([]);
+  const [simulatedUserLoading, setSimulatedUserLoading] = useState(false);
 
   // ==========================================
   // 🌟 ฟังก์ชัน Utilities
@@ -63,12 +69,12 @@ const OverseeThePrize = () => {
   const formatCurrency = (amt) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amt || 0);
 
   // ==========================================
-  // 🌟 useEffect สำหรับโหลดข้อมูลเริ่มต้น
+  // 🌟 useEffect
   // ==========================================
   useEffect(() => {
     fetchSettings();
-    fetchPrizeRates(); // ดึงอัตราจ่าย
-    fetchExchangeRates(); // ดึงเรทแลกเปลี่ยน
+    fetchPrizeRates(); 
+    fetchExchangeRates(); 
   }, []);
 
   useEffect(() => {
@@ -76,7 +82,7 @@ const OverseeThePrize = () => {
   }, [selectedDate]);
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ดึง/บันทึก ข้อมูลต่างๆ
+  // 🌟 ฟังก์ชัน ดึง/บันทึก 
   // ==========================================
   const fetchSettings = async () => {
     try {
@@ -132,59 +138,46 @@ const OverseeThePrize = () => {
     }
   };
 
-  // --- บันทึก ---
   const handleUpdateSettings = async (field, value) => {
     const updated = { ...settings, [field]: value };
     setSettings(updated);
     try {
-      await fetch(`${API_URL}/api/admin/settings`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated)
-      });
+      await fetch(`${API_URL}/api/admin/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
       alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว');
-    } catch (err) { alert('❌ เกิดข้อผิดพลาดในการบันทึก'); }
+    } catch (err) {}
   };
 
   const handleSaveAllTimes = async () => {
     try {
-      await fetch(`${API_URL}/api/admin/settings`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings)
-      });
+      await fetch(`${API_URL}/api/admin/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
       alert('✅ บันทึกเวลาทั้งหมดเรียบร้อยแล้ว');
-    } catch (err) { alert('❌ เกิดข้อผิดพลาดในการบันทึกเวลา'); }
+    } catch (err) {}
   };
 
   const handleSavePrizeRates = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/prize-rates`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rates: prizeRates })
-      });
+      const res = await fetch(`${API_URL}/api/admin/prize-rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rates: prizeRates }) });
       const data = await res.json();
       if (data.success) alert('✅ บันทึกอัตราการจ่ายสำเร็จ!');
-    } catch (err) { alert('❌ บันทึกไม่สำเร็จ'); }
+    } catch (err) {}
   };
 
   const handleSaveExchangeRate = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/exchange-rates`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK })
-      });
+      const res = await fetch(`${API_URL}/api/admin/exchange-rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK }) });
       const data = await res.json();
-      if (data.success) alert('✅ อัปเดตอัตราแลกเปลี่ยนสำเร็จ! (มีผลกับการคำนวณทันที)');
-    } catch (err) { alert('❌ อัปเดตไม่สำเร็จ'); }
+      if (data.success) alert('✅ อัปเดตอัตราแลกเปลี่ยนสำเร็จ!');
+    } catch (err) {}
   };
 
   // ==========================================
-  // 🌟 ฟังก์ชัน วิเคราะห์ความเสี่ยง (เฉพาะเลข 6 ตัวตามสั่ง)
+  // 🌟 ฟังก์ชัน วิเคราะห์ & ออกรางวัลจริง
   // ==========================================
   const handleAnalyzeDraw = async () => {
     if (simulatedNumber.length !== 6) return alert('กรุณากรอกเลขให้ครบ 6 หลักครับ');
     setIsAnalyzing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/analyze-draw`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: simulatedNumber })
-      });
+      const res = await fetch(`${API_URL}/api/admin/analyze-draw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: simulatedNumber }) });
       const data = await res.json();
       if (data.success) setAnalysisResult(data);
     } catch (err) { console.error(err); } finally { setIsAnalyzing(false); }
@@ -193,10 +186,7 @@ const OverseeThePrize = () => {
   const handleSuggestDraw = async () => {
     setIsSuggesting(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/suggest-draw`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetPercent })
-      });
+      const res = await fetch(`${API_URL}/api/admin/suggest-draw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetPercent }) });
       const data = await res.json();
       if (data.success) {
         setSimulatedNumber(data.suggestedNumber);
@@ -205,41 +195,59 @@ const OverseeThePrize = () => {
     } catch (err) { console.error(err); } finally { setIsSuggesting(false); }
   };
 
+  const handleExecuteDraw = async () => {
+    if (!window.confirm(`⚠️ คำเตือน! คุณยืนยันที่จะออกรางวัลด้วยหมายเลข ${simulatedNumber} ใช่หรือไม่?\n\n(การกระทำนี้จะตรวจบิลทั้งหมดที่ค้างอยู่ และแจกเงินลูกค้าทันที)`)) return;
+    
+    setIsExecutingDraw(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/execute-draw`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ number6: simulatedNumber }) 
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        fetchDrawHistory(selectedDate);
+      } else {
+        alert('❌ เกิดข้อผิดพลาดในการออกรางวัล');
+      }
+    } catch (err) { console.error(err); } finally { setIsExecutingDraw(false); }
+  };
+
+  const fetchSimulatedUsers = async (type, numberStr) => {
+    setSimulatedUserLoading(true);
+    setShowSimulatedUsers(true);
+    setSimulatedUsersList([]);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/simulate-winners`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: numberStr, lottery_type: type })
+      });
+      const data = await res.json();
+      if (data.success) setSimulatedUsersList(data.users);
+    } catch (err) { console.error(err); } finally { setSimulatedUserLoading(false); }
+  };
+
   // ==========================================
-  // 🌟 ฟังก์ชัน ค้นหาคนซื้อจากเลข (ระบบใหม่)
+  // 🌟 ฟังก์ชัน ค้นหา
   // ==========================================
   const handleSearchBuyers = async () => {
     if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
     setIsSearchingBuyers(true);
     setSearchedBuyers(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/search-buyers`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: searchNumber })
-      });
+      const res = await fetch(`${API_URL}/api/admin/search-buyers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: searchNumber }) });
       const data = await res.json();
-      if (data.success) {
-        setSearchedBuyers(data.buyers);
-      }
+      if (data.success) setSearchedBuyers(data.buyers);
     } catch (err) { console.error(err); } finally { setIsSearchingBuyers(false); }
   };
 
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.addFont('THSarabunNew', 'normal');
-    doc.setFontSize(18);
-    doc.text(`Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
-    
+    const doc = new jsPDF(); doc.addFont('THSarabunNew', 'normal'); doc.setFontSize(18); doc.text(`Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
     const tableColumn = ["Username", "Type", "Number", "Bet Amount", "Prize Amount", "Currency"];
     const tableRows = [];
-
-    filteredWinners.forEach(w => {
-      const rowData = [ w.username, `${w.lottery_type} Digits`, w.selected_number, w.price, w.prize_amount, w.currency_code ];
-      tableRows.push(rowData);
-    });
-
-    doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 });
-    doc.save(`winners_report_${selectedDate}.pdf`);
+    filteredWinners.forEach(w => tableRows.push([ w.username, `${w.lottery_type} Digits`, w.selected_number, w.price, w.prize_amount, w.currency_code ]));
+    doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); doc.save(`winners_report_${selectedDate}.pdf`);
   };
 
   const filteredWinners = activeTab === 'all' ? winners : winners.filter(w => w.lottery_type === activeTab);
@@ -249,7 +257,7 @@ const OverseeThePrize = () => {
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>จัดการผลรางวัล (Oversee The Prize)</h2>
       
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. โซนตั้งเวลา (โค้ดเก่าของคุณ 100%) */}
+      {/* 1. โซนตั้งเวลา */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -258,7 +266,9 @@ const OverseeThePrize = () => {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' }}>
           <div style={{ padding: '15px', backgroundColor: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca' }}>
-            <p style={{ margin: '0 0 8px 0', color: '#b91c1c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><StopCircle size={16} /> 1. เวลาปิดรับซื้อ</p>
+            <p style={{ margin: '0 0 8px 0', color: '#b91c1c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <StopCircle size={16} /> 1. เวลาปิดรับซื้อ
+            </p>
             <input
               type="time"
               value={settings.close_time}
@@ -268,7 +278,9 @@ const OverseeThePrize = () => {
           </div>
 
           <div style={{ padding: '15px', backgroundColor: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a' }}>
-            <p style={{ margin: '0 0 8px 0', color: '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><PlayCircle size={16} /> 2. เวลาออกเลข (ประกาศผล)</p>
+            <p style={{ margin: '0 0 8px 0', color: '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <PlayCircle size={16} /> 2. เวลาออกเลข (ประกาศผล)
+            </p>
             <input
               type="time"
               value={settings.draw_time}
@@ -278,7 +290,9 @@ const OverseeThePrize = () => {
           </div>
 
           <div style={{ padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
-            <p style={{ margin: '0 0 8px 0', color: '#15803d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Play size={16} /> 3. เวลาเปิดรับซื้อ (งวดถัดไป)</p>
+            <p style={{ margin: '0 0 8px 0', color: '#15803d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Play size={16} /> 3. เวลาเปิดรับซื้อ (งวดถัดไป)
+            </p>
             <input
               type="time"
               value={settings.open_time}
@@ -304,9 +318,8 @@ const OverseeThePrize = () => {
         </div>
       </div>
 
-
       {/* ------------------------------------------------------------------------- */}
-      {/* 2. โซนตั้งค่าเรทเงิน & อัตราจ่าย (ที่แทรกเพิ่มเข้ามาใหม่) */}
+      {/* 2. โซนตั้งค่าเรทเงิน & อัตราจ่าย */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         
@@ -315,7 +328,6 @@ const OverseeThePrize = () => {
           <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยน (LAK เป็น THB)
           </h4>
-          <p style={{ margin: '0 0 15px 0', fontSize: '13px', color: '#64748b' }}>ใช้สำหรับประเมินยอดขายและยอดจ่ายในหน้าวิเคราะห์ความเสี่ยง</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
             <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>1 THB = </span>
             <input 
@@ -373,22 +385,18 @@ const OverseeThePrize = () => {
             <Save size={18} /> บันทึกอัตราจ่าย
           </button>
         </div>
-
       </div>
 
-
       {/* ------------------------------------------------------------------------- */}
-      {/* 3. โซนวิเคราะห์ความเสี่ยง 0-100% (เลข 6 ตัว) ที่แทรกเพิ่มเข้ามาใหม่ */}
+      {/* 3. โซนวิเคราะห์ความเสี่ยง 0-100% (เลข 6 ตัว) */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: '#fffbeb', padding: '25px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Crosshair size={24} /> วิเคราะห์ความเสี่ยงก่อนตั้งผล (ดึงข้อมูลเฉพาะรอบที่เปิดรับซื้อล่าสุด)
+          <Crosshair size={24} /> วิเคราะห์ความเสี่ยง และ ตั้งผลการออกรางวัล
         </h4>
 
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            1. ให้ระบบคำนวณและสุ่มเลข (คุมยอดจ่ายให้ไม่เกินเป้าหมาย)
-          </p>
+          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#334155' }}>1. ให้ระบบแนะนำเลข (คุมยอดจ่ายให้ไม่เกินเป้าหมาย)</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <input 
               type="range" min="0" max="100" 
@@ -404,7 +412,6 @@ const OverseeThePrize = () => {
               {isSuggesting ? 'กำลังค้นหาเลข...' : 'สุ่มหาเลขที่ยอดจ่ายไม่เกินกำหนด'}
             </button>
           </div>
-          <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>* เลื่อนไปที่ 0% ถ่ายอดขายน้อยและไม่อยากจ่ายเลย (ระบบกินเรียบ)</p>
         </div>
 
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
@@ -433,6 +440,7 @@ const OverseeThePrize = () => {
                   <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>เลขที่ถูก</th>
                   <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>จำนวนคนถูก</th>
                   <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>ยอดจ่ายรางวัล (THB)</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>ดูรายชื่อ</th>
                 </tr>
               </thead>
               <tbody>
@@ -445,15 +453,58 @@ const OverseeThePrize = () => {
                       <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold', letterSpacing: '2px' }}>{numSlice}</td>
                       <td style={{ padding: '10px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#16a34a' : '#94a3b8' }}>{data ? data.winner_count : 0} คน</td>
                       <td style={{ padding: '10px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#b91c1c' : '#94a3b8' }}>{formatCurrency(data ? data.total_payout : 0)}</td>
+                      <td style={{ padding: '10px' }}>
+                        {data && data.winner_count > 0 && (
+                          <button 
+                            onClick={() => fetchSimulatedUsers(type, numSlice)} 
+                            style={{ padding: '6px 12px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', margin: '0 auto' }}>
+                            <Eye size={14} /> ตรวจสอบ
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
 
+            {/* Modal โชว์รายชื่อคนถูกรางวัลจำลอง */}
+            {showSimulatedUsers && (
+              <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4 style={{ margin: 0, color: '#334155' }}>รายชื่อผู้ที่ซื้อเลขนี้ (ดึงจากบิลปัจจุบัน)</h4>
+                  <button onClick={() => setShowSimulatedUsers(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+                {simulatedUserLoading ? ( <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>กำลังโหลดรายชื่อ...</div> ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#475569' }}>
+                        <th style={{ padding: '8px' }}>Username</th>
+                        <th style={{ padding: '8px' }}>สกุลเงินที่แทง</th>
+                        <th style={{ padding: '8px' }}>ยอดแทง</th>
+                        <th style={{ padding: '8px', color: '#b91c1c' }}>เงินรางวัลที่จะได้</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {simulatedUsersList.map((u, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '8px', fontWeight: 'bold' }}>{u.username}</td>
+                          <td style={{ padding: '8px' }}>{u.currency_code}</td>
+                          <td style={{ padding: '8px' }}>{u.price.toLocaleString()}</td>
+                          <td style={{ padding: '8px', fontWeight: 'bold', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
               <div>
-                <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมวันนี้ (เทียบค่า THB แล้ว)</span>
+                <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมรอบบิลนี้ (เทียบค่า THB)</span>
                 <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0ea5e9' }}>{formatCurrency(analysisResult.totalSales)} THB</span>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -464,7 +515,6 @@ const OverseeThePrize = () => {
               </div>
             </div>
             
-            {/* 🌟 อัปเดตตรรกะข้อความกำไรตามที่คุณสั่ง */}
             {(() => {
               const totalPayout = analysisResult.analysis.reduce((sum, item) => sum + item.total_payout, 0);
               const riskPercent = analysisResult.totalSales > 0 ? (totalPayout / analysisResult.totalSales) * 100 : 0;
@@ -475,7 +525,6 @@ const OverseeThePrize = () => {
               if (riskPercent > 100) { 
                 alertColor = '#b91c1c'; alertBg = '#fef2f2'; alertText = '(ขาดทุนยับ!)'; 
               } else if (riskPercent >= 90) { 
-                // 🌟 ถ้าแตะ 90% ขึ้นไป ถือว่ากำไรน้อยมาก จะไม่บอกว่าปลอดภัยแล้ว
                 alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก/เกือบเท่าทุน)'; 
               } else if (riskPercent > targetPercent) { 
                 alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(ยอดจ่ายสูงกว่าเป้าหมายที่ตั้งไว้)'; 
@@ -488,13 +537,25 @@ const OverseeThePrize = () => {
                 </div>
               );
             })()}
+
+            {/* 🌟 ปุ่มกดยืนยันใช้ผลรางวัล */}
+            <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '2px dashed #e2e8f0', paddingTop: '20px' }}>
+              <button 
+                onClick={handleExecuteDraw} disabled={isExecutingDraw}
+                style={{ padding: '15px 30px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(22, 163, 74, 0.3)' }}
+              >
+                <CheckCircle size={24} /> 
+                {isExecutingDraw ? 'กำลังประมวลผลแจกเงิน...' : `ยืนยันใช้เลข ${simulatedNumber} เป็นผลรางวัลรอบนี้`}
+              </button>
+            </div>
+
           </div>
         )}
       </div>
 
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 4. โซนผลรางวัลประจำวัน (โค้ดเก่าของคุณ 100%) */}
+      {/* 4. โซนผลรางวัลประจำวัน */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -530,14 +591,10 @@ const OverseeThePrize = () => {
             ))}
           </div>
         )}
-        
-        <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '20px' }}>
-          * ระบบจะทำการออกรางวัลอัตโนมัติตาม <b>"เวลาออกเลข"</b> ที่ตั้งค่าไว้ด้านบน
-        </p>
       </div>
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 5. โซนตารางรายชื่อผู้ถูกรางวัล (โค้ดเก่าของคุณ 100%) */}
+      {/* 5. โซนตารางรายชื่อผู้ถูกรางวัล */}
       {/* ------------------------------------------------------------------------- */}
       {winners.length > 0 && (
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
@@ -600,7 +657,7 @@ const OverseeThePrize = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 6. โซนค้นหารายชื่อคนซื้อตามเลขที่ระบุ (เพิ่มเข้ามาใหม่ล่าสุด ตามที่คุณสั่ง) */}
+      {/* 6. โซนค้นหารายชื่อคนซื้อตามเลขที่ระบุ */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -623,7 +680,6 @@ const OverseeThePrize = () => {
           </button>
         </div>
 
-        {/* 🌟 ไม่ค้นหา ไม่แสดงอะไรเลย (ตามคำสั่ง) */}
         {searchedBuyers !== null && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
