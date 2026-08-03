@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Download, Trophy, Power, PlayCircle, StopCircle, Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, Crosshair, DollarSign, Search, CheckCircle, Eye, X } from 'lucide-react';
+import { 
+  Settings, Download, Trophy, Power, PlayCircle, StopCircle, 
+  Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, 
+  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock 
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -13,7 +17,9 @@ const OverseeThePrize = () => {
     close_time: '17:00',
     open_time: '18:00',
     draw_time: '17:30',
-    is_sales_open: true
+    is_sales_open: true,
+    is_auto_draw: false, // 🌟 เพิ่ม State ระบบออโต้
+    auto_draw_percent: 50
   });
   
   const [results, setResults] = useState({ prize_8: '-', prize_6: '-', prize_4: '-', prize_3: '-', prize_2: '-' });
@@ -48,7 +54,6 @@ const OverseeThePrize = () => {
   const [searchedBuyers, setSearchedBuyers] = useState(null); 
   const [isSearchingBuyers, setIsSearchingBuyers] = useState(false);
 
-  // 🌟 State โชว์ Modal คนแทงจากหน้าวิเคราะห์
   const [showSimulatedUsers, setShowSimulatedUsers] = useState(false);
   const [simulatedUsersList, setSimulatedUsersList] = useState([]);
   const [simulatedUserLoading, setSimulatedUserLoading] = useState(false);
@@ -93,8 +98,11 @@ const OverseeThePrize = () => {
           close_time: data.data.close_time || '17:00',
           open_time: data.data.open_time || '18:00',
           draw_time: data.data.draw_time || '17:30',
-          is_sales_open: data.data.is_sales_open
+          is_sales_open: data.data.is_sales_open,
+          is_auto_draw: data.data.is_auto_draw || false,
+          auto_draw_percent: data.data.auto_draw_percent || 50
         });
+        setTargetPercent(data.data.auto_draw_percent || 50);
       }
     } catch (err) { console.error('Error fetching settings:', err); }
   };
@@ -142,32 +150,62 @@ const OverseeThePrize = () => {
     const updated = { ...settings, [field]: value };
     setSettings(updated);
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+      await fetch(`${API_URL}/api/admin/settings`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(updated) 
+      });
       alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว');
-    } catch (err) {}
+    } catch (err) { console.error(err); }
+  };
+
+  // 🌟 บันทึกระบบออโต้
+  const handleToggleAutoDraw = async (isChecked) => {
+    const updated = { ...settings, is_auto_draw: isChecked, auto_draw_percent: targetPercent };
+    setSettings(updated);
+    try {
+      await fetch(`${API_URL}/api/admin/settings`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(updated) 
+      });
+      alert(isChecked ? `✅ เปิดใช้งานออกเลขอัตโนมัติ (${targetPercent}%)` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
+    } catch (err) { console.error(err); }
   };
 
   const handleSaveAllTimes = async () => {
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
+      await fetch(`${API_URL}/api/admin/settings`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(settings) 
+      });
       alert('✅ บันทึกเวลาทั้งหมดเรียบร้อยแล้ว');
-    } catch (err) {}
+    } catch (err) { console.error(err); }
   };
 
   const handleSavePrizeRates = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/prize-rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rates: prizeRates }) });
+      const res = await fetch(`${API_URL}/api/admin/prize-rates`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ rates: prizeRates }) 
+      });
       const data = await res.json();
       if (data.success) alert('✅ บันทึกอัตราการจ่ายสำเร็จ!');
-    } catch (err) {}
+    } catch (err) { console.error(err); }
   };
 
   const handleSaveExchangeRate = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/exchange-rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK }) });
+      const res = await fetch(`${API_URL}/api/admin/exchange-rates`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK }) 
+      });
       const data = await res.json();
       if (data.success) alert('✅ อัปเดตอัตราแลกเปลี่ยนสำเร็จ!');
-    } catch (err) {}
+    } catch (err) { console.error(err); }
   };
 
   // ==========================================
@@ -177,22 +215,32 @@ const OverseeThePrize = () => {
     if (simulatedNumber.length !== 6) return alert('กรุณากรอกเลขให้ครบ 6 หลักครับ');
     setIsAnalyzing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/analyze-draw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: simulatedNumber }) });
+      const res = await fetch(`${API_URL}/api/admin/analyze-draw`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ number: simulatedNumber }) 
+      });
       const data = await res.json();
       if (data.success) setAnalysisResult(data);
-    } catch (err) { console.error(err); } finally { setIsAnalyzing(false); }
+    } catch (err) { console.error(err); } 
+    finally { setIsAnalyzing(false); }
   };
 
   const handleSuggestDraw = async () => {
     setIsSuggesting(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/suggest-draw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetPercent }) });
+      const res = await fetch(`${API_URL}/api/admin/suggest-draw`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ targetPercent }) 
+      });
       const data = await res.json();
       if (data.success) {
         setSimulatedNumber(data.suggestedNumber);
         setAnalysisResult({ totalSales: data.totalSales, analysis: data.analysis });
       }
-    } catch (err) { console.error(err); } finally { setIsSuggesting(false); }
+    } catch (err) { console.error(err); } 
+    finally { setIsSuggesting(false); }
   };
 
   const handleExecuteDraw = async () => {
@@ -201,7 +249,8 @@ const OverseeThePrize = () => {
     setIsExecutingDraw(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/execute-draw`, { 
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ number6: simulatedNumber }) 
       });
       const data = await res.json();
@@ -211,7 +260,8 @@ const OverseeThePrize = () => {
       } else {
         alert('❌ เกิดข้อผิดพลาดในการออกรางวัล');
       }
-    } catch (err) { console.error(err); } finally { setIsExecutingDraw(false); }
+    } catch (err) { console.error(err); } 
+    finally { setIsExecutingDraw(false); }
   };
 
   const fetchSimulatedUsers = async (type, numberStr) => {
@@ -220,16 +270,18 @@ const OverseeThePrize = () => {
     setSimulatedUsersList([]);
     try {
       const res = await fetch(`${API_URL}/api/admin/simulate-winners`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: numberStr, lottery_type: type })
       });
       const data = await res.json();
       if (data.success) setSimulatedUsersList(data.users);
-    } catch (err) { console.error(err); } finally { setSimulatedUserLoading(false); }
+    } catch (err) { console.error(err); } 
+    finally { setSimulatedUserLoading(false); }
   };
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ค้นหาผู้ซื้อจากเลข (อิงเวลาเปิด-ปิดขาย)
+  // 🌟 ฟังก์ชัน ค้นหาผู้ซื้อจากเลข
   // ==========================================
   const handleSearchBuyers = async () => {
     if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
@@ -247,18 +299,34 @@ const OverseeThePrize = () => {
       } else {
         alert('เกิดข้อผิดพลาดในการค้นหา');
       }
-    } catch (err) { console.error(err); } finally { setIsSearchingBuyers(false); }
+    } catch (err) { console.error(err); } 
+    finally { setIsSearchingBuyers(false); }
   };
 
   const exportPDF = () => {
-    const doc = new jsPDF(); doc.addFont('THSarabunNew', 'normal'); doc.setFontSize(18); doc.text(`Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
+    const doc = new jsPDF(); 
+    doc.addFont('THSarabunNew', 'normal'); 
+    doc.setFontSize(18); 
+    doc.text(`Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
     const tableColumn = ["Username", "Type", "Number", "Bet Amount", "Prize Amount", "Currency"];
     const tableRows = [];
-    filteredWinners.forEach(w => tableRows.push([ w.username, `${w.lottery_type} Digits`, w.selected_number, w.price, w.prize_amount, w.currency_code ]));
-    doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); doc.save(`winners_report_${selectedDate}.pdf`);
+    filteredWinners.forEach(w => {
+      tableRows.push([ 
+        w.username, 
+        `${w.lottery_type} Digits`, 
+        w.selected_number, 
+        w.price, 
+        w.prize_amount, 
+        w.currency_code 
+      ]);
+    });
+    doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); 
+    doc.save(`winners_report_${selectedDate}.pdf`);
   };
 
-  const filteredWinners = activeTab === 'all' ? winners : winners.filter(w => w.lottery_type === activeTab);
+  const filteredWinners = activeTab === 'all' 
+    ? winners 
+    : winners.filter(w => w.lottery_type === activeTab);
 
 
 return (
@@ -422,12 +490,26 @@ return (
       </div>
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 3. โซนวิเคราะห์ความเสี่ยง 0-100% */}
+      {/* 3. โซนวิเคราะห์ความเสี่ยง และ ตั้งค่า AUTO-DRAW 🌟 */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <Crosshair size={24} /> วิเคราะห์ความเสี่ยง และ ตั้งผลการออกรางวัล
-        </h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+          <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Crosshair size={24} /> วิเคราะห์ความเสี่ยง และ ตั้งผลการออกรางวัล
+          </h4>
+          
+          {/* 🌟 Checkbox เปิดระบบอัตโนมัติ */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: settings.is_auto_draw ? '#10b981' : '#e2e8f0', color: settings.is_auto_draw ? 'white' : '#475569', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: '0.3s' }}>
+            <input 
+              type="checkbox" 
+              checked={settings.is_auto_draw} 
+              onChange={(e) => handleToggleAutoDraw(e.target.checked)} 
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <Clock size={16} /> 
+            {settings.is_auto_draw ? `ระบบออโต้ทำงาน (เป้า ${targetPercent}%)` : 'เปิดระบบออกเลขอัตโนมัติ'}
+          </label>
+        </div>
 
         <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#334155' }}>
@@ -452,6 +534,9 @@ return (
               {isSuggesting ? 'กำลังค้นหา...' : 'สุ่มหาเลข'}
             </button>
           </div>
+          <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+            * หากติ๊กปุ่ม "ออโต้ทำงาน" ด้านบน ระบบจะใช้เปอร์เซ็นต์นี้ในการสุ่มหาเลขเมื่อถึงเวลาประกาศผล
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
