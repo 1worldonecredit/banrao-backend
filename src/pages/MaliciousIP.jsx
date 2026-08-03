@@ -96,7 +96,8 @@ const MaliciousIP = () => {
             <div>
               <p style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ระบบป้องกันอัตโนมัติ</p>
               <h3 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>กำลังทำงาน <span style={{fontSize:'12px', color:'#22c55e'}}>●</span></h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>บล็อกทันทีเมื่อ Login ผิด > 10 ครั้ง/นาที</p>
+              {/* 🌟 จุดที่แก้ไข: เปลี่ยน > เป็น &gt; */}
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>บล็อกทันทีเมื่อ Login ผิด &gt; 10 ครั้ง/นาที</p>
             </div>
           </div>
         </div>
