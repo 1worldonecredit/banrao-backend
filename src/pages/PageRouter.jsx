@@ -26,6 +26,8 @@ import MaliciousIP from './MaliciousIP';
 import DepositBalance from './DepositBalance';
 import LaosSalesReport from './LaosSalesReport';
 import SetNameSystem from './SetNameSystem';
+import PrizeTransferReport from './PrizeTransferReport';
+
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -52,7 +54,8 @@ const componentsRegistry = {
   'DepositBalance': DepositBalance,
   'MaliciousIP': MaliciousIP,
   'LaosSalesReport': LaosSalesReport,
-  'SetNameSystem': SetNameSystem
+  'SetNameSystem': SetNameSystem,
+  'PrizeTransferReport': PrizeTransferReport
 };
 
 export default function PageRouter() {

@@ -212,6 +212,7 @@ const MenuManagement = () => {
                 <option value="MaliciousIP">IP ที่ต้องระวัง(MaliciousIP)</option>
                 <option value="LaosSalesReport">รายงานยอดขายในลาว(LaosSalesReport)</option>
                 <option value="SetNameSystem">ตั้งขื่อระบบ(SetNameSystem)</option>
+                <option value="PrizeTransferReport">รายงานโอนเงินรางวัลคนถูกหาย(PrizeTransferReport)</option>
               </select>
             </div>
 
