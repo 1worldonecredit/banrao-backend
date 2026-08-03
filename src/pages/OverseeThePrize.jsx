@@ -634,7 +634,8 @@ return (
                           <th style={{ padding: '6px' }}>Username</th>
                           <th style={{ padding: '6px' }}>สกุลเงิน</th>
                           <th style={{ padding: '6px' }}>ยอดแทง</th>
-                          <th style={{ padding: '6px', color: '#b91c1c' }}>รางวัลที่จะได้</th>
+                          <th style={{ padding: '6px', color: '#b91c1c' }}>รางวัล (สกุลเดิม)</th>
+                          <th style={{ padding: '6px', color: '#0ea5e9' }}>เทียบเป็น THB</th> {/* 🌟 ช่องใหม่ */}
                         </tr>
                       </thead>
                       <tbody>
@@ -644,6 +645,9 @@ return (
                             <td style={{ padding: '6px' }}>{u.currency_code}</td>
                             <td style={{ padding: '6px' }}>{u.price.toLocaleString()}</td>
                             <td style={{ padding: '6px', fontWeight: 'bold', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td>
+                            <td style={{ padding: '6px', fontWeight: 'bold', color: '#0ea5e9' }}>
+                              {Number(u.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -834,38 +838,37 @@ return (
         {searchedBuyers !== null && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px', whiteSpace: 'nowrap', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                  <th style={{ padding: '10px' }}>ผู้ใช้</th>
-                  <th style={{ padding: '10px' }}>ประเภท</th>
-                  <th style={{ padding: '10px' }}>เลขที่ซื้อ</th>
-                  <th style={{ padding: '10px' }}>ยอดซื้อ</th>
-                  <th style={{ padding: '10px' }}>จะได้รางวัล</th>
-                  <th style={{ padding: '10px' }}>เวลาซื้อ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {searchedBuyers.map((w, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
-                    <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
-                    <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
-                    <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '10px', color: '#64748b', fontSize: '11px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
-                  </tr>
-                ))}
-                {searchedBuyers.length === 0 && ( 
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
-                      ไม่พบรายการซื้อหมายเลข "{searchNumber}" ในรอบบิลนี้
-                    </td>
-                  </tr> 
-                )}
-              </tbody>
-            </table>
+  <thead>
+    <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+      <th style={{ padding: '10px' }}>ผู้ใช้</th>
+      <th style={{ padding: '10px' }}>ประเภท</th>
+      <th style={{ padding: '10px' }}>เลขที่ซื้อ</th>
+      <th style={{ padding: '10px' }}>ยอดซื้อ</th>
+      <th style={{ padding: '10px' }}>รางวัล (สกุลเดิม)</th>
+      <th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th> {/* 🌟 ช่องใหม่ */}
+      <th style={{ padding: '10px' }}>เวลาซื้อ</th>
+    </tr>
+  </thead>
+  <tbody>
+    {searchedBuyers.map((w, idx) => (
+      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+        <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
+        <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
+        <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
+        <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+        <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+        <td style={{ padding: '10px', color: '#0ea5e9', fontWeight: 'bold' }}>
+          {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+        </td>
+        <td style={{ padding: '10px', color: '#64748b', fontSize: '11px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
           </div>
         )}
+
+
       </div>
 
     </div>
