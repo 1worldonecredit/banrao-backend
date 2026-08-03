@@ -30,6 +30,7 @@ import PrizeTransferReport from './PrizeTransferReport';
 import ProfitReport from './ProfitReport';
 import ReceivingAccount from './ReceivingAccount';
 import HRMResources from './HRMResources';
+import CommissionSetting from './CommissionSetting';
 
 
 // ลงทะเบียน Component
@@ -61,7 +62,8 @@ const componentsRegistry = {
   'PrizeTransferReport': PrizeTransferReport,
   'ProfitReport': ProfitReport,
   'ReceivingAccount': ReceivingAccount,
-  'HRMResources': HRMResources
+  'HRMResources': HRMResources,
+  'CommissionSetting': CommissionSetting
 };
 
 export default function PageRouter() {

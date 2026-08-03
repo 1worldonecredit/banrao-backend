@@ -216,6 +216,7 @@ const MenuManagement = () => {
                 <option value="ProfitReport">รายงานผลกำไรรายวัน(ProfitReport)</option>
                 <option value="ReceivingAccount">เพิ่มบัญชีรับเงินโอน(ReceivingAccount)</option>
                 <option value="HRMResources">เพิ่มแผนก และตำแหน่งงาน(HRMResources)</option>
+                <option value="CommissionSetting">ปรับ % Commission(CommissionSetting)</option>
               </select>
             </div>
 
