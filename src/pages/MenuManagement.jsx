@@ -214,6 +214,7 @@ const MenuManagement = () => {
                 <option value="SetNameSystem">ตั้งขื่อระบบ(SetNameSystem)</option>
                 <option value="PrizeTransferReport">รายงานโอนเงินรางวัลคนถูกหาย(PrizeTransferReport)</option>
                 <option value="ProfitReport">รายงานผลกำไรรายวัน(ProfitReport)</option>
+                <option value="ReceivingAccount">เพิ่มบัญชีรับเงินโอน(ReceivingAccount)</option>
               </select>
             </div>
 

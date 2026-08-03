@@ -28,6 +28,7 @@ import LaosSalesReport from './LaosSalesReport';
 import SetNameSystem from './SetNameSystem';
 import PrizeTransferReport from './PrizeTransferReport';
 import ProfitReport from './ProfitReport';
+import ReceivingAccount from './ReceivingAccount';
 
 
 // ลงทะเบียน Component
@@ -57,7 +58,8 @@ const componentsRegistry = {
   'LaosSalesReport': LaosSalesReport,
   'SetNameSystem': SetNameSystem,
   'PrizeTransferReport': PrizeTransferReport,
-  'ProfitReport': ProfitReport
+  'ProfitReport': ProfitReport,
+  'ReceivingAccount': ReceivingAccount
 };
 
 export default function PageRouter() {
