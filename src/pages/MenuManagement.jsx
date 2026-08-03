@@ -213,6 +213,7 @@ const MenuManagement = () => {
                 <option value="LaosSalesReport">รายงานยอดขายในลาว(LaosSalesReport)</option>
                 <option value="SetNameSystem">ตั้งขื่อระบบ(SetNameSystem)</option>
                 <option value="PrizeTransferReport">รายงานโอนเงินรางวัลคนถูกหาย(PrizeTransferReport)</option>
+                <option value="ProfitReport">รายงานผลกำไรรายวัน(ProfitReport)</option>
               </select>
             </div>
 
