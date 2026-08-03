@@ -24,6 +24,8 @@ import OderNumber from './OderNumber';
 import ChatMessage from './ChatMessage';
 import MaliciousIP from './MaliciousIP';
 import DepositBalance from './DepositBalance';
+import LaosSalesReport from './LaosSalesReport';
+import SetNameSystem from './SetNameSystem';
 
 // ลงทะเบียน Component
 const componentsRegistry = {
@@ -48,7 +50,9 @@ const componentsRegistry = {
   'OderNumber': OderNumber,
   'ChatMessage': ChatMessage,
   'DepositBalance': DepositBalance,
-  'MaliciousIP': MaliciousIP
+  'MaliciousIP': MaliciousIP,
+  'LaosSalesReport': LaosSalesReport,
+  'SetNameSystem': SetNameSystem
 };
 
 export default function PageRouter() {

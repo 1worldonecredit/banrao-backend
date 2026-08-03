@@ -210,6 +210,8 @@ const MenuManagement = () => {
                 <option value="ChatMessage">ข้อความพูดคุย(ChatMessage)</option>
                 <option value="DepositBalance">คีย์ยอดฝากเงินที่ลูกค้าโอนมา (DepositBalance)</option>
                 <option value="MaliciousIP">IP ที่ต้องระวัง(MaliciousIP)</option>
+                <option value="LaosSalesReport">รายงานยอดขายในลาว(LaosSalesReport)</option>
+                <option value="SetNameSystem">ตั้งขื่อระบบ(SetNameSystem)</option>
               </select>
             </div>
 
