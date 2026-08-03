@@ -29,6 +29,7 @@ import SetNameSystem from './SetNameSystem';
 import PrizeTransferReport from './PrizeTransferReport';
 import ProfitReport from './ProfitReport';
 import ReceivingAccount from './ReceivingAccount';
+import HRMResources from './HRMResources';
 
 
 // ลงทะเบียน Component
@@ -59,7 +60,8 @@ const componentsRegistry = {
   'SetNameSystem': SetNameSystem,
   'PrizeTransferReport': PrizeTransferReport,
   'ProfitReport': ProfitReport,
-  'ReceivingAccount': ReceivingAccount
+  'ReceivingAccount': ReceivingAccount,
+  'HRMResources': HRMResources
 };
 
 export default function PageRouter() {
