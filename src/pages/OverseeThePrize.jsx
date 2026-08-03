@@ -48,7 +48,7 @@ const OverseeThePrize = () => {
   const [searchedBuyers, setSearchedBuyers] = useState(null); 
   const [isSearchingBuyers, setIsSearchingBuyers] = useState(false);
 
-  // 🌟 State ใหม่สำหรับโชว์ Modal คนแทงจากหน้าวิเคราะห์
+  // 🌟 State โชว์ Modal คนแทงจากหน้าวิเคราะห์
   const [showSimulatedUsers, setShowSimulatedUsers] = useState(false);
   const [simulatedUsersList, setSimulatedUsersList] = useState([]);
   const [simulatedUserLoading, setSimulatedUserLoading] = useState(false);
@@ -229,16 +229,24 @@ const OverseeThePrize = () => {
   };
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ค้นหา
+  // 🌟 ฟังก์ชัน ค้นหาผู้ซื้อจากเลข (อิงเวลาเปิด-ปิดขาย)
   // ==========================================
   const handleSearchBuyers = async () => {
     if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
     setIsSearchingBuyers(true);
     setSearchedBuyers(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/search-buyers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: searchNumber }) });
+      const res = await fetch(`${API_URL}/api/admin/search-buyers`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ number: searchNumber }) 
+      });
       const data = await res.json();
-      if (data.success) setSearchedBuyers(data.buyers);
+      if (data.success) {
+        setSearchedBuyers(data.buyers);
+      } else {
+        alert('เกิดข้อผิดพลาดในการค้นหา');
+      }
     } catch (err) { console.error(err); } finally { setIsSearchingBuyers(false); }
   };
 
@@ -252,28 +260,33 @@ const OverseeThePrize = () => {
 
   const filteredWinners = activeTab === 'all' ? winners : winners.filter(w => w.lottery_type === activeTab);
 
-  return (
+
+return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
-      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>จัดการผลรางวัล (Oversee The Prize)</h2>
+      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>
+        จัดการผลรางวัล (Oversee The Prize)
+      </h2>
       
       {/* ------------------------------------------------------------------------- */}
       {/* 1. โซนตั้งเวลา */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 20px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Settings size={20} color="#0ea5e9" /> ตั้งเวลาการทำงานของระบบ (ออกรางวัลอัตโนมัติตามเวลา)
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 20px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <Settings size={20} color="#0ea5e9" /> 
+          ตั้งเวลาการทำงานของระบบ (ออกรางวัลอัตโนมัติตามเวลา)
         </h4>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+          
           <div style={{ padding: '15px', backgroundColor: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca' }}>
             <p style={{ margin: '0 0 8px 0', color: '#b91c1c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <StopCircle size={16} /> 1. เวลาปิดรับซื้อ
             </p>
-            <input
-              type="time"
-              value={settings.close_time}
-              onChange={(e) => setSettings({ ...settings, close_time: e.target.value })}
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fca5a5', boxSizing: 'border-box' }}
+            <input 
+              type="time" 
+              value={settings.close_time} 
+              onChange={(e) => setSettings({ ...settings, close_time: e.target.value })} 
+              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fca5a5', boxSizing: 'border-box' }} 
             />
           </div>
 
@@ -281,11 +294,11 @@ const OverseeThePrize = () => {
             <p style={{ margin: '0 0 8px 0', color: '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PlayCircle size={16} /> 2. เวลาออกเลข (ประกาศผล)
             </p>
-            <input
-              type="time"
-              value={settings.draw_time}
-              onChange={(e) => setSettings({ ...settings, draw_time: e.target.value })}
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fcd34d', boxSizing: 'border-box' }}
+            <input 
+              type="time" 
+              value={settings.draw_time} 
+              onChange={(e) => setSettings({ ...settings, draw_time: e.target.value })} 
+              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fcd34d', boxSizing: 'border-box' }} 
             />
           </div>
 
@@ -293,26 +306,34 @@ const OverseeThePrize = () => {
             <p style={{ margin: '0 0 8px 0', color: '#15803d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Play size={16} /> 3. เวลาเปิดรับซื้อ (งวดถัดไป)
             </p>
-            <input
-              type="time"
-              value={settings.open_time}
-              onChange={(e) => setSettings({ ...settings, open_time: e.target.value })}
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #86efac', boxSizing: 'border-box' }}
+            <input 
+              type="time" 
+              value={settings.open_time} 
+              onChange={(e) => setSettings({ ...settings, open_time: e.target.value })} 
+              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #86efac', boxSizing: 'border-box' }} 
             />
           </div>
+
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
-          <button onClick={handleSaveAllTimes} style={{ padding: '12px 25px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
+          <button 
+            onClick={handleSaveAllTimes} 
+            style={{ padding: '10px 20px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
             💾 บันทึกเวลาทั้งหมด
           </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <span style={{ color: '#64748b', fontSize: '14px' }}>สถานะระบบตอนนี้:</span>
-            <button
-              onClick={() => handleUpdateSettings('is_sales_open', !settings.is_sales_open)}
-              style={{ padding: '12px 20px', backgroundColor: settings.is_sales_open ? '#ef4444' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Power size={18} /> {settings.is_sales_open ? 'บังคับ "ปิด" รับซื้อเดี๋ยวนี้' : 'เปิดรับซื้อตามปกติ'}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ color: '#64748b', fontSize: '14px' }}>
+              สถานะระบบตอนนี้:
+            </span>
+            <button 
+              onClick={() => handleUpdateSettings('is_sales_open', !settings.is_sales_open)} 
+              style={{ padding: '10px 20px', backgroundColor: settings.is_sales_open ? '#ef4444' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Power size={18} /> 
+              {settings.is_sales_open ? 'บังคับ "ปิด" รับซื้อเดี๋ยวนี้' : 'เปิดรับซื้อตามปกติ'}
             </button>
           </div>
         </div>
@@ -321,35 +342,44 @@ const OverseeThePrize = () => {
       {/* ------------------------------------------------------------------------- */}
       {/* 2. โซนตั้งค่าเรทเงิน & อัตราจ่าย */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         
         {/* อัตราแลกเปลี่ยน */}
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยน (LAK เป็น THB)
+            <DollarSign size={20} color="#15803d" /> 
+            อัตราแลกเปลี่ยน (LAK เป็น THB)
           </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>1 THB = </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', backgroundColor: '#f0fdf4', padding: '10px 15px', borderRadius: '8px', border: '1px solid #bbf7d0', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>
+              1 THB = 
+            </span>
             <input 
               type="number" 
               value={exchangeRateLAK} 
-              onChange={(e) => setExchangeRateLAK(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100px', fontWeight: 'bold', fontSize: '16px' }}
+              onChange={(e) => setExchangeRateLAK(e.target.value)} 
+              style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100px', fontWeight: 'bold', fontSize: '16px' }} 
             />
-            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>LAK</span>
+            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>
+              LAK
+            </span>
           </div>
-          <button onClick={handleSaveExchangeRate} style={{ padding: '10px 20px', backgroundColor: '#15803d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button 
+            onClick={handleSaveExchangeRate} 
+            style={{ padding: '10px 20px', backgroundColor: '#15803d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
             <Save size={18} /> บันทึกเรทแลกเปลี่ยน
           </button>
         </div>
 
         {/* อัตราการจ่ายรางวัล */}
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calculator size={20} color="#8b5cf6" /> ปรับอัตราการจ่ายรางวัล (ตัวคูณ)
+            <Calculator size={20} color="#8b5cf6" /> 
+            ปรับอัตราการจ่ายรางวัล (ตัวคูณ)
           </h4>
           <div style={{ overflowX: 'auto', marginBottom: '15px', maxHeight: '180px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
                   <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0' }}>รางวัล</th>
@@ -359,20 +389,21 @@ const OverseeThePrize = () => {
               <tbody>
                 {prizeRates.filter(r => r.lottery_type !== '8').map((rate, index) => (
                   <tr key={rate.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>{rate.lottery_type} ตัว</td>
+                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>
+                      {rate.lottery_type} ตัว
+                    </td>
                     <td style={{ padding: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontWeight: 'bold', color: '#8b5cf6' }}>X</span>
                         <input 
                           type="number" 
                           value={rate.multiplier} 
-                          onChange={(e) => {
-                            const newRates = [...prizeRates];
-                            const rateIndex = newRates.findIndex(r => r.id === rate.id);
-                            newRates[rateIndex].multiplier = e.target.value;
-                            setPrizeRates(newRates);
-                          }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100px', fontWeight: 'bold' }}
+                          onChange={(e) => { 
+                            const newRates = [...prizeRates]; 
+                            newRates[index].multiplier = e.target.value; 
+                            setPrizeRates(newRates); 
+                          }} 
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '90px', fontWeight: 'bold' }} 
                         />
                       </div>
                     </td>
@@ -381,136 +412,173 @@ const OverseeThePrize = () => {
               </tbody>
             </table>
           </div>
-          <button onClick={handleSavePrizeRates} style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button 
+            onClick={handleSavePrizeRates} 
+            style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
             <Save size={18} /> บันทึกอัตราจ่าย
           </button>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 3. โซนวิเคราะห์ความเสี่ยง 0-100% (เลข 6 ตัว) */}
+      {/* 3. โซนวิเคราะห์ความเสี่ยง 0-100% */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ backgroundColor: '#fffbeb', padding: '25px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 20px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 15px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Crosshair size={24} /> วิเคราะห์ความเสี่ยง และ ตั้งผลการออกรางวัล
         </h4>
 
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#334155' }}>1. ให้ระบบแนะนำเลข (คุมยอดจ่ายให้ไม่เกินเป้าหมาย)</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+        <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
+          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#334155' }}>
+            1. ให้ระบบแนะนำเลข (คุมยอดจ่ายให้ไม่เกินเป้าหมาย)
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <input 
               type="range" min="0" max="100" 
               value={targetPercent} 
               onChange={(e) => setTargetPercent(e.target.value)} 
-              style={{ width: '200px', cursor: 'pointer' }}
+              style={{ flex: '1 1 150px', cursor: 'pointer', maxWidth: '300px' }} 
             />
-            <span style={{ fontWeight: 'bold', color: '#d97706', fontSize: '20px', width: '60px' }}>{targetPercent}%</span>
+            <span style={{ fontWeight: 'bold', color: '#d97706', fontSize: '18px', width: '50px' }}>
+              {targetPercent}%
+            </span>
             <button 
-              onClick={handleSuggestDraw} disabled={isSuggesting}
-              style={{ padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              onClick={handleSuggestDraw} 
+              disabled={isSuggesting} 
+              style={{ flex: '1 1 auto', padding: '10px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+            >
               <RefreshCw size={18} className={isSuggesting ? "spin" : ""} /> 
-              {isSuggesting ? 'กำลังค้นหาเลข...' : 'สุ่มหาเลขที่ยอดจ่ายไม่เกินกำหนด'}
+              {isSuggesting ? 'กำลังค้นหา...' : 'สุ่มหาเลข'}
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
-          <span style={{ fontWeight: 'bold', color: '#334155' }}>2. หรือลองกรอกเลขเอง:</span>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ fontWeight: 'bold', color: '#334155' }}>
+            2. ลองกรอกเลขเอง:
+          </span>
           <input 
-            type="text" placeholder="เลข 6 หลัก" maxLength="6"
-            value={simulatedNumber}
-            onChange={(e) => setSimulatedNumber(e.target.value.replace(/\D/g, ''))}
-            style={{ padding: '12px 20px', fontSize: '22px', fontWeight: 'bold', borderRadius: '8px', border: '2px solid #fcd34d', outline: 'none', width: '200px', letterSpacing: '4px', color: '#b45309', textAlign: 'center' }}
+            type="text" placeholder="เลข 6 หลัก" maxLength="6" 
+            value={simulatedNumber} 
+            onChange={(e) => setSimulatedNumber(e.target.value.replace(/\D/g, ''))} 
+            style={{ flex: '1 1 150px', padding: '10px 15px', fontSize: '20px', fontWeight: 'bold', borderRadius: '8px', border: '2px solid #fcd34d', outline: 'none', letterSpacing: '2px', color: '#b45309', textAlign: 'center', maxWidth: '200px' }} 
           />
-          <button onClick={handleAnalyzeDraw} disabled={isAnalyzing || simulatedNumber.length !== 6} style={{ padding: '12px 25px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', cursor: (simulatedNumber.length === 6) ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {isAnalyzing ? 'กำลังวิเคราะห์...' : '🔍 เช็คยอดจ่ายเลขนี้'}
+          <button 
+            onClick={handleAnalyzeDraw} 
+            disabled={isAnalyzing || simulatedNumber.length !== 6} 
+            style={{ flex: '1 1 auto', padding: '10px 20px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', cursor: (simulatedNumber.length === 6) ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            {isAnalyzing ? 'วิเคราะห์...' : '🔍 เช็คยอดจ่าย'}
           </button>
         </div>
 
         {analysisResult && (
-          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <h5 style={{ margin: '0 0 15px 0', color: '#1e293b', fontSize: '16px' }}>
-              ผลการวิเคราะห์ยอดบิลทั้งหมด ถ้าตั้งผลเป็น <span style={{ color: '#dc2626', fontSize: '22px', borderBottom: '2px dashed #dc2626' }}>{simulatedNumber}</span>
+          <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <h5 style={{ margin: '0 0 15px 0', color: '#1e293b', fontSize: '15px' }}>
+              ผลการวิเคราะห์ยอดบิลทั้งหมด ถ้าตั้งผลเป็น 
+              <span style={{ color: '#dc2626', fontSize: '20px', borderBottom: '2px dashed #dc2626', marginLeft: '8px' }}>
+                {simulatedNumber}
+              </span>
             </h5>
             
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', marginBottom: '20px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>รางวัล</th>
-                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>เลขที่ถูก</th>
-                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>จำนวนคนถูก</th>
-                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>ยอดจ่ายรางวัล (THB)</th>
-                  <th style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>ดูรายชื่อ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {['6', '4', '3', '2'].map((type) => {
-                  const data = analysisResult.analysis.find(a => a.lottery_type === type);
-                  const numSlice = simulatedNumber.slice(-parseInt(type));
-                  return (
-                    <tr key={type} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px', fontWeight: 'bold' }}>{type} ตัว</td>
-                      <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold', letterSpacing: '2px' }}>{numSlice}</td>
-                      <td style={{ padding: '10px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#16a34a' : '#94a3b8' }}>{data ? data.winner_count : 0} คน</td>
-                      <td style={{ padding: '10px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#b91c1c' : '#94a3b8' }}>{formatCurrency(data ? data.total_payout : 0)}</td>
-                      <td style={{ padding: '10px' }}>
-                        {data && data.winner_count > 0 && (
-                          <button 
-                            onClick={() => fetchSimulatedUsers(type, numSlice)} 
-                            style={{ padding: '6px 12px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', margin: '0 auto' }}>
-                            <Eye size={14} /> ตรวจสอบ
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', marginBottom: '15px', whiteSpace: 'nowrap' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>รางวัล</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>เลขที่ถูก</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>จำนวนคนถูก</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>ยอดจ่ายรางวัล (THB)</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>ดูรายชื่อ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['6', '4', '3', '2'].map((type) => {
+                    const data = analysisResult.analysis.find(a => a.lottery_type === type);
+                    const numSlice = simulatedNumber.slice(-parseInt(type));
+                    return (
+                      <tr key={type} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px', fontWeight: 'bold' }}>
+                          {type} ตัว
+                        </td>
+                        <td style={{ padding: '8px', color: '#dc2626', fontWeight: 'bold', letterSpacing: '1px' }}>
+                          {numSlice}
+                        </td>
+                        <td style={{ padding: '8px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#16a34a' : '#94a3b8' }}>
+                          {data ? data.winner_count : 0} คน
+                        </td>
+                        <td style={{ padding: '8px', fontWeight: 'bold', color: data && data.winner_count > 0 ? '#b91c1c' : '#94a3b8' }}>
+                          {formatCurrency(data ? data.total_payout : 0)}
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          {data && data.winner_count > 0 && (
+                            <button 
+                              onClick={() => fetchSimulatedUsers(type, numSlice)} 
+                              style={{ padding: '4px 10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', margin: '0 auto' }}
+                            >
+                              <Eye size={14} /> ตรวจสอบ
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-            {/* Modal โชว์รายชื่อคนถูกรางวัลจำลอง */}
+            {/* Modal โชว์รายชื่อจำลอง */}
             {showSimulatedUsers && (
-              <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
+              <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #cbd5e1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h4 style={{ margin: 0, color: '#334155' }}>รายชื่อผู้ที่ซื้อเลขนี้ (ดึงจากบิลปัจจุบัน)</h4>
+                  <h4 style={{ margin: 0, color: '#334155', fontSize: '14px' }}>
+                    รายชื่อผู้ที่ซื้อเลขนี้
+                  </h4>
                   <button onClick={() => setShowSimulatedUsers(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
                     <X size={20} />
                   </button>
                 </div>
-                {simulatedUserLoading ? ( <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>กำลังโหลดรายชื่อ...</div> ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#475569' }}>
-                        <th style={{ padding: '8px' }}>Username</th>
-                        <th style={{ padding: '8px' }}>สกุลเงินที่แทง</th>
-                        <th style={{ padding: '8px' }}>ยอดแทง</th>
-                        <th style={{ padding: '8px', color: '#b91c1c' }}>เงินรางวัลที่จะได้</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {simulatedUsersList.map((u, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '8px', fontWeight: 'bold' }}>{u.username}</td>
-                          <td style={{ padding: '8px' }}>{u.currency_code}</td>
-                          <td style={{ padding: '8px' }}>{u.price.toLocaleString()}</td>
-                          <td style={{ padding: '8px', fontWeight: 'bold', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td>
+                {simulatedUserLoading ? ( 
+                  <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>กำลังโหลด...</div> 
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#475569' }}>
+                          <th style={{ padding: '6px' }}>Username</th>
+                          <th style={{ padding: '6px' }}>สกุลเงิน</th>
+                          <th style={{ padding: '6px' }}>ยอดแทง</th>
+                          <th style={{ padding: '6px', color: '#b91c1c' }}>รางวัลที่จะได้</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {simulatedUsersList.map((u, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '6px', fontWeight: 'bold' }}>{u.username}</td>
+                            <td style={{ padding: '6px' }}>{u.currency_code}</td>
+                            <td style={{ padding: '6px' }}>{u.price.toLocaleString()}</td>
+                            <td style={{ padding: '6px', fontWeight: 'bold', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมรอบบิลนี้ (เทียบค่า THB)</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0ea5e9' }}>{formatCurrency(analysisResult.totalSales)} THB</span>
+                <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>ยอดขายรวม (เทียบ THB)</span>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#0ea5e9' }}>
+                  {formatCurrency(analysisResult.totalSales)}
+                </span>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดจ่ายรวมถ้าออกเลขนี้ (Payout)</span>
-                <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#ef4444' }}>
-                  {formatCurrency(analysisResult.analysis.reduce((sum, item) => sum + item.total_payout, 0))} THB
+                <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>ยอดจ่ายรวม (Payout)</span>
+                <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#ef4444' }}>
+                  {formatCurrency(analysisResult.analysis.reduce((sum, item) => sum + item.total_payout, 0))}
                 </span>
               </div>
             </div>
@@ -527,25 +595,25 @@ const OverseeThePrize = () => {
               } else if (riskPercent >= 90) { 
                 alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก/เกือบเท่าทุน)'; 
               } else if (riskPercent > targetPercent) { 
-                alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(ยอดจ่ายสูงกว่าเป้าหมายที่ตั้งไว้)'; 
+                alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(จ่ายสูงกว่าเป้าหมายที่ตั้ง)'; 
               }
 
-              return (
-                <div style={{ marginTop: '15px', textAlign: 'center', padding: '12px', backgroundColor: alertBg, borderRadius: '8px', color: alertColor, fontWeight: 'bold' }}>
-                  <AlertTriangle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }} />
+              return ( 
+                <div style={{ marginTop: '15px', textAlign: 'center', padding: '10px', backgroundColor: alertBg, borderRadius: '8px', color: alertColor, fontWeight: 'bold', fontSize: '13px' }}>
+                  <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> 
                   สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {alertText}
-                </div>
+                </div> 
               );
             })()}
 
-            {/* 🌟 ปุ่มกดยืนยันใช้ผลรางวัล */}
             <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '2px dashed #e2e8f0', paddingTop: '20px' }}>
               <button 
-                onClick={handleExecuteDraw} disabled={isExecutingDraw}
-                style={{ padding: '15px 30px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(22, 163, 74, 0.3)' }}
+                onClick={handleExecuteDraw} 
+                disabled={isExecutingDraw} 
+                style={{ padding: '12px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px rgba(22, 163, 74, 0.3)', width: '100%', justifyContent: 'center' }}
               >
-                <CheckCircle size={24} /> 
-                {isExecutingDraw ? 'กำลังประมวลผลแจกเงิน...' : `ยืนยันใช้เลข ${simulatedNumber} เป็นผลรางวัลรอบนี้`}
+                <CheckCircle size={20} /> 
+                {isExecutingDraw ? 'กำลังประมวลผล...' : `ยืนยันใช้ผลเลข ${simulatedNumber}`}
               </button>
             </div>
 
@@ -553,40 +621,39 @@ const OverseeThePrize = () => {
         )}
       </div>
 
-
       {/* ------------------------------------------------------------------------- */}
       {/* 4. โซนผลรางวัลประจำวัน */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px', textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <h3 style={{ margin: 0, color: '#1e293b', fontSize: '22px' }}>
-            ผลการออกรางวัลประจำงวดวันที่ <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span>
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px' }}>
+            ผลการออกรางวัล งวด <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span>
           </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '5px 15px', borderRadius: '20px' }}>
-            <Calendar size={18} color="#64748b" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', fontSize: '15px', fontWeight: 'bold', color: '#334155' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '5px 12px', borderRadius: '20px' }}>
+            <Calendar size={16} color="#64748b" />
+            <input 
+              type="date" 
+              value={selectedDate} 
+              onChange={(e) => setSelectedDate(e.target.value)} 
+              style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 'bold', color: '#334155' }} 
             />
           </div>
         </div>
 
-        {isProcessing ? (
-          <div style={{ padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</div>
+        {isProcessing ? ( 
+          <div style={{ padding: '30px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</div> 
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
-            {[
-              { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
-              { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
-              { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
-              { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
-              { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+            {[ 
+              { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' }, 
+              { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' }, 
+              { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' }, 
+              { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' }, 
+              { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' } 
             ].map(p => (
-              <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px', maxWidth: '200px' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
-                <h2 style={{ margin: 0, color: p.color, fontSize: '32px', letterSpacing: '1px' }}>{p.val}</h2>
+              <div key={p.label} style={{ flex: '1 1 100px', padding: '12px 8px', border: `2px solid ${p.color}`, borderRadius: '10px', minWidth: '100px', maxWidth: '150px' }}>
+                <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>{p.label}</p>
+                <h2 style={{ margin: 0, color: p.color, fontSize: '26px', letterSpacing: '1px' }}>{p.val}</h2>
               </div>
             ))}
           </div>
@@ -597,29 +664,32 @@ const OverseeThePrize = () => {
       {/* 5. โซนตารางรายชื่อผู้ถูกรางวัล */}
       {/* ------------------------------------------------------------------------- */}
       {winners.length > 0 && (
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h4 style={{ margin: 0, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-              <Trophy size={24} /> รายชื่อผู้ถูกรางวัล (งวด {formatThaiDateFull(selectedDate)})
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+            <h4 style={{ margin: '0', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
+              <Trophy size={20} /> รายชื่อผู้ถูกรางวัล
             </h4>
-            <button onClick={exportPDF} style={{ padding: '10px 20px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
-              <Download size={18} /> โหลดไฟล์ PDF
+            <button 
+              onClick={exportPDF} 
+              style={{ padding: '8px 15px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}
+            >
+              <Download size={16} /> โหลด PDF
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
-            {[
-              { id: 'all', label: 'ทั้งหมด' },
-              { id: '8', label: 'รางวัล 8 ตัว' },
-              { id: '6', label: 'รางวัล 6 ตัว' },
-              { id: '4', label: '4 ตัวท้าย' },
-              { id: '3', label: '3 ตัวท้าย' },
-              { id: '2', label: '2 ตัวท้าย' },
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
+            {[ 
+              { id: 'all', label: 'ทั้งหมด' }, 
+              { id: '8', label: '8 ตัว' }, 
+              { id: '6', label: '6 ตัว' }, 
+              { id: '4', label: '4 ตัว' }, 
+              { id: '3', label: '3 ตัว' }, 
+              { id: '2', label: '2 ตัว' } 
             ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{ padding: '8px 15px', backgroundColor: activeTab === tab.id ? '#0ea5e9' : 'transparent', color: activeTab === tab.id ? 'white' : '#64748b', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id)} 
+                style={{ padding: '6px 12px', backgroundColor: activeTab === tab.id ? '#0ea5e9' : 'transparent', color: activeTab === tab.id ? 'white' : '#64748b', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
               >
                 {tab.label}
               </button>
@@ -627,29 +697,26 @@ const OverseeThePrize = () => {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px', whiteSpace: 'nowrap', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ผู้ใช้ (Username)</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ประเภท</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เลขที่ถูก</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ยอดซื้อ</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เงินรางวัลที่ได้รับ</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #e2e8f0' }}>ผู้ใช้</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #e2e8f0' }}>ประเภท</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #e2e8f0' }}>เลขที่ถูก</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #e2e8f0' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #e2e8f0' }}>เงินรางวัลที่ได้</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredWinners.map((w, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
-                    <td style={{ padding: '12px' }}>{w.lottery_type} ตัว</td>
-                    <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
-                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.prize_amount.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
+                    <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
+                    <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.prize_amount.toLocaleString()} {w.currency_code}</td>
                   </tr>
                 ))}
-                {filteredWinners.length === 0 && (
-                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>ไม่มีผู้ถูกรางวัลในหมวดนี้</td></tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -659,22 +726,21 @@ const OverseeThePrize = () => {
       {/* ------------------------------------------------------------------------- */}
       {/* 6. โซนค้นหารายชื่อคนซื้อตามเลขที่ระบุ */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Search size={20} color="#0ea5e9" /> ค้นหาข้อมูลผู้ซื้อจากหมายเลข (อิงจากเวลาเปิด-ปิดรับซื้อรอบล่าสุด)
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
+          <Search size={20} color="#0ea5e9" /> ค้นหาข้อมูลผู้ซื้อจากหมายเลข (อิงตามเวลาเปิด-ปิดรับซื้อ)
         </h4>
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
           <input 
-            type="text" 
-            placeholder="กรอกตัวเลขที่ต้องการค้นหา" 
-            value={searchNumber}
-            onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))}
-            style={{ padding: '10px 15px', fontSize: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', width: '250px' }}
+            type="text" placeholder="กรอกตัวเลขที่ต้องการค้นหา" 
+            value={searchNumber} 
+            onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))} 
+            style={{ flex: '1 1 200px', padding: '10px 15px', fontSize: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} 
           />
           <button 
             onClick={handleSearchBuyers} 
-            disabled={isSearchingBuyers}
-            style={{ padding: '10px 20px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+            disabled={isSearchingBuyers} 
+            style={{ flex: '0 0 auto', padding: '10px 20px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             {isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหา'}
           </button>
@@ -682,30 +748,34 @@ const OverseeThePrize = () => {
 
         {searchedBuyers !== null && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px', whiteSpace: 'nowrap', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ผู้ใช้ (Username)</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ประเภท</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เลขที่ซื้อ</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>ยอดซื้อ</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>จะได้รางวัล (ถ้าถูก)</th>
-                  <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0' }}>เวลาซื้อ</th>
+                  <th style={{ padding: '10px' }}>ผู้ใช้</th>
+                  <th style={{ padding: '10px' }}>ประเภท</th>
+                  <th style={{ padding: '10px' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '10px' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '10px' }}>จะได้รางวัล</th>
+                  <th style={{ padding: '10px' }}>เวลาซื้อ</th>
                 </tr>
               </thead>
               <tbody>
                 {searchedBuyers.map((w, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
-                    <td style={{ padding: '12px' }}>{w.lottery_type} ตัว</td>
-                    <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
-                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
+                    <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
+                    <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', color: '#64748b', fontSize: '11px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
                   </tr>
                 ))}
-                {searchedBuyers.length === 0 && (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>ไม่พบรายการซื้อหมายเลข "{searchNumber}" ในรอบบิลนี้</td></tr>
+                {searchedBuyers.length === 0 && ( 
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+                      ไม่พบรายการซื้อหมายเลข "{searchNumber}" ในรอบบิลนี้
+                    </td>
+                  </tr> 
                 )}
               </tbody>
             </table>
