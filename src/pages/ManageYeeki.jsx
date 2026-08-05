@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Download, Trophy, Power, PlayCircle, StopCircle, 
   Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, 
-  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight
+  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, 
+  ChevronRight, ChevronLeft, Ban, Wallet, PlusCircle
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -258,9 +259,6 @@ const ManageYeeki = () => {
     }
   };
 
-  // ==========================================
-  // 🌟 ฟังก์ชัน วิเคราะห์ & ออกรางวัลจริง (ไม่ใช้ Mock Data)
-  // ==========================================
   const handleAnalyzeDraw = async () => {
     if (simulatedSuper.length !== 8) return alert('กรุณากรอกเลข Super Jackpot ให้ครบ 8 หลัก');
     if (simulatedTop.length !== 4) return alert('กรุณากรอกเลขบน ให้ครบ 4 หลัก');
@@ -372,9 +370,6 @@ const ManageYeeki = () => {
     finally { setSimulatedUserLoading(false); }
   };
 
-  // ==========================================
-  // 🌟 ฟังก์ชัน ค้นหาผู้ซื้อ
-  // ==========================================
   const handleSearchBuyers = async () => {
     if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
     setIsSearchingBuyers(true);
@@ -426,7 +421,7 @@ const ManageYeeki = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-return (
+    return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -464,6 +459,7 @@ return (
                   key={r.round_id}
                   onClick={() => { 
                     setSelectedRound(r); 
+                    // ถ้ารอบเปลี่ยนไป ให้ล้างค่าเก่าทิ้ง
                     setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); 
                   }}
                   style={{ 
@@ -563,6 +559,7 @@ return (
               <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
                 <Crosshair size={26} /> ควบคุมการออกรางวัล (รอบที่ {selectedRound.round_number})
               </h4>
+              {/* 🌟 จุดที่เพิ่ม เวลาถอยหลัง เข้าไปครับ */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                  <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}>
                     <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.draw_time || selectedRound.drawTime)}
