@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Save, RefreshCw, Calendar, Edit3, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Clock, Save, RefreshCw, Calendar, Edit3, CheckCircle2, XCircle, AlertTriangle, Activity } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -14,6 +14,13 @@ const SetTimeYeeki = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState(null); 
   const [editForm, setEditForm] = useState({});
+  const [now, setNow] = useState(new Date()); // 🌟 เพิ่ม State เวลาปัจจุบัน
+
+  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที เพื่อให้สถานะเปลี่ยนแบบ Real-time
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetchRounds(selectedDate);
@@ -31,6 +38,36 @@ const SetTimeYeeki = () => {
     } catch (e) {
       return val.substring(0, 5);
     }
+  };
+
+  // 🌟 ฟังก์ชันคำนวณสถานะแบบ Real-time
+  const getRoundStatus = (round) => {
+    if (round.isNew) return { text: 'ยังไม่บันทึกข้อมูล', color: '#94a3b8', bgColor: '#f1f5f9' };
+    
+    if (!round.open_time || !round.close_time || !round.draw_time) 
+        return { text: 'ข้อมูลเวลาไม่ครบ', color: '#ef4444', bgColor: '#fef2f2' };
+
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    
+    const [openH, openM] = round.open_time.split(':').map(Number);
+    const openDate = new Date(year, month - 1, day, openH, openM, 0);
+    
+    const [closeH, closeM] = round.close_time.split(':').map(Number);
+    const closeDate = new Date(year, month - 1, day, closeH, closeM, 0);
+    
+    const [drawH, drawM] = round.draw_time.split(':').map(Number);
+    const drawDate = new Date(year, month - 1, day, drawH, drawM, 0);
+
+    if (now > drawDate) {
+      return { text: 'หมดเวลา (ออกผลแล้ว)', color: '#ef4444', bgColor: '#fef2f2' };
+    }
+    if (now >= closeDate && now <= drawDate) {
+      return { text: 'ปิดรับแทง (รอออกผล)', color: '#d97706', bgColor: '#fffbeb' };
+    }
+    if (now >= openDate && now < closeDate) {
+      return { text: '🟢 กำลังเปิดขาย', color: '#16a34a', bgColor: '#f0fdf4' };
+    }
+    return { text: 'รอเปิดรับแทง', color: '#475569', bgColor: '#f8fafc' };
   };
 
   // 🌟 ดึงข้อมูลจากตารางจริง (Database)
@@ -189,10 +226,16 @@ const SetTimeYeeki = () => {
           </div>
         ) : (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '600px', whiteSpace: 'nowrap' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', minWidth: '700px', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', color: '#334155', borderBottom: '2px solid #cbd5e1' }}>
                   <th style={{ padding: '12px' }}>รอบที่</th>
+                  {/* 🌟 คอลัมน์สถานะใหม่ที่เพิ่มเข้ามา */}
+                  <th style={{ padding: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <Activity size={16} color="#0ea5e9" /> สถานะปัจจุบัน
+                    </div>
+                  </th>
                   <th style={{ padding: '12px' }}>เวลาเปิดรับซื้อ</th>
                   <th style={{ padding: '12px' }}>เวลาปิดรับซื้อ</th>
                   <th style={{ padding: '12px' }}>เวลาออกผลรางวัล</th>
@@ -202,11 +245,29 @@ const SetTimeYeeki = () => {
               <tbody>
                 {rounds.map((round) => {
                   const isEditing = editingId === round.round_id;
+                  const statusInfo = getRoundStatus(round); // ดึงค่าสถานะมาใช้งาน
+                  
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: '0.2s', backgroundColor: isEditing ? '#f8fafc' : 'white' }}>
                       
-                      <td style={{ padding: '10px', fontWeight: '900', color: '#9d174d' }}>
+                      <td style={{ padding: '10px', fontWeight: '900', color: '#9d174d', fontSize: '15px' }}>
                         รอบ {round.round_number}
+                      </td>
+
+                      {/* 🌟 โชว์สถานะ Real-time */}
+                      <td style={{ padding: '10px' }}>
+                        <span style={{ 
+                          backgroundColor: statusInfo.bgColor, 
+                          color: statusInfo.color, 
+                          padding: '6px 12px', 
+                          borderRadius: '20px', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold',
+                          border: `1px solid ${statusInfo.color}40`,
+                          display: 'inline-block'
+                        }}>
+                          {statusInfo.text}
+                        </span>
                       </td>
 
                       {isEditing ? (
@@ -251,13 +312,13 @@ const SetTimeYeeki = () => {
                         </>
                       ) : (
                         <>
-                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#16a34a' }}>
+                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#16a34a', fontSize: '14px' }}>
                             {round.open_time} น.
                           </td>
-                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#dc2626' }}>
+                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#dc2626', fontSize: '14px' }}>
                             {round.close_time} น.
                           </td>
-                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#d97706' }}>
+                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#d97706', fontSize: '14px' }}>
                             {round.draw_time} น.
                           </td>
                           <td style={{ padding: '10px' }}>
