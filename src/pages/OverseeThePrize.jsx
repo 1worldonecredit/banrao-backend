@@ -352,6 +352,7 @@ return (
             </p>
             <input 
               type="time" 
+              lang="en-GB" /* 🌟 ใช้ lang="en-GB" บังคับให้แสดงผลเป็น 24 ชม. เสมอ */
               value={settings.close_time} 
               onChange={(e) => setSettings({ ...settings, close_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fca5a5', boxSizing: 'border-box' }} 
@@ -364,6 +365,7 @@ return (
             </p>
             <input 
               type="time" 
+              lang="en-GB" /* 🌟 บังคับแสดงผลเป็น 24 ชม. เสมอ */
               value={settings.draw_time} 
               onChange={(e) => setSettings({ ...settings, draw_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fcd34d', boxSizing: 'border-box' }} 
@@ -376,6 +378,7 @@ return (
             </p>
             <input 
               type="time" 
+              lang="en-GB" /* 🌟 บังคับแสดงผลเป็น 24 ชม. เสมอ */
               value={settings.open_time} 
               onChange={(e) => setSettings({ ...settings, open_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #86efac', boxSizing: 'border-box' }} 
