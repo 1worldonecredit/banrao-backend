@@ -110,7 +110,7 @@ const ManageYeeki = () => {
   }, []);
 
   useEffect(() => {
-    fetchRounds(selectedDate);
+    fetchRounds(); // โหลดข้อมูลรอบเมื่อเปิดหน้า
     fetchDrawHistory(selectedDate);
   }, [selectedDate]);
 
@@ -120,7 +120,7 @@ const ManageYeeki = () => {
   }, []);
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ดึงข้อมูลจากฐานข้อมูลจริง 100%
+  // 🌟 ฟังก์ชัน ดึงข้อมูลและจัดการ
   // ==========================================
   const fetchSettings = async () => {
     try {
@@ -137,17 +137,31 @@ const ManageYeeki = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-  const fetchRounds = async (date) => {
+  // 🌟 ใช้ API ตัวเดียวกับหน้าบ้าน และ Map วันที่ (new Date) แบบเดียวกับที่ลูกค้าเห็นเป๊ะๆ
+  const fetchRounds = async () => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${date}`);
+      const res = await fetch(`${API_URL}/api/yeeki/rounds`);
       const data = await res.json();
+      
       if (data.success && data.rounds && data.rounds.length > 0) {
-        setRounds(data.rounds);
+        const dbRounds = data.rounds.map(r => ({
+          round_id: r.round_id, // เก็บ ID ไว้ใช้อัปเดต
+          round_number: r.round_number,
+          openTime: new Date(r.open_time),   
+          closeTime: new Date(r.close_time), 
+          drawTime: new Date(r.draw_time),   
+          status: r.status // ดึง Status จริงจาก DB (Pending, Completed)
+        }));
+        
+        setRounds(dbRounds);
+        
+        // เลือกแอกทีฟรอบล่าสุด (ดึงจาก Draft หรือเอารอบที่ Pending อยู่)
         const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
-        const foundDraftRound = data.rounds.find(r => r.round_id === draftRoundId);
-        const firstPending = data.rounds.find(r => r.status === 'Pending' || r.status === 'Open' || r.status === 'Closed');
-        setSelectedRound(foundDraftRound || firstPending || data.rounds[0]);
+        const foundDraftRound = dbRounds.find(r => r.round_id === draftRoundId);
+        const firstPending = dbRounds.find(r => r.status === 'Pending' || r.status === 'Open' || r.status === 'Closed');
+        
+        setSelectedRound(foundDraftRound || firstPending || dbRounds[0]);
       } else {
         setRounds([]);
         setSelectedRound(null);
@@ -214,7 +228,7 @@ const ManageYeeki = () => {
       if (data.success) alert(isChecked ? `✅ เปิดใช้ออกเลขอัตโนมัติ (${targetPercent}%)` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
     } catch (err) { 
       console.error('Error toggling auto draw:', err); 
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ตั้งค่าออโต้');
     }
   };
 
@@ -230,7 +244,7 @@ const ManageYeeki = () => {
       else alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
     } catch (err) { 
       console.error('Error saving prize rates:', err); 
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API บันทึกเรทจ่าย');
     }
   };
 
@@ -246,13 +260,10 @@ const ManageYeeki = () => {
       else alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
     } catch (err) { 
       console.error('Error saving exchange rate:', err);
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API อัตราแลกเปลี่ยน');
     }
   };
 
-  // ==========================================
-  // 🌟 ฟังก์ชัน วิเคราะห์ & ออกรางวัลจริง (ไม่ใช้ Mock)
-  // ==========================================
   const handleAnalyzeDraw = async () => {
     if (simulatedSuper.length !== 8) return alert('กรุณากรอกเลข Super Jackpot ให้ครบ 8 หลัก');
     if (simulatedTop.length !== 4) return alert('กรุณากรอกเลขบน ให้ครบ 4 หลัก');
@@ -326,7 +337,7 @@ const ManageYeeki = () => {
         alert('✅ ' + data.message);
         localStorage.removeItem('yeekiManageDraft');
         setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); setAnalysisResult(null);
-        fetchRounds(selectedDate);
+        fetchRounds();
         fetchDrawHistory(selectedDate);
       } else {
         alert(`❌ ประกาศผลไม่สำเร็จ: ${data.message}`);
@@ -411,7 +422,6 @@ const ManageYeeki = () => {
   const filteredWinners = activeTab === 'all' 
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
-
 
 return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -552,7 +562,7 @@ return (
               </h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                  <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}>
-                    <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.draw_time || selectedRound.drawTime)}
+                    <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.drawTime)}
                  </span>
                  <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>
                    แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 4 ตัว (บน), ชุด 2 ตัว (ล่าง)
@@ -695,7 +705,7 @@ return (
                 </table>
               </div>
 
-              {/* Modal โชว์รายชื่อจำลอง */}
+              {/* Modal โชว์รายชื่อ */}
               {showSimulatedUsers && (
                 <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '12px', marginTop: '15px', border: '1px solid #cbd5e1' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
