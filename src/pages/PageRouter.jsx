@@ -34,6 +34,9 @@ import CommissionSetting from './CommissionSetting';
 import SetTimeYeeki from './SetTimeYeeki';
 import ManageYeeki from './ManageYeeki';
 import AddNumberYeeki from './AddNumberYeeki';
+import YeekiSaleReport from './YeekiSaleReport';
+import YeekiHistory from './YeekiHistory';
+
 
 
 // ลงทะเบียน Component
@@ -69,8 +72,9 @@ const componentsRegistry = {
   'CommissionSetting': CommissionSetting,
   'AddNumberYeeki': AddNumberYeeki,
   'ManageYeeki': ManageYeeki,
-  'SetTimeYeeki': SetTimeYeeki
-
+  'SetTimeYeeki': SetTimeYeeki,
+  'YeekiHistory': YeekiHistory,
+  'YeekiSaleReport': YeekiSaleReport
 };
 
 export default function PageRouter() {

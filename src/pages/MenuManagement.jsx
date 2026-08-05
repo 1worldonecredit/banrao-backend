@@ -220,6 +220,8 @@ const MenuManagement = () => {
                 <option value="ManageYeeki">จัดการหวยซุปเปอร์ จับยี่กี(ManageYeeki)</option>
                 <option value="AddNumberYeeki">จัดการเลขและเงินรางวัล หวยจับยี่กี(AddNumberYeeki)</option>
                 <option value="SetTimeYeeki">ตั้งเวลา รอบหวยจับยี่กี(SetTimeYeeki)</option>
+                <option value="YeekiSaleReport">รายงานขายหวยจับยี่กี(YeekiSaleReport)</option>
+                <option value="YeekiHistory">ประวัติการออกเลข จับยี่กี(YeekiHistory)</option>
               </select>
             </div>
 
