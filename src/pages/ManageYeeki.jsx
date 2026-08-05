@@ -11,13 +11,19 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const ManageYeeki = () => {
   // ==========================================
+  // 🌟 ดึงข้อมูล Draft จาก LocalStorage (กันข้อมูลหายเวลาสลับเมนู)
+  // ==========================================
+  const savedDraft = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}');
+
+  // ==========================================
   // 🌟 State หลัก & ข้อมูลรอบ
   // ==========================================
   const getTodayDate = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
-  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  
+  const [selectedDate, setSelectedDate] = useState(savedDraft.selectedDate || getTodayDate());
   const [rounds, setRounds] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
 
@@ -46,15 +52,15 @@ const ManageYeeki = () => {
   ]);
   const [exchangeRateLAK, setExchangeRateLAK] = useState(0);
 
-  // 🌟 แยก State การออกเลขเป็น 3 ชุด เพื่อป้องกันการคุมแจ็คพอตง่ายเกินไป
-  const [simulatedSuper, setSimulatedSuper] = useState('');   // 8 หลัก
-  const [simulatedTop, setSimulatedTop] = useState('');       // 4 หลัก (ใช้สำหรับ 4,3,2 ตัวบน และวิ่งบน)
-  const [simulatedBottom, setSimulatedBottom] = useState(''); // 2 หลัก (สำหรับ 2 ตัวล่าง และวิ่งล่าง)
+  // 🌟 แยก State การออกเลขเป็น 3 ชุด และดึงค่าจาก Draft
+  const [simulatedSuper, setSimulatedSuper] = useState(savedDraft.simulatedSuper || '');   
+  const [simulatedTop, setSimulatedTop] = useState(savedDraft.simulatedTop || '');       
+  const [simulatedBottom, setSimulatedBottom] = useState(savedDraft.simulatedBottom || ''); 
   
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(savedDraft.analysisResult || null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const [targetPercent, setTargetPercent] = useState(50);
+  const [targetPercent, setTargetPercent] = useState(savedDraft.targetPercent || 50);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isExecutingDraw, setIsExecutingDraw] = useState(false);
 
@@ -85,7 +91,23 @@ const ManageYeeki = () => {
   const formatCurrency = (amt) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amt || 0);
 
   // ==========================================
-  // 🌟 useEffect
+  // 🌟 useEffect (Auto Save Draft)
+  // ==========================================
+  useEffect(() => {
+    const draft = {
+      selectedDate,
+      targetPercent,
+      simulatedSuper,
+      simulatedTop,
+      simulatedBottom,
+      analysisResult,
+      selectedRoundId: selectedRound ? selectedRound.round_id : null
+    };
+    localStorage.setItem('yeekiManageDraft', JSON.stringify(draft));
+  }, [selectedDate, targetPercent, simulatedSuper, simulatedTop, simulatedBottom, analysisResult, selectedRound]);
+
+  // ==========================================
+  // 🌟 useEffect (Initial Fetch)
   // ==========================================
   useEffect(() => {
     fetchPrizeRates(); 
@@ -110,7 +132,11 @@ const ManageYeeki = () => {
           is_auto_draw: data.data.is_auto_draw || false,
           auto_draw_percent: data.data.auto_draw_percent || 50
         });
-        setTargetPercent(data.data.auto_draw_percent || 50);
+        // ป้องกันไม่ให้ค่า Database ไปทับค่า Draft ที่ลูกค้าเพิ่งเลื่อนหลอด % ไว้
+        const draft = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}');
+        if (!draft.targetPercent) {
+          setTargetPercent(data.data.auto_draw_percent || 50);
+        }
       }
     } catch (err) { console.error(err); }
   };
@@ -122,8 +148,13 @@ const ManageYeeki = () => {
       const data = await res.json();
       if (data.success && data.rounds && data.rounds.length > 0) {
         setRounds(data.rounds);
+        
+        // 🌟 ดึงรอบจาก Draft ที่จำไว้ ถ้าไม่มีให้เอารอบที่กำลัง Pending
+        const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
+        const foundDraftRound = data.rounds.find(r => r.round_id === draftRoundId);
         const firstPending = data.rounds.find(r => r.status === 'Pending' || r.status === 'Open');
-        setSelectedRound(firstPending || data.rounds[0]);
+        
+        setSelectedRound(foundDraftRound || firstPending || data.rounds[0]);
       } else {
         generateDefaultRounds();
       }
@@ -149,7 +180,9 @@ const ManageYeeki = () => {
       });
     }
     setRounds(arr);
-    setSelectedRound(arr[4]); 
+    const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
+    const foundDraftRound = arr.find(r => r.round_id === draftRoundId);
+    setSelectedRound(foundDraftRound || arr[4]); 
   };
 
   const fetchDrawHistory = async (date) => {
@@ -254,7 +287,6 @@ const ManageYeeki = () => {
       if (data.success) setAnalysisResult(data);
     } catch (err) { 
       console.log('Mocking analysis result');
-      // Mock Data 
       setAnalysisResult({
         totalSales: 150000,
         analysis: [
@@ -315,6 +347,11 @@ const ManageYeeki = () => {
       const data = await res.json();
       if (data.success) {
         alert(data.message);
+        
+        // เคลียร์ Draft ทิ้งเมื่อกดยืนยันสำเร็จแล้ว
+        localStorage.removeItem('yeekiManageDraft');
+        setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); setAnalysisResult(null);
+        
         fetchRounds(selectedDate);
         fetchDrawHistory(selectedDate);
       } else {
@@ -322,6 +359,8 @@ const ManageYeeki = () => {
       }
     } catch (err) { 
         alert('✅ จำลองการออกรางวัลสำเร็จ (รอเชื่อม API จริง)'); 
+        localStorage.removeItem('yeekiManageDraft');
+        setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); setAnalysisResult(null);
         fetchRounds(selectedDate);
     } 
     finally { setIsExecutingDraw(false); }
@@ -396,8 +435,7 @@ const ManageYeeki = () => {
   const filteredWinners = activeTab === 'all' 
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
-
-  return (
+return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -431,7 +469,11 @@ const ManageYeeki = () => {
               return (
                 <button 
                   key={r.round_id}
-                  onClick={() => { setSelectedRound(r); setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); }}
+                  onClick={() => { 
+                    setSelectedRound(r); 
+                    // ถ้ารอบเปลี่ยนไป ให้ล้างค่าเก่าทิ้ง
+                    setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); 
+                  }}
                   style={{ 
                     padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer', transition: '0.2s',
                     backgroundColor: isSelected ? '#be185d' : isCompleted ? '#f1f5f9' : '#fdf2f8',
