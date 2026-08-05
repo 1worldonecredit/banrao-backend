@@ -99,7 +99,7 @@ const ManageYeeki = () => {
   }, [selectedDate]);
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ดึง/บันทึก 
+  // 🌟 ฟังก์ชัน ดึง/บันทึก ข้อมูล
   // ==========================================
   const fetchSettings = async () => {
     try {
@@ -254,6 +254,7 @@ const ManageYeeki = () => {
       if (data.success) setAnalysisResult(data);
     } catch (err) { 
       console.log('Mocking analysis result');
+      // Mock Data 
       setAnalysisResult({
         totalSales: 150000,
         analysis: [
@@ -289,7 +290,6 @@ const ManageYeeki = () => {
       }
     } catch (err) { 
       console.log('Mock Suggestion');
-      // จำลองการสุ่มแบบแยกชุด
       setSimulatedSuper(Math.floor(10000000 + Math.random() * 90000000).toString());
       setSimulatedTop(Math.floor(1000 + Math.random() * 9000).toString());
       setSimulatedBottom(Math.floor(10 + Math.random() * 90).toString());
@@ -361,8 +361,13 @@ const ManageYeeki = () => {
       const data = await res.json();
       if (data.success) {
         setSearchedBuyers(data.buyers);
+      } else {
+        setSearchedBuyers([]);
       }
-    } catch (err) { console.error(err); } 
+    } catch (err) { 
+      console.error(err); 
+      setSearchedBuyers([]);
+    } 
     finally { setIsSearchingBuyers(false); }
   };
 
@@ -392,7 +397,7 @@ const ManageYeeki = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-return (
+  return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -692,6 +697,9 @@ return (
                               <td style={{ padding: '10px', fontWeight: '900', color: '#0ea5e9' }}>{Number(u.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
                             </tr>
                           ))}
+                          {simulatedUsersList.length === 0 && (
+                            <tr><td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#64748b' }}>ไม่พบรายชื่อผู้ถูกรางวัล</td></tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
