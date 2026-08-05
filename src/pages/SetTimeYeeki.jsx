@@ -4,6 +4,7 @@ import { Clock, Save, RefreshCw, Calendar, Edit3, CheckCircle2, XCircle, AlertTr
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const SetTimeYeeki = () => {
+  // 🌟 ดึงวันที่ปัจจุบันมาเป็นค่าเริ่มต้น
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -18,6 +19,20 @@ const SetTimeYeeki = () => {
     fetchRounds(selectedDate);
   }, [selectedDate]);
 
+  // 🌟 ฟังก์ชันสกัดเอาเฉพาะ ชั่วโมง:นาที (HH:mm) เพื่อป้องกัน API พังเวลาเซฟ
+  const extractTime = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string' && val.length <= 5 && val.includes(':')) return val; 
+    try {
+      const cleanVal = val.replace('T', ' ').replace('Z', '');
+      const d = new Date(cleanVal);
+      if (isNaN(d.getTime())) return val.substring(11, 16); 
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    } catch (e) {
+      return val.substring(0, 5);
+    }
+  };
+
   // 🌟 ดึงข้อมูลจากตารางจริง (Database)
   const fetchRounds = async (date) => {
     setIsLoading(true);
@@ -25,12 +40,19 @@ const SetTimeYeeki = () => {
       const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${date}`);
       const data = await res.json();
       if (data.success && data.rounds && data.rounds.length > 0) {
-        setRounds(data.rounds);
+        // ✅ แปลงเวลาให้เป็น HH:mm ทันทีตั้งแต่ตอนดึงมา เพื่อให้พร้อมส่งกลับไปเซฟ
+        const formattedRounds = data.rounds.map(r => ({
+          ...r,
+          open_time: extractTime(r.open_time),
+          close_time: extractTime(r.close_time),
+          draw_time: extractTime(r.draw_time)
+        }));
+        setRounds(formattedRounds);
       } else {
-        // ถ้าฐานข้อมูลว่างเปล่า (ยังไม่เคยกดเซฟ) ให้สร้างตารางร่างขึ้นมาเตรียมไว้
         generateDefaultRounds(); 
       }
     } catch (err) {
+      console.error('Error fetching rounds:', err);
       alert('❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการตั้งค่า API');
       generateDefaultRounds();
     } finally {
@@ -44,7 +66,7 @@ const SetTimeYeeki = () => {
       const hour = i - 1;
       const hStr = hour.toString().padStart(2, '0');
       arr.push({
-        round_id: `new_${i}`, // ใส่ ID ชั่วคราวไปก่อน
+        round_id: `new_${i}`, // ใส่ ID ชั่วคราว
         round_number: i,
         open_time: `${hStr}:01`,
         close_time: `${hStr}:55`,
@@ -56,26 +78,12 @@ const SetTimeYeeki = () => {
     setRounds(arr);
   };
 
-  // ดึงเฉพาะเวลา HH:mm มาแสดง และแก้บั๊กเรื่อง Timezone ของ SQL Server
-  const extractTime = (val) => {
-    if (!val) return '';
-    if (val.length <= 5) return val; 
-    try {
-      const cleanVal = val.replace('T', ' ').replace('Z', '');
-      const d = new Date(cleanVal);
-      if (isNaN(d.getTime())) return val.substring(11, 16); 
-      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-    } catch (e) {
-      return val.substring(0, 5);
-    }
-  };
-
   const handleEditClick = (round) => {
     setEditingId(round.round_id);
     setEditForm({
-      open_time: extractTime(round.open_time),
-      close_time: extractTime(round.close_time),
-      draw_time: extractTime(round.draw_time)
+      open_time: round.open_time, 
+      close_time: round.close_time,
+      draw_time: round.draw_time
     });
   };
 
@@ -102,6 +110,7 @@ const SetTimeYeeki = () => {
         alert(`❌ อัปเดตไม่สำเร็จ: ${data.message}`);
       }
     } catch (err) {
+      console.error(err);
       alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ไม่สามารถบันทึกได้');
     }
   };
@@ -120,11 +129,12 @@ const SetTimeYeeki = () => {
       
       if (data.success) {
         alert('✅ บันทึกข้อมูลตารางเวลาทั้งหมดลงฐานข้อมูลเรียบร้อยแล้ว!');
-        fetchRounds(selectedDate); // โหลดข้อมูลจริงที่มี ID ชัดเจนจาก DB กลับมาแสดงใหม่
+        fetchRounds(selectedDate); // โหลดข้อมูลจริงกลับมาแสดงใหม่
       } else {
         alert(`❌ บันทึกไม่สำเร็จ: ${data.message}`);
       }
     } catch (err) {
+      console.error(err);
       alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ไม่สามารถบันทึกได้');
     } finally {
       setIsLoading(false);
@@ -168,7 +178,7 @@ const SetTimeYeeki = () => {
         <div style={{ backgroundColor: '#fffbeb', padding: '10px 15px', borderRadius: '8px', border: '1px solid #fde68a', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={18} color="#d97706" />
           <span style={{ fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>
-            ระบบบังคับให้ป้อนเวลาแบบ 24 ชั่วโมง (00:00 - 23:59) เพื่อความแม่นยำสูงสุด และป้องกันการเกิดบั๊กข้ามวัน
+            ระบบบังคับให้ป้อนเวลาแบบ 24 ชั่วโมง (00:00 - 23:59) เพื่อความแม่นยำสูงสุด
           </span>
         </div>
 
@@ -204,7 +214,7 @@ const SetTimeYeeki = () => {
                           <td style={{ padding: '10px' }}>
                             <input 
                               type="time" 
-                              lang="en-GB" /* บังคับแสดง 24 ชม. */
+                              lang="en-GB" 
                               value={editForm.open_time} 
                               onChange={(e) => setEditForm({...editForm, open_time: e.target.value})}
                               style={{ padding: '6px 10px', borderRadius: '6px', border: '2px solid #16a34a', outline: 'none', fontWeight: 'bold', color: '#16a34a', textAlign: 'center' }}
@@ -242,13 +252,13 @@ const SetTimeYeeki = () => {
                       ) : (
                         <>
                           <td style={{ padding: '10px', fontWeight: 'bold', color: '#16a34a' }}>
-                            {extractTime(round.open_time)} น.
+                            {round.open_time} น.
                           </td>
                           <td style={{ padding: '10px', fontWeight: 'bold', color: '#dc2626' }}>
-                            {extractTime(round.close_time)} น.
+                            {round.close_time} น.
                           </td>
                           <td style={{ padding: '10px', fontWeight: 'bold', color: '#d97706' }}>
-                            {extractTime(round.draw_time)} น.
+                            {round.draw_time} น.
                           </td>
                           <td style={{ padding: '10px' }}>
                             <button 
