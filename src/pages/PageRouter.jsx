@@ -31,6 +31,9 @@ import ProfitReport from './ProfitReport';
 import ReceivingAccount from './ReceivingAccount';
 import HRMResources from './HRMResources';
 import CommissionSetting from './CommissionSetting';
+import SetTimeYeeki from './SetTimeYeeki';
+import ManageYeeki from './ManageYeeki';
+import AddNumberYeeki from './AddNumberYeeki';
 
 
 // ลงทะเบียน Component
@@ -63,7 +66,11 @@ const componentsRegistry = {
   'ProfitReport': ProfitReport,
   'ReceivingAccount': ReceivingAccount,
   'HRMResources': HRMResources,
-  'CommissionSetting': CommissionSetting
+  'CommissionSetting': CommissionSetting,
+  'AddNumberYeeki': AddNumberYeeki,
+  'ManageYeeki': ManageYeeki,
+  'SetTimeYeeki': SetTimeYeeki
+
 };
 
 export default function PageRouter() {
