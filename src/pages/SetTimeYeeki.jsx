@@ -4,7 +4,6 @@ import { Clock, Save, RefreshCw, Calendar, Edit3, CheckCircle2, XCircle, AlertTr
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const SetTimeYeeki = () => {
-  // 🌟 ดึงวันที่ปัจจุบันมาเป็นค่าเริ่มต้น
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -14,19 +13,19 @@ const SetTimeYeeki = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState(null); 
   const [editForm, setEditForm] = useState({});
-  const [now, setNow] = useState(new Date()); // 🌟 เพิ่ม State เวลาปัจจุบัน
+  const [now, setNow] = useState(new Date()); 
 
-  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที เพื่อให้สถานะเปลี่ยนแบบ Real-time
+  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที เพื่อให้นับถอยหลังทำงาน Real-time
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // 🌟 ใช้ useEffect โหลดข้อมูลครั้งแรก (ดึง API หน้าบ้านตามคำสั่ง)
   useEffect(() => {
-    fetchRounds(selectedDate);
-  }, [selectedDate]);
+    fetchRounds();
+  }, []);
 
-  // 🌟 ฟังก์ชันสกัดเอาเฉพาะ ชั่วโมง:นาที (HH:mm) เพื่อป้องกัน API พังเวลาเซฟ
   const extractTime = (val) => {
     if (!val) return '';
     if (typeof val === 'string' && val.length <= 5 && val.includes(':')) return val; 
@@ -40,7 +39,7 @@ const SetTimeYeeki = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันคำนวณสถานะแบบ Real-time
+  // 🌟 ฟังก์ชันคำนวณสถานะและเวลานับถอยหลังให้ตรงกับลูกค้า
   const getRoundStatus = (round) => {
     if (round.isNew) return { text: 'ยังไม่บันทึกข้อมูล', color: '#94a3b8', bgColor: '#f1f5f9' };
     
@@ -65,24 +64,29 @@ const SetTimeYeeki = () => {
       return { text: 'ปิดรับแทง (รอออกผล)', color: '#d97706', bgColor: '#fffbeb' };
     }
     if (now >= openDate && now < closeDate) {
-      return { text: '🟢 กำลังเปิดขาย', color: '#16a34a', bgColor: '#f0fdf4' };
+      // 🌟 ระบบนับถอยหลังแบบเดียวกับหน้าบ้าน
+      const diff = closeDate - now;
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+      const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+      const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+      return { text: `🟢 กำลังเปิดขาย (${h}:${m}:${s})`, color: '#16a34a', bgColor: '#f0fdf4' };
     }
     return { text: 'รอเปิดรับแทง', color: '#475569', bgColor: '#f8fafc' };
   };
 
-  // 🌟 ดึงข้อมูลจากตารางจริง (Database)
-  const fetchRounds = async (date) => {
+  // 🌟 ดึงข้อมูลด้วย API ของหน้าบ้าน เพื่อความชัวร์ 100%
+  const fetchRounds = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${date}`);
+      const res = await fetch(`${API_URL}/api/yeeki/rounds`);
       const data = await res.json();
       if (data.success && data.rounds && data.rounds.length > 0) {
-        // ✅ แปลงเวลาให้เป็น HH:mm ทันทีตั้งแต่ตอนดึงมา เพื่อให้พร้อมส่งกลับไปเซฟ
         const formattedRounds = data.rounds.map(r => ({
           ...r,
           open_time: extractTime(r.open_time),
           close_time: extractTime(r.close_time),
-          draw_time: extractTime(r.draw_time)
+          draw_time: extractTime(r.draw_time),
+          isNew: false // แจ้งสถานะว่าข้อมูลมาจากฐานข้อมูลจริงแล้ว
         }));
         setRounds(formattedRounds);
       } else {
@@ -103,7 +107,7 @@ const SetTimeYeeki = () => {
       const hour = i - 1;
       const hStr = hour.toString().padStart(2, '0');
       arr.push({
-        round_id: `new_${i}`, // ใส่ ID ชั่วคราว
+        round_id: `new_${i}`,
         round_number: i,
         open_time: `${hStr}:01`,
         close_time: `${hStr}:55`,
@@ -124,7 +128,6 @@ const SetTimeYeeki = () => {
     });
   };
 
-  // 🌟 บันทึกการแก้ไขเวลา (เฉพาะแถวที่กด) ลง Database จริง
   const handleSaveRow = async (round) => {
     if (round.isNew) {
       alert('⚠️ กรุณากด "บันทึกใช้งานทั้ง 24 รอบ" ด้านบนก่อน เพื่อสร้างข้อมูลทั้งหมดลงระบบเป็นครั้งแรกครับ');
@@ -152,7 +155,6 @@ const SetTimeYeeki = () => {
     }
   };
 
-  // 🌟 บันทึกเวลาที่เซ็ตไว้ทั้ง 24 รอบ ลง Database จริงรวดเดียว
   const handleSaveAll = async () => {
     if(!window.confirm(`ยืนยันการสร้าง/บันทึกตารางเวลาทั้ง 24 รอบของวันที่ ${selectedDate} ลงฐานข้อมูลจริงใช่หรือไม่?`)) return;
     setIsLoading(true);
@@ -166,7 +168,7 @@ const SetTimeYeeki = () => {
       
       if (data.success) {
         alert('✅ บันทึกข้อมูลตารางเวลาทั้งหมดลงฐานข้อมูลเรียบร้อยแล้ว!');
-        fetchRounds(selectedDate); // โหลดข้อมูลจริงกลับมาแสดงใหม่
+        fetchRounds(); 
       } else {
         alert(`❌ บันทึกไม่สำเร็จ: ${data.message}`);
       }
@@ -180,7 +182,8 @@ const SetTimeYeeki = () => {
 
   const isTemplateMode = rounds.length > 0 && rounds[0].isNew;
 
-  return (
+
+return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -230,7 +233,6 @@ const SetTimeYeeki = () => {
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', color: '#334155', borderBottom: '2px solid #cbd5e1' }}>
                   <th style={{ padding: '12px' }}>รอบที่</th>
-                  {/* 🌟 คอลัมน์สถานะใหม่ที่เพิ่มเข้ามา */}
                   <th style={{ padding: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Activity size={16} color="#0ea5e9" /> สถานะปัจจุบัน
@@ -245,7 +247,7 @@ const SetTimeYeeki = () => {
               <tbody>
                 {rounds.map((round) => {
                   const isEditing = editingId === round.round_id;
-                  const statusInfo = getRoundStatus(round); // ดึงค่าสถานะมาใช้งาน
+                  const statusInfo = getRoundStatus(round); 
                   
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: '0.2s', backgroundColor: isEditing ? '#f8fafc' : 'white' }}>
@@ -254,14 +256,13 @@ const SetTimeYeeki = () => {
                         รอบ {round.round_number}
                       </td>
 
-                      {/* 🌟 โชว์สถานะ Real-time */}
                       <td style={{ padding: '10px' }}>
                         <span style={{ 
                           backgroundColor: statusInfo.bgColor, 
                           color: statusInfo.color, 
                           padding: '6px 12px', 
                           borderRadius: '20px', 
-                          fontSize: '12px', 
+                          fontSize: '13px', 
                           fontWeight: 'bold',
                           border: `1px solid ${statusInfo.color}40`,
                           display: 'inline-block'
