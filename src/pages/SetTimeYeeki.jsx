@@ -4,7 +4,6 @@ import { Clock, Save, RefreshCw, Calendar, Edit3, CheckCircle2, XCircle, AlertTr
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const SetTimeYeeki = () => {
-  // 🌟 ดึงวันที่ปัจจุบันมาเป็นค่าเริ่มต้น
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -12,14 +11,14 @@ const SetTimeYeeki = () => {
   
   const [rounds, setRounds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [editingId, setEditingId] = useState(null); // ใช้เก็บว่ากำลังกดแก้ไขแถวไหนอยู่
+  const [editingId, setEditingId] = useState(null); 
   const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     fetchRounds(selectedDate);
   }, [selectedDate]);
 
-  // 🌟 ดึงข้อมูลตารางเวลาจาก Database
+  // 🌟 ดึงข้อมูลจากตารางจริง (Database)
   const fetchRounds = async (date) => {
     setIsLoading(true);
     try {
@@ -28,43 +27,42 @@ const SetTimeYeeki = () => {
       if (data.success && data.rounds && data.rounds.length > 0) {
         setRounds(data.rounds);
       } else {
-        generateDefaultRounds(); // ถ้ายังไม่มีรอบใน Database ให้สร้างตารางแบบ Default ขึ้นมาโชว์
+        // ถ้าฐานข้อมูลว่างเปล่า (ยังไม่เคยกดเซฟ) ให้สร้างตารางร่างขึ้นมาเตรียมไว้
+        generateDefaultRounds(); 
       }
     } catch (err) {
-      console.log('API ยังไม่พร้อม ใช้งานข้อมูลจำลองไปก่อน');
+      alert('❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการตั้งค่า API');
       generateDefaultRounds();
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 🌟 สร้าง 24 รอบ (อิงตามระบบ 1 ชั่วโมงที่คุณพี่ออกแบบไว้)
-  // รอบ 1: เปิด 00:01 -> ปิด 00:55 -> ออก 00:56
   const generateDefaultRounds = () => {
     const arr = [];
     for (let i = 1; i <= 24; i++) {
       const hour = i - 1;
       const hStr = hour.toString().padStart(2, '0');
       arr.push({
-        round_id: `mock_${i}`,
+        round_id: `new_${i}`, // ใส่ ID ชั่วคราวไปก่อน
         round_number: i,
         open_time: `${hStr}:01`,
         close_time: `${hStr}:55`,
         draw_time: `${hStr}:56`,
         status: 'Pending',
-        isNew: true // เอาไว้เช็คว่าต้องยิง Insert แทน Update
+        isNew: true 
       });
     }
     setRounds(arr);
   };
 
-  // ฟังก์ชันสกัดเอาเฉพาะ ชั่วโมง:นาที (HH:mm) ออกมาจาก DATETIME ของ Database
+  // ดึงเฉพาะเวลา HH:mm มาแสดง และแก้บั๊กเรื่อง Timezone ของ SQL Server
   const extractTime = (val) => {
     if (!val) return '';
-    if (val.length <= 5) return val; // ถ้าเป็น 00:00 อยู่แล้วก็ปล่อยผ่าน
+    if (val.length <= 5) return val; 
     try {
-      const d = new Date(val);
-      // ถ้ารูปแบบ Date พัง ให้สับ String เอา
+      const cleanVal = val.replace('T', ' ').replace('Z', '');
+      const d = new Date(cleanVal);
       if (isNaN(d.getTime())) return val.substring(11, 16); 
       return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
     } catch (e) {
@@ -72,7 +70,6 @@ const SetTimeYeeki = () => {
     }
   };
 
-  // 🌟 เวลากดปุ่ม "แก้ไข" ให้สลับเป็น Text Box
   const handleEditClick = (round) => {
     setEditingId(round.round_id);
     setEditForm({
@@ -82,42 +79,59 @@ const SetTimeYeeki = () => {
     });
   };
 
-  // 🌟 บันทึกการแก้ไข (ทีละแถว)
-  const handleSaveRow = async (round_id) => {
-    // อัปเดตหน้าจอทันที (Optimistic UI)
-    setRounds(rounds.map(r => r.round_id === round_id ? { ...r, ...editForm } : r));
-    setEditingId(null);
-    
-    // ตรงนี้รอเชื่อม API หลังบ้านเพื่อ Save ลง Database จริงๆ ครับ
+  // 🌟 บันทึกการแก้ไขเวลา (เฉพาะแถวที่กด) ลง Database จริง
+  const handleSaveRow = async (round) => {
+    if (round.isNew) {
+      alert('⚠️ กรุณากด "บันทึกใช้งานทั้ง 24 รอบ" ด้านบนก่อน เพื่อสร้างข้อมูลทั้งหมดลงระบบเป็นครั้งแรกครับ');
+      return;
+    }
+
     try {
-      await fetch(`${API_URL}/api/admin/yeeki-rounds/${round_id}`, {
+      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds/${round.round_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editForm, draw_date: selectedDate })
       });
+      const data = await res.json();
+      
+      if (data.success) {
+        setRounds(rounds.map(r => r.round_id === round.round_id ? { ...r, ...editForm } : r));
+        setEditingId(null);
+        alert('✅ อัปเดตเวลาสำเร็จ');
+      } else {
+        alert(`❌ อัปเดตไม่สำเร็จ: ${data.message}`);
+      }
     } catch (err) {
-      console.log("บันทึกสำเร็จ (รอเชื่อม API ฐานข้อมูล)");
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ไม่สามารถบันทึกได้');
     }
   };
 
-  // 🌟 บันทึกทั้งหมดรวดเดียว (สำหรับตอนตั้งค่าครั้งแรก)
+  // 🌟 บันทึกเวลาที่เซ็ตไว้ทั้ง 24 รอบ ลง Database จริงรวดเดียว
   const handleSaveAll = async () => {
-    if(!window.confirm(`ยืนยันการสร้าง/บันทึกตารางเวลาทั้ง 24 รอบของวันที่ ${selectedDate} ใช่หรือไม่?`)) return;
+    if(!window.confirm(`ยืนยันการสร้าง/บันทึกตารางเวลาทั้ง 24 รอบของวันที่ ${selectedDate} ลงฐานข้อมูลจริงใช่หรือไม่?`)) return;
     setIsLoading(true);
     try {
-      await fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
+      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: selectedDate, rounds })
       });
-      alert('✅ บันทึกข้อมูลตารางเวลาทั้งหมดลงฐานข้อมูลเรียบร้อยแล้ว!');
+      const data = await res.json();
+      
+      if (data.success) {
+        alert('✅ บันทึกข้อมูลตารางเวลาทั้งหมดลงฐานข้อมูลเรียบร้อยแล้ว!');
+        fetchRounds(selectedDate); // โหลดข้อมูลจริงที่มี ID ชัดเจนจาก DB กลับมาแสดงใหม่
+      } else {
+        alert(`❌ บันทึกไม่สำเร็จ: ${data.message}`);
+      }
     } catch (err) {
-      console.log("Bulk save API not ready");
-      alert('✅ บันทึกสำเร็จ (รอเชื่อมระบบฐานข้อมูล)');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ไม่สามารถบันทึกได้');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const isTemplateMode = rounds.length > 0 && rounds[0].isNew;
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -138,22 +152,23 @@ const SetTimeYeeki = () => {
       </div>
 
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
           <h4 style={{ margin: 0, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} color="#0ea5e9" /> ตารางรอบประจำวันที่: {selectedDate}
+            {isTemplateMode && <span style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'normal', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '12px' }}>*ยังไม่ได้บันทึกลงฐานข้อมูล</span>}
           </h4>
           <button 
             onClick={handleSaveAll}
-            style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
+            style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)' }}
           >
-            <Save size={16} /> บันทึกใช้งานทั้ง 24 รอบ
+            <Save size={18} /> บันทึกใช้งานทั้ง 24 รอบ
           </button>
         </div>
 
         <div style={{ backgroundColor: '#fffbeb', padding: '10px 15px', borderRadius: '8px', border: '1px solid #fde68a', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={18} color="#d97706" />
           <span style={{ fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>
-            ระบบบังคับให้ป้อนเวลาแบบ 24 ชั่วโมง (00:00 - 23:59) เพื่อความแม่นยำสูงสุด
+            ระบบบังคับให้ป้อนเวลาแบบ 24 ชั่วโมง (00:00 - 23:59) เพื่อความแม่นยำสูงสุด และป้องกันการเกิดบั๊กข้ามวัน
           </span>
         </div>
 
@@ -189,7 +204,7 @@ const SetTimeYeeki = () => {
                           <td style={{ padding: '10px' }}>
                             <input 
                               type="time" 
-                              lang="en-GB" /* 🌟 บังคับ 24 ชม. */
+                              lang="en-GB" /* บังคับแสดง 24 ชม. */
                               value={editForm.open_time} 
                               onChange={(e) => setEditForm({...editForm, open_time: e.target.value})}
                               style={{ padding: '6px 10px', borderRadius: '6px', border: '2px solid #16a34a', outline: 'none', fontWeight: 'bold', color: '#16a34a', textAlign: 'center' }}
@@ -198,7 +213,7 @@ const SetTimeYeeki = () => {
                           <td style={{ padding: '10px' }}>
                             <input 
                               type="time" 
-                              lang="en-GB" /* 🌟 บังคับ 24 ชม. */
+                              lang="en-GB" 
                               value={editForm.close_time} 
                               onChange={(e) => setEditForm({...editForm, close_time: e.target.value})}
                               style={{ padding: '6px 10px', borderRadius: '6px', border: '2px solid #dc2626', outline: 'none', fontWeight: 'bold', color: '#dc2626', textAlign: 'center' }}
@@ -207,7 +222,7 @@ const SetTimeYeeki = () => {
                           <td style={{ padding: '10px' }}>
                             <input 
                               type="time" 
-                              lang="en-GB" /* 🌟 บังคับ 24 ชม. */
+                              lang="en-GB" 
                               value={editForm.draw_time} 
                               onChange={(e) => setEditForm({...editForm, draw_time: e.target.value})}
                               style={{ padding: '6px 10px', borderRadius: '6px', border: '2px solid #d97706', outline: 'none', fontWeight: 'bold', color: '#d97706', textAlign: 'center' }}
@@ -215,7 +230,7 @@ const SetTimeYeeki = () => {
                           </td>
                           <td style={{ padding: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
-                              <button onClick={() => handleSaveRow(round.round_id)} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <button onClick={() => handleSaveRow(round)} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                 <CheckCircle2 size={18} />
                               </button>
                               <button onClick={() => setEditingId(null)} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
