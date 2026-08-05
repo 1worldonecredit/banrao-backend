@@ -217,6 +217,9 @@ const MenuManagement = () => {
                 <option value="ReceivingAccount">เพิ่มบัญชีรับเงินโอน(ReceivingAccount)</option>
                 <option value="HRMResources">เพิ่มแผนก และตำแหน่งงาน(HRMResources)</option>
                 <option value="CommissionSetting">ปรับ % Commission(CommissionSetting)</option>
+                <option value="ManageYeeki">จัดการหวยซุปเปอร์ จับยี่กี(ManageYeeki)</option>
+                <option value="AddNumberYeeki">จัดการเลขและเงินรางวัล หวยจับยี่กี(AddNumberYeeki)</option>
+                <option value="SetTimeYeeki">ตั้งเวลา รอบหวยจับยี่กี(SetTimeYeeki)</option>
               </select>
             </div>
 
