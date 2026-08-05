@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Download, Trophy, Power, PlayCircle, StopCircle, 
   Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, 
-  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, 
-  ChevronRight, ChevronLeft, Ban, Wallet, PlusCircle
+  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -121,7 +120,7 @@ const ManageYeeki = () => {
   }, []);
 
   // ==========================================
-  // 🌟 ฟังก์ชัน ดึงข้อมูลและจัดการผ่าน API จริง 100%
+  // 🌟 ฟังก์ชัน ดึงข้อมูลจากฐานข้อมูลจริง 100%
   // ==========================================
   const fetchSettings = async () => {
     try {
@@ -169,11 +168,11 @@ const ManageYeeki = () => {
       if (data.success) {
         if (data.results) {
           setResults({
-            prize_8: data.results.prize_8 || '-',
-            prize_4: data.results.prize_4 || '-',
-            prize_3: data.results.prize_3 || '-',
-            prize_2_top: data.results.prize_2_top || '-',
-            prize_2_bottom: data.results.prize_2_bottom || '-'
+            prize_8: data.results.result_8_super || '-',
+            prize_4: data.results.result_4_top || '-',
+            prize_3: data.results.result_3_top || '-',
+            prize_2_top: data.results.result_4_top ? data.results.result_4_top.slice(-2) : '-',
+            prize_2_bottom: data.results.result_2_bottom || '-'
           });
         }
         setWinners(data.winners || []);
@@ -212,12 +211,10 @@ const ManageYeeki = () => {
         body: JSON.stringify(updated) 
       });
       const data = await res.json();
-      if (data.success) {
-        alert(isChecked ? `✅ เปิดใช้ออกเลขอัตโนมัติ (${targetPercent}%)` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
-      }
+      if (data.success) alert(isChecked ? `✅ เปิดใช้ออกเลขอัตโนมัติ (${targetPercent}%)` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
     } catch (err) { 
       console.error('Error toggling auto draw:', err); 
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ตั้งค่าออโต้');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
     }
   };
 
@@ -229,14 +226,11 @@ const ManageYeeki = () => {
         body: JSON.stringify({ rates: prizeRates }) 
       });
       const data = await res.json();
-      if (data.success) {
-        alert('✅ บันทึกอัตราการจ่ายยี่กีสำเร็จ!');
-      } else {
-        alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
-      }
+      if (data.success) alert('✅ บันทึกอัตราการจ่ายยี่กีสำเร็จ!');
+      else alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
     } catch (err) { 
       console.error('Error saving prize rates:', err); 
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API บันทึกเรทจ่าย');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
     }
   };
 
@@ -248,17 +242,17 @@ const ManageYeeki = () => {
         body: JSON.stringify({ pair: 'THB_LAK', rate: exchangeRateLAK }) 
       });
       const data = await res.json();
-      if (data.success) {
-        alert('✅ อัปเดตอัตราแลกเปลี่ยนสำเร็จ!');
-      } else {
-        alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
-      }
+      if (data.success) alert('✅ อัปเดตอัตราแลกเปลี่ยนสำเร็จ!');
+      else alert(`❌ ไม่สามารถบันทึกได้: ${data.message}`);
     } catch (err) { 
       console.error('Error saving exchange rate:', err);
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API อัตราแลกเปลี่ยน');
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API');
     }
   };
 
+  // ==========================================
+  // 🌟 ฟังก์ชัน วิเคราะห์ & ออกรางวัลจริง (ไม่ใช้ Mock)
+  // ==========================================
   const handleAnalyzeDraw = async () => {
     if (simulatedSuper.length !== 8) return alert('กรุณากรอกเลข Super Jackpot ให้ครบ 8 หลัก');
     if (simulatedTop.length !== 4) return alert('กรุณากรอกเลขบน ให้ครบ 4 หลัก');
@@ -278,11 +272,8 @@ const ManageYeeki = () => {
         }) 
       });
       const data = await res.json();
-      if (data.success) {
-        setAnalysisResult(data);
-      } else {
-        alert(`❌ วิเคราะห์ไม่สำเร็จ: ${data.message}`);
-      }
+      if (data.success) setAnalysisResult(data);
+      else alert(`❌ วิเคราะห์ไม่สำเร็จ: ${data.message}`);
     } catch (err) { 
       console.error('Error analyzing draw:', err);
       alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API วิเคราะห์ผล');
@@ -421,7 +412,8 @@ const ManageYeeki = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-    return (
+
+return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -459,7 +451,6 @@ const ManageYeeki = () => {
                   key={r.round_id}
                   onClick={() => { 
                     setSelectedRound(r); 
-                    // ถ้ารอบเปลี่ยนไป ให้ล้างค่าเก่าทิ้ง
                     setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); 
                   }}
                   style={{ 
@@ -559,7 +550,6 @@ const ManageYeeki = () => {
               <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
                 <Crosshair size={26} /> ควบคุมการออกรางวัล (รอบที่ {selectedRound.round_number})
               </h4>
-              {/* 🌟 จุดที่เพิ่ม เวลาถอยหลัง เข้าไปครับ */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                  <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}>
                     <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.draw_time || selectedRound.drawTime)}
