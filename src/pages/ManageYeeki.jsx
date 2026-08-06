@@ -737,15 +737,57 @@ const ManageYeeki = () => {
               />
             </div>
 
-            <div style={{ flex: '1 1 100%', display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-              <button 
-                onClick={handleAnalyzeDraw} 
-                disabled={isAnalyzing || simulatedSuper.length !== 8 || simulatedTop.length !== 4 || simulatedBottom.length !== 2} 
-                style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}
-              >
-                {isAnalyzing ? 'กำลังประมวลผล...' : '🔍 กดเช็คยอดจ่ายทันที'}
-              </button>
-            </div>
+           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '20px' }}>
+  
+  {/* ปุ่มสีส้ม กดเช็คยอดจ่ายทันที (ของเดิม) */}
+  <button 
+    onClick={handleAnalyzeDraw} 
+    disabled={isAnalyzing || simulatedSuper.length !== 8 || simulatedTop.length !== 4 || simulatedBottom.length !== 2} 
+    style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}
+  >
+    {isAnalyzing ? 'กำลังประมวลผล...' : '🔍 กดเช็คยอดจ่ายทันที'}
+  </button>
+
+  {/* 🌟 ปุ่มสีเขียว ยืนยันประกาศผล (จะโชว์ก็ต่อเมื่อมีเลขครบ 3 ช่องแล้วเท่านั้น) */}
+  {(simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) && (
+    <div style={{ width: '100%', maxWidth: '500px', textAlign: 'center', padding: '20px', backgroundColor: '#ecfdf5', borderRadius: '12px', border: '1px dashed #34d399' }}>
+      <h4 style={{ color: '#047857', margin: '0 0 15px 0' }}>✅ ได้เลขรางวัลครบถ้วน พร้อมจ่ายเงินแล้ว!</h4>
+      
+      <button 
+        onClick={handleExecuteDraw} 
+        disabled={isExecutingDraw}
+        style={{ 
+          padding: '15px 40px', 
+          backgroundColor: '#10b981', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '50px', 
+          cursor: isExecutingDraw ? 'not-allowed' : 'pointer', 
+          fontWeight: '900', 
+          fontSize: '18px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '10px', 
+          boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
+          opacity: isExecutingDraw ? 0.7 : 1,
+          transition: 'all 0.3s',
+          width: '100%'
+        }}
+      >
+        <Trophy size={24} /> 
+        {isExecutingDraw ? 'กำลังโอนเงินรางวัล...' : 'ยืนยันประกาศผลยี่กี ทันที!'}
+      </button>
+      
+      <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '15px', fontWeight: 'bold' }}>
+        * เมื่อกดปุ่มนี้ ระบบจะทำการตรวจบิลทั้งหมด และโอนเงินเข้า Wallet ทันที!
+      </p>
+    </div>
+  )}
+  
+</div>
+
+
           </div>
 
           {analysisResult && (
