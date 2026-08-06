@@ -222,6 +222,7 @@ const MenuManagement = () => {
                 <option value="SetTimeYeeki">ตั้งเวลา รอบหวยจับยี่กี(SetTimeYeeki)</option>
                 <option value="YeekiSaleReport">รายงานขายหวยจับยี่กี(YeekiSaleReport)</option>
                 <option value="AwardHistoryYeeki">ประวัติการออกเลข จับยี่กี(AwardHistoryYeeki)</option>
+                <option value="SaleReportDetails">รายงานขายแต่ละรอบ(SaleReportDetails)</option>
               </select>
             </div>
 
