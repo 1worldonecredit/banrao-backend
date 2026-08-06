@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Eye, Search, CheckCircle, XCircle, AlertTriangle, X, Clock, CheckSquare, XSquare, Calendar, Bell, Image as ImageIcon, RefreshCcw } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
@@ -7,8 +7,8 @@ const DepositRequest = () => {
   const [requests, setRequests] = useState([]);
   const [monthlySummary, setMonthlySummary] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // 🌟 เพิ่มแท็บให้ครอบคลุม Flow อนาคต (รอตรวจ -> รอกระทบยอด -> สำเร็จ -> ตีกลับ)
   const [activeTab, setActiveTab] = useState('Pending');
 
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -40,27 +40,33 @@ const DepositRequest = () => {
     }
   };
 
-  const fetchRequests = async (isSilent = false) => {
-    if (!isSilent) setIsLoading(true);
+  // ใช้ useCallback เพื่อให้เรียกซ้ำได้อย่างปลอดภัย
+  const fetchRequests = useCallback(async (showLoadingIcon = true) => {
+    if (showLoadingIcon) setIsLoading(true);
+    setIsRefreshing(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/deposit-requests`);
+      // เพิ่ม { cache: 'no-store' } เพื่อให้ดึงข้อมูลใหม่เสมอ
+      const response = await fetch(`${API_URL}/api/admin/deposit-requests`, {
+        cache: 'no-store'
+      });
       const data = await response.json();
       if (data.success) {
-        setRequests(data.requests);
+        setRequests(data.requests || []);
         setMonthlySummary(data.summary || {});
+      } else {
+        console.error("Failed to fetch data:", data.message);
       }
     } catch (error) {
       console.error("Error fetching deposit requests:", error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchRequests(false);
-    const interval = setInterval(() => { fetchRequests(true); }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchRequests(true);
+  }, [fetchRequests]);
 
   const handleViewDetails = (req) => {
     setSelectedRequest(req);
@@ -98,14 +104,14 @@ const DepositRequest = () => {
           depositId: selectedRequest.deposit_id, 
           userId: selectedRequest.user_id, 
           amount: selectedRequest.amount,
-          accountNumber: selectedRequest.account_number // 🌟 ส่งเลขบัญชีไปกระทบยอดด้วย
+          accountNumber: selectedRequest.account_number
         })
       });
       const data = await response.json();
       if (data.success) {
         alert("✅ " + data.message);
         setIsModalOpen(false);
-        fetchRequests(true);
+        fetchRequests(false); // โหลดใหม่โดยไม่โชว์ไอคอนเต็มหน้า
       } else {
         alert("❌ " + data.message);
       }
@@ -134,7 +140,7 @@ const DepositRequest = () => {
       if (data.success) {
         alert(data.message); 
         setIsModalOpen(false);
-        fetchRequests(true);
+        fetchRequests(false);
       } else {
         alert("❌ " + data.message);
       }
@@ -146,27 +152,25 @@ const DepositRequest = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
   };
 
-  // 🌟 ฟิลเตอร์ข้อมูล 4 สถานะแห่งอนาคต
   const filteredRequests = requests.filter(req => req.status === activeTab);
-  
   const pendingCount = requests.filter(req => req.status === 'Pending').length;
   const slipVerifiedCount = requests.filter(req => req.status === 'Slip Verified').length;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       
-      {/* กล่องสรุปยอดเงินรายเดือน */}
-      <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* กล่องสรุปยอดเงิน */}
+      <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ backgroundColor: '#22c55e', padding: '10px', borderRadius: '50%', color: 'white' }}>
             <Calendar size={24} />
           </div>
           <div>
             <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>สรุปยอดฝากกระทบยอดสำเร็จ (เดือนนี้)</h3>
-            <p style={{ margin: 0, color: '#15803d', fontSize: '13px' }}>ข้อมูลอัปเดตแบบเรียลไทม์อัตโนมัติ</p>
+            <p style={{ margin: 0, color: '#15803d', fontSize: '13px' }}>ข้อมูลอัปเดตอัตโนมัติเมื่อกดรีเฟรช</p>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -180,8 +184,23 @@ const DepositRequest = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h2 style={{ fontSize: '22px', margin: 0, color: '#333' }}>ระบบจัดการคำขอฝากเงิน</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+        <h2 style={{ fontSize: '22px', margin: 0, color: '#333', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          ระบบจัดการคำขอฝากเงิน
+          <button 
+            onClick={() => fetchRequests(true)} 
+            disabled={isRefreshing}
+            style={{ 
+              background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', 
+              padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px', 
+              cursor: isRefreshing ? 'wait' : 'pointer', fontSize: '13px', color: '#4b5563',
+              backgroundColor: '#f9fafb'
+            }}
+          >
+            <RefreshCcw size={14} className={isRefreshing ? "spin-icon" : ""} /> 
+            {isRefreshing ? 'กำลังอัปเดต...' : 'รีเฟรชข้อมูล'}
+          </button>
+        </h2>
         
         {pendingCount > 0 && (
           <div style={{ backgroundColor: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', animation: 'pulse 2s infinite' }}>
@@ -190,10 +209,8 @@ const DepositRequest = () => {
         )}
       </div>
 
-      {/* 🌟 ระบบ 4 Tabs แบ่งแยกหน้าที่ชัดเจน */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '10px', overflowX: 'auto' }}>
-        
-        {/* Tab 1: รอตรวจสลิป (งานของแอดมินหน้านี้) */}
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '10px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
         <button 
           onClick={() => setActiveTab('Pending')}
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Pending' ? '#fef3c7' : 'transparent', color: activeTab === 'Pending' ? '#d97706' : '#6b7280' }}
@@ -202,7 +219,6 @@ const DepositRequest = () => {
           {pendingCount > 0 && <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginLeft: '4px' }}>{pendingCount}</span>}
         </button>
 
-        {/* Tab 2: รอกระทบยอด (แอดมินหน้านี้ตรวจสลิปผ่านแล้ว รอฝั่งบัญชีเงินเข้าคีย์ยอด) */}
         <button 
           onClick={() => setActiveTab('Slip Verified')}
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Slip Verified' ? '#e0f2fe' : 'transparent', color: activeTab === 'Slip Verified' ? '#0284c7' : '#6b7280' }}
@@ -211,7 +227,6 @@ const DepositRequest = () => {
           {slipVerifiedCount > 0 && <span style={{ backgroundColor: '#0284c7', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginLeft: '4px' }}>{slipVerifiedCount}</span>}
         </button>
 
-        {/* Tab 3: กระทบยอดสำเร็จ (เงินเข้ากระเป๋าลูกค้าแล้ว) */}
         <button 
           onClick={() => setActiveTab('Approved')}
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Approved' ? '#dcfce7' : 'transparent', color: activeTab === 'Approved' ? '#166534' : '#6b7280' }}
@@ -219,14 +234,12 @@ const DepositRequest = () => {
           <CheckSquare size={18} /> 3. กระทบยอดสำเร็จ
         </button>
 
-        {/* Tab 4: ส่งกลับแก้ไข */}
         <button 
           onClick={() => setActiveTab('Rejected')}
           style={{ padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: activeTab === 'Rejected' ? '#fee2e2' : 'transparent', color: activeTab === 'Rejected' ? '#b91c1c' : '#6b7280' }}
         >
           <XSquare size={18} /> ตีกลับ (ส่งแก้ไข)
         </button>
-
       </div>
 
       {isLoading ? (
@@ -246,7 +259,7 @@ const DepositRequest = () => {
                 activeTab === 'Slip Verified' ? '#0ea5e9' : 
                 activeTab === 'Approved' ? '#22c55e' : '#ef4444'
               }`,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px'
             }}>
               <div>
                 <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#1f2937', display: 'flex', alignItems: 'center' }}>
@@ -263,7 +276,6 @@ const DepositRequest = () => {
                 <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
                   โอนเข้า: <strong>{req.bank_name || 'ไม่ระบุ'}</strong> ({req.account_number})
                 </p>
-                {/* 🌟 เปลี่ยนเป็น en-GB เพื่อให้แสดงเป็น ค.ศ. */}
                 <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
                   แจ้งเมื่อ: {new Date(req.created_at).toLocaleString('en-GB')}
                 </p>
@@ -283,7 +295,7 @@ const DepositRequest = () => {
                 style={{ 
                   backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', padding: '10px 20px', 
                   borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                  fontWeight: '600', color: '#374151', fontSize: '14px'
+                  fontWeight: '600', color: '#374151', fontSize: '14px', whiteSpace: 'nowrap'
                 }}
               >
                 <Eye size={18} /> {activeTab === 'Pending' ? 'ตรวจสลิป' : 'ดูข้อมูล'}
@@ -316,9 +328,8 @@ const DepositRequest = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px' }}>
                 <div><span style={{ color: '#64748b' }}>โอนเข้าธนาคาร:</span><br/><strong>{selectedRequest.bank_name || 'ไม่ระบุ'}</strong></div>
                 <div><span style={{ color: '#64748b' }}>เลขบัญชีระบบ:</span><br/><strong>{selectedRequest.account_number}</strong></div>
-                {/* 🌟 เปลี่ยนเป็น en-GB เพื่อให้แสดงเป็น ค.ศ. */}
                 <div><span style={{ color: '#64748b' }}>วันที่โอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleDateString('en-GB')}</strong></div>
-                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong></div>
+                <div><span style={{ color: '#64748b' }}>เวลาโอน:</span><br/><strong style={{ color: '#b45309' }}>{new Date(selectedRequest.deposit_datetime).toLocaleTimeString('en-GB')}</strong></div>
               </div>
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                 <span style={{ color: '#64748b', fontSize: '15px' }}>ยอดเงินที่แจ้งโอน</span><br/>
@@ -341,15 +352,20 @@ const DepositRequest = () => {
                   height: '350px' 
                 }}
               >
-                <img 
-                  src={selectedRequest.slip_image} 
-                  alt="Slip" 
-                  style={{ 
-                    maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', 
-                    opacity: showZoom ? 0 : 1, transition: 'opacity 0.2s' 
-                  }} 
-                />
-                {showZoom && (
+                {selectedRequest.slip_image ? (
+                   <img 
+                   src={selectedRequest.slip_image} 
+                   alt="Slip" 
+                   style={{ 
+                     maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', 
+                     opacity: showZoom ? 0 : 1, transition: 'opacity 0.2s' 
+                   }} 
+                 />
+                ) : (
+                  <div style={{display: 'flex', justifyContent:'center', alignItems:'center', height:'100%', color:'#9ca3af'}}>ไม่มีรูปสลิป</div>
+                )}
+                
+                {showZoom && selectedRequest.slip_image && (
                   <div style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                     backgroundImage: `url(${selectedRequest.slip_image})`,
@@ -401,18 +417,18 @@ const DepositRequest = () => {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                   <button 
                     onClick={handleReject} disabled={!hasRejectionReasons || isProcessing}
-                    style={{ flex: 1, padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: hasRejectionReasons ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: hasRejectionReasons ? '#ef4444' : '#f3f4f6', color: hasRejectionReasons ? 'white' : '#9ca3af' }}
+                    style={{ flex: '1 1 200px', padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: hasRejectionReasons ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: hasRejectionReasons ? '#ef4444' : '#f3f4f6', color: hasRejectionReasons ? 'white' : '#9ca3af' }}
                   >
                     <XCircle size={22} /> ส่งกลับให้ลูกค้าแก้ไข
                   </button>
                   <button 
                     onClick={handleApprove} disabled={hasRejectionReasons || isProcessing || !isConfirmChecked}
-                    style={{ flex: 1, padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: (!hasRejectionReasons && isConfirmChecked) ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: (!hasRejectionReasons && isConfirmChecked) ? '#0ea5e9' : '#f3f4f6', color: (!hasRejectionReasons && isConfirmChecked) ? 'white' : '#9ca3af' }}
+                    style={{ flex: '1 1 200px', padding: '16px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: (!hasRejectionReasons && isConfirmChecked) ? 'pointer' : 'not-allowed', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '15px', backgroundColor: (!hasRejectionReasons && isConfirmChecked) ? '#0ea5e9' : '#f3f4f6', color: (!hasRejectionReasons && isConfirmChecked) ? 'white' : '#9ca3af' }}
                   >
-                    <RefreshCcw size={22} /> ตรวจสลิปผ่าน (ส่งไปกระทบยอด)
+                    <RefreshCcw size={22} className={isProcessing ? "spin-icon" : ""} /> ตรวจสลิปผ่าน
                   </button>
                 </div>
               </>
@@ -444,7 +460,11 @@ const DepositRequest = () => {
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }}
           title="คลิกเพื่อปิด"
         >
-          <img src={selectedRequest.slip_image} alt="Slip Full" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain' }} />
+          {selectedRequest.slip_image ? (
+              <img src={selectedRequest.slip_image} alt="Slip Full" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain' }} />
+          ) : (
+             <div style={{color: 'white', fontSize:'24px'}}>ไม่มีรูปสลิป</div>
+          )}
         </div>
       )}
 
