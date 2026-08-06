@@ -18,7 +18,7 @@ const OverseeThePrize = () => {
     open_time: '18:00',
     draw_time: '17:30',
     is_sales_open: true,
-    is_auto_draw: false, // 🌟 เพิ่ม State ระบบออโต้
+    is_auto_draw: false, 
     auto_draw_percent: 50
   });
   
@@ -94,10 +94,13 @@ const OverseeThePrize = () => {
       const res = await fetch(`${API_URL}/api/admin/settings`);
       const data = await res.json();
       if (data.success && data.data) {
+        // 🌟 บังคับฟอร์แมตเวลาให้เป็น HH:mm (24h) ตัดวินาทีทิ้ง เพื่อให้ input time เข้าใจง่าย
+        const formatTime24 = (timeStr) => timeStr ? timeStr.substring(0, 5) : '00:00';
+        
         setSettings({
-          close_time: data.data.close_time || '17:00',
-          open_time: data.data.open_time || '18:00',
-          draw_time: data.data.draw_time || '17:30',
+          close_time: formatTime24(data.data.close_time) || '17:00',
+          open_time: formatTime24(data.data.open_time) || '18:00',
+          draw_time: formatTime24(data.data.draw_time) || '17:30',
           is_sales_open: data.data.is_sales_open,
           is_auto_draw: data.data.is_auto_draw || false,
           auto_draw_percent: data.data.auto_draw_percent || 50
@@ -159,8 +162,11 @@ const OverseeThePrize = () => {
     } catch (err) { console.error(err); }
   };
 
-  // 🌟 บันทึกระบบออโต้
+  // 🌟 บันทึกการตั้งค่าระบบออโต้ (เปิด/ปิด) พร้อม Popup ยืนยัน
   const handleToggleAutoDraw = async (isChecked) => {
+    const actionText = isChecked ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+    if (!window.confirm(`⚠️ ยืนยันการ${actionText}ระบบออกเลขอัตโนมัติ ใช่หรือไม่?`)) return;
+
     const updated = { ...settings, is_auto_draw: isChecked, auto_draw_percent: targetPercent };
     setSettings(updated);
     try {
@@ -169,7 +175,26 @@ const OverseeThePrize = () => {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(updated) 
       });
-      alert(isChecked ? `✅ เปิดใช้งานออกเลขอัตโนมัติ (${targetPercent}%)` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
+      alert(isChecked ? `✅ เปิดใช้งานระบบอัตโนมัติเรียบร้อย ระบบจะคุมเป้าหมายจ่ายที่ ${targetPercent}%` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
+    } catch (err) { console.error(err); }
+  };
+
+  // 🌟 บันทึก % การสุ่มแบบถาวร พร้อม Popup ยืนยัน
+  const handleSaveAutoPercent = async () => {
+    if (!window.confirm(`⚠️ ยืนยันการตั้งค่า "สัดส่วนเป้าหมายการจ่ายเงิน" เป็น ${targetPercent}% ใช่หรือไม่?\n\n(ระบบจะจำค่านี้ไว้และใช้ตลอดจนกว่าคุณจะเปลี่ยนใหม่)`)) {
+      setTargetPercent(settings.auto_draw_percent); // คืนค่าเดิมถ้ากดยกเลิก
+      return;
+    }
+
+    const updated = { ...settings, auto_draw_percent: targetPercent };
+    setSettings(updated);
+    try {
+      await fetch(`${API_URL}/api/admin/settings`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(updated) 
+      });
+      alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
     } catch (err) { console.error(err); }
   };
 
@@ -328,7 +353,6 @@ const OverseeThePrize = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-
 return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>
@@ -352,7 +376,7 @@ return (
             </p>
             <input 
               type="time" 
-              lang="en-GB" /* 🌟 ใช้ lang="en-GB" บังคับให้แสดงผลเป็น 24 ชม. เสมอ */
+              lang="en-GB" 
               value={settings.close_time} 
               onChange={(e) => setSettings({ ...settings, close_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fca5a5', boxSizing: 'border-box' }} 
@@ -365,7 +389,7 @@ return (
             </p>
             <input 
               type="time" 
-              lang="en-GB" /* 🌟 บังคับแสดงผลเป็น 24 ชม. เสมอ */
+              lang="en-GB" 
               value={settings.draw_time} 
               onChange={(e) => setSettings({ ...settings, draw_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fcd34d', boxSizing: 'border-box' }} 
@@ -378,7 +402,7 @@ return (
             </p>
             <input 
               type="time" 
-              lang="en-GB" /* 🌟 บังคับแสดงผลเป็น 24 ชม. เสมอ */
+              lang="en-GB" 
               value={settings.open_time} 
               onChange={(e) => setSettings({ ...settings, open_time: e.target.value })} 
               style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #86efac', boxSizing: 'border-box' }} 
@@ -510,7 +534,7 @@ return (
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
             <Clock size={16} /> 
-            {settings.is_auto_draw ? `ระบบออโต้ทำงาน (เป้า ${targetPercent}%)` : 'เปิดระบบออกเลขอัตโนมัติ'}
+            {settings.is_auto_draw ? `ระบบออโต้ทำงาน (เป้า ${settings.auto_draw_percent}%)` : 'เปิดระบบออกเลขอัตโนมัติ'}
           </label>
         </div>
 
@@ -528,6 +552,15 @@ return (
             <span style={{ fontWeight: 'bold', color: '#d97706', fontSize: '18px', width: '50px' }}>
               {targetPercent}%
             </span>
+
+            {/* 🌟 ปุ่มบันทึก % การสุ่ม (ค้างค่าถาวร) */}
+            <button 
+              onClick={handleSaveAutoPercent} 
+              style={{ padding: '8px 12px', backgroundColor: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+            >
+              <Save size={14} /> บันทึก %
+            </button>
+
             <button 
               onClick={handleSuggestDraw} 
               disabled={isSuggesting} 
@@ -538,7 +571,7 @@ return (
             </button>
           </div>
           <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-            * หากติ๊กปุ่ม "ออโต้ทำงาน" ด้านบน ระบบจะใช้เปอร์เซ็นต์นี้ในการสุ่มหาเลขเมื่อถึงเวลาประกาศผล
+            * หากตั้งค่า % แล้วกด <b>"บันทึก %"</b> ระบบจะจำค่านี้ไว้ถาวร และใช้คุมยอดจ่ายเมื่อออโต้ทำงาน
           </p>
         </div>
 
@@ -638,7 +671,7 @@ return (
                           <th style={{ padding: '6px' }}>สกุลเงิน</th>
                           <th style={{ padding: '6px' }}>ยอดแทง</th>
                           <th style={{ padding: '6px', color: '#b91c1c' }}>รางวัล (สกุลเดิม)</th>
-                          <th style={{ padding: '6px', color: '#0ea5e9' }}>เทียบเป็น THB</th> {/* 🌟 ช่องใหม่ */}
+                          <th style={{ padding: '6px', color: '#0ea5e9' }}>เทียบเป็น THB</th> 
                         </tr>
                       </thead>
                       <tbody>
@@ -841,37 +874,35 @@ return (
         {searchedBuyers !== null && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px', whiteSpace: 'nowrap', fontSize: '13px' }}>
-  <thead>
-    <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-      <th style={{ padding: '10px' }}>ผู้ใช้</th>
-      <th style={{ padding: '10px' }}>ประเภท</th>
-      <th style={{ padding: '10px' }}>เลขที่ซื้อ</th>
-      <th style={{ padding: '10px' }}>ยอดซื้อ</th>
-      <th style={{ padding: '10px' }}>รางวัล (สกุลเดิม)</th>
-      <th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th> {/* 🌟 ช่องใหม่ */}
-      <th style={{ padding: '10px' }}>เวลาซื้อ</th>
-    </tr>
-  </thead>
-  <tbody>
-    {searchedBuyers.map((w, idx) => (
-      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-        <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
-        <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
-        <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
-        <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
-        <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
-        <td style={{ padding: '10px', color: '#0ea5e9', fontWeight: 'bold' }}>
-          {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
-        </td>
-        <td style={{ padding: '10px', color: '#64748b', fontSize: '11px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
-      </tr>
-    ))}
-  </tbody>
-</table>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                  <th style={{ padding: '10px' }}>ผู้ใช้</th>
+                  <th style={{ padding: '10px' }}>ประเภท</th>
+                  <th style={{ padding: '10px' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '10px' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '10px' }}>รางวัล (สกุลเดิม)</th>
+                  <th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
+                  <th style={{ padding: '10px' }}>เวลาซื้อ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchedBuyers.map((w, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '10px' }}>{w.lottery_type} ตัว</td>
+                    <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
+                    <td style={{ padding: '10px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '10px', color: '#0ea5e9', fontWeight: 'bold' }}>
+                      {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+                    </td>
+                    <td style={{ padding: '10px', color: '#64748b', fontSize: '11px' }}>{new Date(w.created_at).toLocaleString('th-TH')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-
-
       </div>
 
     </div>
