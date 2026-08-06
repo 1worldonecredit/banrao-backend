@@ -170,41 +170,6 @@ const ManageYeeki = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-  const fetchRounds = async () => {
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${API_URL}/api/yeeki/rounds`);
-      const data = await res.json();
-      
-      if (data.success && data.rounds && data.rounds.length > 0) {
-        const dbRounds = data.rounds.map(r => ({
-          round_id: r.round_id,
-          round_number: r.round_number,
-          openTime: new Date(r.open_time),   
-          closeTime: new Date(r.close_time), 
-          drawTime: new Date(r.draw_time),   
-          status: r.status 
-        }));
-        
-        setRounds(dbRounds);
-        
-        const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
-        const foundDraftRound = dbRounds.find(r => r.round_id === draftRoundId);
-        const firstPending = dbRounds.find(r => r.status === 'Pending' || r.status === 'Open' || r.status === 'Closed');
-        
-        setSelectedRound(foundDraftRound || firstPending || dbRounds[0]);
-      } else {
-        setRounds([]);
-        setSelectedRound(null);
-      }
-    } catch (err) {
-      console.error('Error fetching rounds:', err);
-      setRounds([]);
-      setSelectedRound(null);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const fetchDrawHistory = async (date) => {
     try {
