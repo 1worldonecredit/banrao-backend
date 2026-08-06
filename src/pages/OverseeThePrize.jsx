@@ -362,6 +362,9 @@ return (
       {/* ------------------------------------------------------------------------- */}
       {/* 1. โซนตั้งเวลา */}
       {/* ------------------------------------------------------------------------- */}
+     {/* ------------------------------------------------------------------------- */}
+      {/* 1. โซนตั้งเวลา */}
+      {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Settings size={20} color="#0ea5e9" /> 
@@ -370,43 +373,76 @@ return (
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
           
+          {/* 1. เวลาปิดรับซื้อ */}
           <div style={{ padding: '15px', backgroundColor: '#fef2f2', borderRadius: '10px', border: '1px solid #fecaca' }}>
             <p style={{ margin: '0 0 8px 0', color: '#b91c1c', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <StopCircle size={16} /> 1. เวลาปิดรับซื้อ
             </p>
-            <input 
-              type="time" 
-              lang="en-GB" 
-              value={settings.close_time} 
-              onChange={(e) => setSettings({ ...settings, close_time: e.target.value })} 
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fca5a5', boxSizing: 'border-box' }} 
-            />
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <select 
+                value={settings.close_time.split(':')[0] || '17'} 
+                onChange={(e) => setSettings({ ...settings, close_time: `${e.target.value}:${settings.close_time.split(':')[1] || '00'}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #fca5a5', backgroundColor: 'white', outline: 'none' }}
+              >
+                {[...Array(24)].map((_,i) => <option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2,'0')} น.</option>)}
+              </select>
+              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#b91c1c' }}>:</span>
+              <select 
+                value={settings.close_time.split(':')[1] || '00'} 
+                onChange={(e) => setSettings({ ...settings, close_time: `${settings.close_time.split(':')[0] || '17'}:${e.target.value}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #fca5a5', backgroundColor: 'white', outline: 'none' }}
+              >
+                {['00','05','10','15','20','25','30','35','40','45','50','55'].map(m => <option key={m} value={m}>{m} นาที</option>)}
+              </select>
+            </div>
           </div>
 
+          {/* 2. เวลาออกเลข */}
           <div style={{ padding: '15px', backgroundColor: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a' }}>
             <p style={{ margin: '0 0 8px 0', color: '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PlayCircle size={16} /> 2. เวลาออกเลข (ประกาศผล)
             </p>
-            <input 
-              type="time" 
-              lang="en-GB" 
-              value={settings.draw_time} 
-              onChange={(e) => setSettings({ ...settings, draw_time: e.target.value })} 
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #fcd34d', boxSizing: 'border-box' }} 
-            />
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <select 
+                value={settings.draw_time.split(':')[0] || '17'} 
+                onChange={(e) => setSettings({ ...settings, draw_time: `${e.target.value}:${settings.draw_time.split(':')[1] || '00'}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #fcd34d', backgroundColor: 'white', outline: 'none' }}
+              >
+                {[...Array(24)].map((_,i) => <option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2,'0')} น.</option>)}
+              </select>
+              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#d97706' }}>:</span>
+              <select 
+                value={settings.draw_time.split(':')[1] || '00'} 
+                onChange={(e) => setSettings({ ...settings, draw_time: `${settings.draw_time.split(':')[0] || '17'}:${e.target.value}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #fcd34d', backgroundColor: 'white', outline: 'none' }}
+              >
+                {['00','05','10','15','20','25','30','35','40','45','50','55'].map(m => <option key={m} value={m}>{m} นาที</option>)}
+              </select>
+            </div>
           </div>
 
+          {/* 3. เวลาเปิดรับซื้อ */}
           <div style={{ padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
             <p style={{ margin: '0 0 8px 0', color: '#15803d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Play size={16} /> 3. เวลาเปิดรับซื้อ (งวดถัดไป)
             </p>
-            <input 
-              type="time" 
-              lang="en-GB" 
-              value={settings.open_time} 
-              onChange={(e) => setSettings({ ...settings, open_time: e.target.value })} 
-              style={{ padding: '10px', width: '100%', fontSize: '16px', borderRadius: '8px', border: '1px solid #86efac', boxSizing: 'border-box' }} 
-            />
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <select 
+                value={settings.open_time.split(':')[0] || '18'} 
+                onChange={(e) => setSettings({ ...settings, open_time: `${e.target.value}:${settings.open_time.split(':')[1] || '00'}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #86efac', backgroundColor: 'white', outline: 'none' }}
+              >
+                {[...Array(24)].map((_,i) => <option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2,'0')} น.</option>)}
+              </select>
+              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#15803d' }}>:</span>
+              <select 
+                value={settings.open_time.split(':')[1] || '00'} 
+                onChange={(e) => setSettings({ ...settings, open_time: `${settings.open_time.split(':')[0] || '18'}:${e.target.value}` })}
+                style={{ padding: '10px', width: '100%', fontSize: '15px', borderRadius: '8px', border: '1px solid #86efac', backgroundColor: 'white', outline: 'none' }}
+              >
+                {['00','05','10','15','20','25','30','35','40','45','50','55'].map(m => <option key={m} value={m}>{m} นาที</option>)}
+              </select>
+            </div>
           </div>
 
         </div>
