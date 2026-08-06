@@ -109,10 +109,43 @@ const ManageYeeki = () => {
     fetchSettings();
   }, []);
 
-  useEffect(() => {
-    fetchRounds(); 
-    fetchDrawHistory(selectedDate);
-  }, [selectedDate]);
+ const fetchRounds = async () => {
+    setIsProcessing(true);
+    try {
+      // 🌟 เปลี่ยนมาเรียกใช้ API ของ Admin พร้อมส่งวันที่ที่เลือก (selectedDate) ไปด้วย!
+      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${selectedDate}`);
+      const data = await res.json();
+      
+      if (data.success && data.rounds && data.rounds.length > 0) {
+        const dbRounds = data.rounds.map(r => ({
+          round_id: r.round_id,
+          round_number: r.round_number,
+          // 🌟 .replace(' ', 'T') เพื่อให้เบราว์เซอร์อ่านเวลาเป็น Timezone มาตรฐาน ป้องกันเวลาคลาดเคลื่อน
+          openTime: new Date(r.open_time.replace(' ', 'T')),   
+          closeTime: new Date(r.close_time.replace(' ', 'T')), 
+          drawTime: new Date(r.draw_time.replace(' ', 'T')),   
+          status: r.status 
+        }));
+        
+        setRounds(dbRounds);
+        
+        const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
+        const foundDraftRound = dbRounds.find(r => r.round_id === draftRoundId);
+        const firstPending = dbRounds.find(r => r.status === 'Pending' || r.status === 'Open' || r.status === 'Closed');
+        
+        setSelectedRound(foundDraftRound || firstPending || dbRounds[0]);
+      } else {
+        setRounds([]);
+        setSelectedRound(null);
+      }
+    } catch (err) {
+      console.error('Error fetching rounds:', err);
+      setRounds([]);
+      setSelectedRound(null);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
