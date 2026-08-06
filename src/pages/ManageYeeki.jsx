@@ -109,7 +109,6 @@ const ManageYeeki = () => {
     fetchSettings();
   }, []);
 
-  // 🌟 (ตัวที่คุณพี่เผลอลบไป!) ตัวสั่งให้ระบบโหลดข้อมูลรอบใหม่ทุกครั้งที่แอดมินเปลี่ยนวันที่บนปฏิทิน
   useEffect(() => {
     fetchRounds();
     fetchDrawHistory(selectedDate);
@@ -313,21 +312,26 @@ const ManageYeeki = () => {
     finally { setIsAnalyzing(false); }
   };
 
+  // 🌟 ฟังก์ชันอัปเกรด AI: สุ่มเลขจำลองร้อยๆ ชุด เพื่อคุม % ขาดทุน!
   const handleSuggestDraw = async () => {
     if (!selectedRound) return alert('กรุณาเลือกรอบที่ต้องการ');
+    
     setIsSuggesting(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/suggest-yeeki-draw`, { 
+      const res = await fetch(`${API_URL}/api/admin/yeeki/suggest-draw`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ targetPercent, round_id: selectedRound.round_id }) 
+        body: JSON.stringify({ 
+            target_percent: targetPercent, 
+            round_id: selectedRound.round_id 
+        }) 
       });
       const data = await res.json();
+      
       if (data.success) {
-        setSimulatedSuper(data.suggestedSuper);
-        setSimulatedTop(data.suggestedTop);
-        setSimulatedBottom(data.suggestedBottom);
-        setAnalysisResult({ totalSales: data.totalSales, analysis: data.analysis });
+        setSimulatedSuper(data.super_8);
+        setSimulatedTop(data.top_4);
+        setSimulatedBottom(data.bottom_2);
       } else {
         alert(`❌ ไม่สามารถสุ่มเลขได้: ${data.message}`);
       }
