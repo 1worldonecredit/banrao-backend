@@ -88,7 +88,7 @@ const ManageYeeki = () => {
   };
 
   // ==========================================
-  // 🌟 useEffect
+  // 🌟 useEffect ต่างๆ
   // ==========================================
   useEffect(() => {
     const draft = {
@@ -109,10 +109,39 @@ const ManageYeeki = () => {
     fetchSettings();
   }, []);
 
- const fetchRounds = async () => {
+  // 🌟 (ตัวที่คุณพี่เผลอลบไป!) ตัวสั่งให้ระบบโหลดข้อมูลรอบใหม่ทุกครั้งที่แอดมินเปลี่ยนวันที่บนปฏิทิน
+  useEffect(() => {
+    fetchRounds();
+    fetchDrawHistory(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ==========================================
+  // 🌟 ฟังก์ชัน ดึงข้อมูลและจัดการ
+  // ==========================================
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/yeeki/settings`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSettings({
+          is_auto_draw: data.data.is_auto_draw || false,
+          auto_draw_percent: data.data.auto_draw_percent || 50
+        });
+        const draft = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}');
+        if (!draft.targetPercent) setTargetPercent(data.data.auto_draw_percent || 50);
+      }
+    } catch (err) { console.error('Error fetching settings:', err); }
+  };
+
+  const fetchRounds = async () => {
     setIsProcessing(true);
     try {
-      // 🌟 เปลี่ยนมาเรียกใช้ API ของ Admin พร้อมส่งวันที่ที่เลือก (selectedDate) ไปด้วย!
       const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${selectedDate}`);
       const data = await res.json();
       
@@ -120,7 +149,6 @@ const ManageYeeki = () => {
         const dbRounds = data.rounds.map(r => ({
           round_id: r.round_id,
           round_number: r.round_number,
-          // 🌟 .replace(' ', 'T') เพื่อให้เบราว์เซอร์อ่านเวลาเป็น Timezone มาตรฐาน ป้องกันเวลาคลาดเคลื่อน
           openTime: new Date(r.open_time.replace(' ', 'T')),   
           closeTime: new Date(r.close_time.replace(' ', 'T')), 
           drawTime: new Date(r.draw_time.replace(' ', 'T')),   
@@ -146,30 +174,6 @@ const ManageYeeki = () => {
       setIsProcessing(false);
     }
   };
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // ==========================================
-  // 🌟 ฟังก์ชัน ดึงข้อมูลและจัดการ
-  // ==========================================
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/yeeki/settings`);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setSettings({
-          is_auto_draw: data.data.is_auto_draw || false,
-          auto_draw_percent: data.data.auto_draw_percent || 50
-        });
-        const draft = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}');
-        if (!draft.targetPercent) setTargetPercent(data.data.auto_draw_percent || 50);
-      }
-    } catch (err) { console.error('Error fetching settings:', err); }
-  };
-
 
   const fetchDrawHistory = async (date) => {
     try {
@@ -231,7 +235,6 @@ const ManageYeeki = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันบันทึก % การสุ่ม (ค้างค่าถาวร)
   const handleSaveAutoPercent = async () => {
     if (!window.confirm(`⚠️ ยืนยันการตั้งเป้าหมายยอดจ่ายที่ ${targetPercent}% ใช่หรือไม่?\n(ระบบจะจำค่านี้ไว้ใช้เป็นเกณฑ์ในการสุ่มเลขอัตโนมัติ)`)) {
       setTargetPercent(settings.auto_draw_percent);
@@ -441,8 +444,7 @@ const ManageYeeki = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-
-return (
+  return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
