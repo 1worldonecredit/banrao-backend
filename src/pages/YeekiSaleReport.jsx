@@ -20,7 +20,6 @@ const YeekiSaleReport = () => {
         setOverallTotal(data.overallTotal);
         setActiveRoundTotal(data.activeRoundTotal);
         
-        // ถ้ากำลังเปิดดูหน้ารายละเอียดของรอบไหนอยู่ ให้อัปเดตข้อมูลของรอบนั้นแบบ Real-time ด้วย
         if (viewingRound) {
           const updatedRound = data.rounds.find(r => r.round_id === viewingRound.round_id);
           if (updatedRound) setViewingRound(updatedRound);
@@ -35,21 +34,19 @@ const YeekiSaleReport = () => {
 
   useEffect(() => {
     fetchReportData();
-    // สั่งให้ดึงข้อมูลใหม่ทุกๆ 10 วินาที 
     const interval = setInterval(fetchReportData, 10000); 
     return () => clearInterval(interval);
-  }, [viewingRound]); // เพิ่ม dependency เพื่อให้ผูกกับหน้า Detail ด้วย
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingRound]);
 
   const formatCurrency = (num) => Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div style={{ paddingBottom: '30px' }}>
       
-      {/* 🌟 สลับหน้าจอ: ถ่ากด Card จะโชว์หน้ารายละเอียด (Detail View) */}
       {viewingRound ? (
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
           
-          {/* Header ของหน้ารายละเอียด */}
           <div style={{ backgroundColor: '#9d174d', padding: '15px', color: 'white', display: 'flex', alignItems: 'center', gap: '15px' }}>
             <button onClick={() => setViewingRound(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
               <ChevronLeft size={28} />
@@ -66,7 +63,6 @@ const YeekiSaleReport = () => {
           </div>
 
           <div style={{ padding: '20px' }}>
-            {/* ข้อมูลเวลา และ ผลรางวัล */}
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', backgroundColor: '#fdf2f8', padding: '15px', borderRadius: '10px', border: '1px solid #fbcfe8' }}>
               <div>
                 <h4 style={{ margin: '0 0 10px 0', color: '#9d174d' }}>เวลาของรอบนี้</h4>
@@ -93,7 +89,6 @@ const YeekiSaleReport = () => {
               )}
             </div>
 
-            {/* สรุปยอดขายของรอบนี้ */}
             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px', backgroundColor: '#f0f9ff', padding: '15px', borderRadius: '8px', border: '1px solid #bae6fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#0369a1', fontWeight: 'bold' }}>ยอดขาย (THB)</span>
@@ -105,7 +100,6 @@ const YeekiSaleReport = () => {
               </div>
             </div>
 
-            {/* ตารางรายการบิล */}
             <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Users size={18} /> รายการสั่งซื้อ ({viewingRound.orders ? viewingRound.orders.length : 0} รายการ)
             </h4>
@@ -164,7 +158,6 @@ const YeekiSaleReport = () => {
 
       ) : (
 
-        // 🌟 หน้าหลัก: แสดงสรุปยอด และ Card 24 ใบ 
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -175,11 +168,7 @@ const YeekiSaleReport = () => {
             </button>
           </div>
           
-          {/* ========================================== */}
-          {/* 🌟 กล่องสรุปยอดขาย (Top Summary) */}
-          {/* ========================================== */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '25px' }}>
-            {/* กล่องยอดรวมทั้งหมด */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #db2777', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
               <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายรวมวันนี้ (ทุกรอบ)</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
@@ -191,7 +180,6 @@ const YeekiSaleReport = () => {
               </div>
             </div>
 
-            {/* กล่องยอดรวมรอบปัจจุบัน */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #10b981', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
               <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '14px', fontWeight: 'bold' }}>ยอดขายรอบที่กำลังเปิดรับแทง</p>
               {activeRoundTotal.thb > 0 || activeRoundTotal.lak > 0 ? (
@@ -210,9 +198,6 @@ const YeekiSaleReport = () => {
             </div>
           </div>
 
-          {/* ========================================== */}
-          {/* 🌟 แสดง Card 24 รอบ (กดเพื่อดู Details) */}
-          {/* ========================================== */}
           {isLoading && roundsData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>กำลังโหลดข้อมูลรายงาน...</div>
           ) : (
@@ -231,10 +216,8 @@ const YeekiSaleReport = () => {
                     position: 'relative', overflow: 'hidden'
                   }}
                 >
-                  {/* แถบสีด้านซ้าย ถ้ารอบนั้นเปิดอยู่ */}
                   {round.status === 'open' && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '5px', backgroundColor: '#db2777' }}></div>}
                   
-                  {/* หัว Card */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {round.status === 'ended' && <Ban size={18} color="#94a3b8" />}
@@ -244,7 +227,6 @@ const YeekiSaleReport = () => {
                         รอบที่ {round.round_number}
                       </span>
                     </div>
-                    {/* Badge นับจำนวนบิลคร่าวๆ */}
                     {round.orders && round.orders.length > 0 && (
                        <span style={{ fontSize: '11px', backgroundColor: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
                          {round.orders.length} บิล
@@ -252,7 +234,6 @@ const YeekiSaleReport = () => {
                     )}
                   </div>
                   
-                  {/* เวลา */}
                   <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f1f5f9', paddingBottom: '4px' }}>
                       <span>เปิดขาย:</span>
@@ -268,7 +249,6 @@ const YeekiSaleReport = () => {
                     </div>
                   </div>
 
-                  {/* โชว์ยอดขายสรุปใน Card หน้าแรก */}
                   {(round.total_thb > 0 || round.total_lak > 0) && (
                     <div style={{ marginTop: '12px', backgroundColor: '#f8fafc', padding: '8px', borderRadius: '8px', border: '1px dashed #cbd5e1', fontSize: '12px' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 'bold' }}>
@@ -282,7 +262,6 @@ const YeekiSaleReport = () => {
                     </div>
                   )}
 
-                  {/* ข้อความกระตุ้นด้านล่าง */}
                   {round.status === 'open' && <div style={{ marginTop: '10px', color: '#db2777', fontWeight: 'bold', fontSize: '12px', textAlign: 'center' }}>คลิกดูรายละเอียด & ยอดขาย</div>}
                   {round.status === 'ended' && <div style={{ marginTop: '10px', color: '#94a3b8', fontWeight: 'bold', fontSize: '12px', textAlign: 'center' }}>คลิกดูผลรางวัล & ยอดขาย</div>}
                 </div>
