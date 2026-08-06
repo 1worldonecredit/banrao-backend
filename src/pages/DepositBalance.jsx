@@ -50,7 +50,9 @@ const DepositBalance = () => {
 
   const fetchBanks = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/banks`);
+      const res = await fetch(`${API_URL}/api/admin/banks`, {
+        cache: 'no-store' // 🌟 ปิด Cache ให้โหลดใหม่เสมอ
+      });
       const data = await res.json();
       if (data.success) setBanks(data.banks);
     } catch (error) {
@@ -60,7 +62,9 @@ const DepositBalance = () => {
 
   const fetchReport = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/statement-report?startDate=${startDate}&endDate=${endDate}`);
+      const res = await fetch(`${API_URL}/api/admin/statement-report?startDate=${startDate}&endDate=${endDate}`, {
+        cache: 'no-store' // 🌟 จุดสำคัญ: ปิด Cache ของเบราว์เซอร์ เพื่อให้ข้อมูลตารางอัปเดตตลอดเวลา
+      });
       const data = await res.json();
       if (data.success) {
         setRecords(data.records);
@@ -128,7 +132,7 @@ const DepositBalance = () => {
       if (data.success) {
         alert(data.message);
         cancelEdit(); 
-        fetchReport(); 
+        fetchReport(); // ดึงข้อมูลมาอัปเดตตารางทันทีหลังบันทึกเสร็จ
       } else {
         alert("เกิดข้อผิดพลาด: " + data.message);
       }
