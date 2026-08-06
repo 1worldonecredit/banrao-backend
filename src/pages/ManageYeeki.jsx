@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Download, Trophy, Power, PlayCircle, StopCircle, 
   Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, 
-  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight
+  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight, Ban
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -110,7 +110,7 @@ const ManageYeeki = () => {
   }, []);
 
   useEffect(() => {
-    fetchRounds(); // โหลดข้อมูลรอบเมื่อเปิดหน้า
+    fetchRounds(); 
     fetchDrawHistory(selectedDate);
   }, [selectedDate]);
 
@@ -137,7 +137,6 @@ const ManageYeeki = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-  // 🌟 ใช้ API ตัวเดียวกับหน้าบ้าน และ Map วันที่ (new Date) แบบเดียวกับที่ลูกค้าเห็นเป๊ะๆ
   const fetchRounds = async () => {
     setIsProcessing(true);
     try {
@@ -146,17 +145,16 @@ const ManageYeeki = () => {
       
       if (data.success && data.rounds && data.rounds.length > 0) {
         const dbRounds = data.rounds.map(r => ({
-          round_id: r.round_id, // เก็บ ID ไว้ใช้อัปเดต
+          round_id: r.round_id,
           round_number: r.round_number,
           openTime: new Date(r.open_time),   
           closeTime: new Date(r.close_time), 
           drawTime: new Date(r.draw_time),   
-          status: r.status // ดึง Status จริงจาก DB (Pending, Completed)
+          status: r.status 
         }));
         
         setRounds(dbRounds);
         
-        // เลือกแอกทีฟรอบล่าสุด (ดึงจาก Draft หรือเอารอบที่ Pending อยู่)
         const draftRoundId = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}').selectedRoundId;
         const foundDraftRound = dbRounds.find(r => r.round_id === draftRoundId);
         const firstPending = dbRounds.find(r => r.status === 'Pending' || r.status === 'Open' || r.status === 'Closed');
@@ -216,6 +214,9 @@ const ManageYeeki = () => {
   };
 
   const handleToggleAutoDraw = async (isChecked) => {
+    const actionText = isChecked ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+    if (!window.confirm(`⚠️ ยืนยันการ${actionText}ระบบออกเลขอัตโนมัติ ใช่หรือไม่?`)) return;
+
     const updated = { ...settings, is_auto_draw: isChecked, auto_draw_percent: targetPercent };
     setSettings(updated);
     try {
@@ -230,6 +231,25 @@ const ManageYeeki = () => {
       console.error('Error toggling auto draw:', err); 
       alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API ตั้งค่าออโต้');
     }
+  };
+
+  // 🌟 ฟังก์ชันบันทึก % การสุ่ม (ค้างค่าถาวร)
+  const handleSaveAutoPercent = async () => {
+    if (!window.confirm(`⚠️ ยืนยันการตั้งเป้าหมายยอดจ่ายที่ ${targetPercent}% ใช่หรือไม่?\n(ระบบจะจำค่านี้ไว้ใช้เป็นเกณฑ์ในการสุ่มเลขอัตโนมัติ)`)) {
+      setTargetPercent(settings.auto_draw_percent);
+      return;
+    }
+    const updated = { ...settings, auto_draw_percent: targetPercent };
+    setSettings(updated);
+    try {
+      const res = await fetch(`${API_URL}/api/yeeki/settings`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(updated) 
+      });
+      const data = await res.json();
+      if (data.success) alert(`✅ บันทึกเป้าหมายที่ ${targetPercent}% เรียบร้อยแล้ว`);
+    } catch (err) { console.error(err); }
   };
 
   const handleSavePrizeRates = async () => {
@@ -423,6 +443,7 @@ const ManageYeeki = () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
+
 return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
@@ -565,7 +586,7 @@ return (
                     <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.drawTime)}
                  </span>
                  <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>
-                   แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 4 ตัว (บน), ชุด 2 ตัว (ล่าง)
+                    แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 4 ตัว (บน), ชุด 2 ตัว (ล่าง)
                  </p>
               </div>
             </div>
@@ -590,6 +611,15 @@ return (
               <span style={{ fontWeight: '900', color: '#d97706', fontSize: '22px', width: '60px' }}>
                 {targetPercent}%
               </span>
+
+              {/* 🌟 ปุ่มบันทึก % ถาวร */}
+              <button 
+                onClick={handleSaveAutoPercent} 
+                style={{ padding: '10px 15px', backgroundColor: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}
+              >
+                <Save size={16} /> บันทึก %
+              </button>
+
               <button 
                 onClick={handleSuggestDraw} disabled={isSuggesting} 
                 style={{ flex: '1 1 auto', padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
@@ -598,6 +628,9 @@ return (
                 {isSuggesting ? 'ระบบกำลังคำนวณแยกชุด...' : 'สุ่มเลขแบบแยกชุดที่ปลอดภัยที่สุด'}
               </button>
             </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+              * กด <b>"บันทึก %"</b> เพื่อให้ระบบจำค่านี้ไว้ใช้สุ่มเลขอัตโนมัติในทุกๆ รอบ
+            </p>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '25px', backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -757,6 +790,29 @@ return (
                 </div>
               </div>
               
+              {(() => {
+                const totalPayout = analysisResult.analysis.reduce((sum, item) => sum + item.total_payout, 0);
+                const riskPercent = analysisResult.totalSales > 0 ? (totalPayout / analysisResult.totalSales) * 100 : 0;
+                let alertColor = '#166534'; 
+                let alertBg = '#f0fdf4'; 
+                let alertText = '(ปลอดภัย ระบบมีกำไร)';
+
+                if (riskPercent > 100) { 
+                  alertColor = '#b91c1c'; alertBg = '#fef2f2'; alertText = '(ขาดทุนยับ!)'; 
+                } else if (riskPercent >= 90) { 
+                  alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก/เกือบเท่าทุน)'; 
+                } else if (riskPercent > targetPercent) { 
+                  alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(จ่ายสูงกว่าเป้าหมายที่ตั้ง)'; 
+                }
+
+                return ( 
+                  <div style={{ marginTop: '15px', textAlign: 'center', padding: '10px', backgroundColor: alertBg, borderRadius: '8px', color: alertColor, fontWeight: 'bold', fontSize: '13px' }}>
+                    <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> 
+                    สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {alertText}
+                  </div> 
+                );
+              })()}
+
               <div style={{ marginTop: '30px', textAlign: 'center', borderTop: '2px dashed #cbd5e1', paddingTop: '25px' }}>
                 <button 
                   onClick={handleExecuteDraw} disabled={isExecutingDraw} 
