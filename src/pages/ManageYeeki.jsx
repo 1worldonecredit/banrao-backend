@@ -465,35 +465,100 @@ const ManageYeeki = () => {
       {/* ------------------------------------------------------------------------- */}
       {/* 1. โซนเลือกรอบของวัน (Scrollable Pills) */}
       {/* ------------------------------------------------------------------------- */}
-      <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(219, 39, 119, 0.08)', marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#9d174d', fontSize: '15px' }}>เลือกรอบที่ต้องการจัดการ:</h4>
+      {/* ------------------------------------------------------------------------- */}
+      {/* 1. โซนเลือกรอบของวัน (แบบการ์ด 24 รอบ เหมือนหน้าลูกค้า) */}
+      {/* ------------------------------------------------------------------------- */}
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(219, 39, 119, 0.08)', marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Clock size={20} /> เลือกรอบที่ต้องการจัดการ:
+        </h4>
         
         {isProcessing ? (
-           <div style={{ padding: '20px', textAlign: 'center', color: '#db2777' }}><RefreshCw className="spin" size={24}/></div>
+           <div style={{ padding: '30px', textAlign: 'center', color: '#db2777' }}><RefreshCw className="spin" size={28}/></div>
         ) : (
-          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
+            gap: '15px', 
+            maxHeight: '450px', // จำกัดความสูงให้มี Scrollbar (ไม่ให้หน้ายาวเกินไป)
+            overflowY: 'auto', 
+            padding: '5px' 
+          }}>
             {rounds.length === 0 ? (
-              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>ไม่พบข้อมูลรอบของวันที่เลือกในระบบฐานข้อมูล</span>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>
+                ไม่พบข้อมูลรอบของวันที่เลือกในระบบฐานข้อมูล
+              </div>
             ) : rounds.map(r => {
               const isSelected = selectedRound?.round_id === r.round_id;
               const isCompleted = r.status === 'Completed';
+              const isClosed = now > r.closeTime && !isCompleted;
+              const isOpen = now >= r.openTime && now <= r.closeTime && !isCompleted;
+              const isFuture = now < r.openTime && !isCompleted;
+
+              let statusText = '';
+              let statusColor = '';
+              let IconComponent = Ban; 
+
+              if (isCompleted) {
+                  statusText = 'ออกผลแล้ว';
+                  statusColor = '#9ca3af'; // สีเทา
+                  IconComponent = CheckCircle;
+              } else if (isClosed) {
+                  statusText = 'หมดเวลาแทงแล้ว';
+                  statusColor = '#ef4444'; // สีแดง
+                  IconComponent = Ban;
+              } else if (isOpen) {
+                  statusText = getCountdown(r.closeTime); // แสดงเวลาถอยหลัง
+                  statusColor = '#e11d48'; // สีแดงเข้ม
+                  IconComponent = PlayCircle;
+              } else if (isFuture) {
+                  statusText = 'รอเปิดรับแทง';
+                  statusColor = '#d97706'; // สีส้ม
+                  IconComponent = Clock;
+              }
+
+              // ฟังก์ชันแปลงเวลา 00:00 น.
+              const formatTimeOnly = (dateObj) => {
+                  return dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+              };
+
               return (
-                <button 
+                <div 
                   key={r.round_id}
                   onClick={() => { 
                     setSelectedRound(r); 
                     setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); 
                   }}
-                  style={{ 
-                    padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer', transition: '0.2s',
-                    backgroundColor: isSelected ? '#be185d' : isCompleted ? '#f1f5f9' : '#fdf2f8',
-                    color: isSelected ? 'white' : isCompleted ? '#64748b' : '#db2777',
-                    border: isSelected ? 'none' : isCompleted ? '1px solid #e2e8f0' : '1px solid #fbcfe8',
-                    boxShadow: isSelected ? '0 4px 10px rgba(190, 24, 93, 0.3)' : 'none'
+                  style={{
+                    backgroundColor: isSelected ? '#fdf2f8' : (isCompleted || isClosed) ? '#f9fafb' : 'white',
+                    border: isSelected ? '2px solid #be185d' : (isCompleted || isClosed) ? '1px solid #e5e7eb' : isOpen ? '1px solid #fbcfe8' : '1px dashed #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 4px 12px rgba(190, 24, 93, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
+                    transition: 'all 0.2s',
+                    opacity: (isCompleted || isClosed) && !isSelected ? 0.7 : 1
                   }}
                 >
-                  รอบที่ {r.round_number} {isCompleted ? '(ออกผลแล้ว)' : ''}
-                </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: isSelected ? '#be185d' : (isCompleted || isClosed) ? '#9ca3af' : '#db2777', fontWeight: 'bold', fontSize: '15px' }}>
+                      <IconComponent size={18} /> รอบที่ {r.round_number}
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px', color: '#64748b', marginBottom: '15px' }}>
+                      <span>เปิดขาย:</span> 
+                      <span style={{ textAlign: 'right', color: '#10b981', fontWeight: 'bold' }}>{formatTimeOnly(r.openTime)}</span>
+                      
+                      <span>ปิดรับแทง:</span> 
+                      <span style={{ textAlign: 'right', color: '#ef4444', fontWeight: 'bold' }}>{formatTimeOnly(r.closeTime)}</span>
+                      
+                      <span>ออกผล:</span> 
+                      <span style={{ textAlign: 'right', color: '#d97706', fontWeight: 'bold' }}>{formatTimeOnly(r.drawTime)}</span>
+                  </div>
+
+                  <div style={{ textAlign: 'center', fontWeight: '900', fontSize: isOpen ? '18px' : '13px', color: statusColor }}>
+                      {statusText}
+                  </div>
+                </div>
               );
             })}
           </div>
