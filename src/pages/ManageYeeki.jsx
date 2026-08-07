@@ -31,7 +31,7 @@ const ManageYeeki = () => {
   const [winners, setWinners] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState({ prize_8: '-', prize_6: '-', prize_4: '-', prize_3: '-', prize_2_top: '-', prize_2_bottom: '-' });
+  const [results, setResults] = useState({ prize_8: '-', prize_4: '-', prize_3: '-', prize_2_top: '-', prize_2_bottom: '-' });
   const [now, setNow] = useState(new Date());
 
   // ==========================================
@@ -40,7 +40,7 @@ const ManageYeeki = () => {
   const [prizeRates, setPrizeRates] = useState([]);
   const [exchangeRateLAK, setExchangeRateLAK] = useState(0);
 
-  // 💡 [ปรับใหม่] ใช้แค่ 8 ตัว และ 6 ตัว (ที่เหลือให้ระบบคำนวณแยกให้อัตโนมัติ)
+  // 💡 รับค่าแค่ 8 ตัว และ 6 ตัว
   const [simulatedSuper, setSimulatedSuper] = useState(savedDraft.simulatedSuper || '');   
   const [simulated6, setSimulated6] = useState(savedDraft.simulated6 || '');       
   
@@ -60,7 +60,7 @@ const ManageYeeki = () => {
   const [simulatedUserLoading, setSimulatedUserLoading] = useState(false);
 
   // ==========================================
-  // 🌟 ฟังก์ชัน Utilities & คำนวณเลข
+  // 🌟 ฟังก์ชัน Utilities
   // ==========================================
   const formatThaiDateFull = (dateStr) => {
     if (!dateStr) return '';
@@ -84,7 +84,6 @@ const ManageYeeki = () => {
     return `${h}:${m}:${s}`;
   };
 
-  // 💡 สร้างเลขสลับ 6 ประตู สำหรับ 3 ตัวโต๊ด
   const getTodPermutations = (numStr) => {
     if (!numStr || numStr.length !== 3) return numStr;
     const arr = numStr.split('');
@@ -147,21 +146,16 @@ const ManageYeeki = () => {
       const data = await res.json();
       if (data.success) {
         if (data.results) {
-          const res8 = data.results.result_8_super || '-';
-          const res4 = data.results.result_4_top || '-';
-          
           setResults({
-            prize_8: res8,
-            prize_6: res8 !== '-' ? res8.slice(-6) : '-',
-            prize_4: res4,
+            prize_8: data.results.result_8_super || '-',
+            prize_4: data.results.result_4_top || '-',
             prize_3: data.results.result_3_top || '-',
-            prize_2_top: res4 !== '-' ? res4.slice(-2) : '-',
+            prize_2_top: data.results.result_4_top ? data.results.result_4_top.slice(-2) : '-',
             prize_2_bottom: data.results.result_2_bottom || '-'
           });
         } else {
-          setResults({ prize_8: '-', prize_6: '-', prize_4: '-', prize_3: '-', prize_2_top: '-', prize_2_bottom: '-' });
+          setResults({ prize_8: '-', prize_4: '-', prize_3: '-', prize_2_top: '-', prize_2_bottom: '-' });
         }
-        // 💡 นี่คือตัวแปรที่เก็บรายชื่อทั้งหมดที่ถูกรางวัลของวันนั้น
         setWinners(data.winners || []);
       }
     } catch (err) { console.error('Error fetching history:', err); }
@@ -203,7 +197,6 @@ const ManageYeeki = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  // 💡 Auto Refresh ทุก 1 นาที
   useEffect(() => {
       const intervalId = setInterval(() => { fetchRounds(true); fetchDrawHistory(selectedDate); }, 60000); 
       return () => clearInterval(intervalId);
@@ -227,7 +220,7 @@ const ManageYeeki = () => {
   }, [selectedDate, targetPercent, simulatedSuper, simulated6, analysisResult, selectedRound]);
 
   // ==========================================
-  // 🌟 ฟังก์ชันต่างๆ
+  // 🌟 ฟังก์ชันจัดการปุ่มกดต่างๆ
   // ==========================================
   const handleToggleAutoDraw = async (isChecked) => {
       const actionText = isChecked ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
@@ -268,20 +261,17 @@ const ManageYeeki = () => {
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); }
   };
 
-  // 💡 ตรวจสอบและแตกตัวเลขก่อนส่งไปวิเคราะห์
+  // 💡 ส่ง top_6 ไปให้ backend จัดการ
   const handleAnalyzeDraw = async () => {
       if (simulatedSuper.length !== 8) return alert('กรุณากรอกเลข Super Jackpot ให้ครบ 8 หลัก');
       if (simulated6.length !== 6) return alert('กรุณากรอกเลขหลัก ให้ครบ 6 หลัก');
       if (!selectedRound) return alert('กรุณาเลือกรอบที่ต้องการวิเคราะห์');
   
-      const top4 = simulated6.slice(-4);
-      const bot2 = simulated6.slice(2, 4); // 2 ตัวล่าง ดึงจากตำแหน่งที่ 3 และ 4 (ของเลข 6 ตัว)
-
       setIsAnalyzing(true);
       try {
         const res = await fetch(`${API_URL}/api/admin/analyze-yeeki-draw`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_number: top4, bottom_number: bot2 }) 
+          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_6: simulated6 }) 
         });
         const data = await res.json();
         if (data.success) setAnalysisResult(data);
@@ -300,29 +290,24 @@ const ManageYeeki = () => {
         });
         const data = await res.json();
         if (data.success) {
-          // 💡 ถ้ามี 8 ตัวอยู่แล้ว ไม่ต้องสุ่มทับ (ตามที่คุณพี่สั่ง)
+          // 💡 ไม่เขียนทับเลข 8 ตัวถ้ามีอยู่แล้ว
           if (!simulatedSuper || simulatedSuper.length !== 8) {
               setSimulatedSuper(data.super_8); 
           }
-          // สร้างเลข 6 ตัว โดยเอาตัวสุ่ม 2 หลัก มารวมกับเลข 4 ตัวที่ระบบหลังบ้านแนะนำ
-          const randomPrefix = String(Math.floor(10 + Math.random() * 90)); 
-          setSimulated6(randomPrefix + (data.top_4 || '0000'));
+          setSimulated6(data.top_6);
         } else alert(`❌ ไม่สามารถสุ่มเลขได้: ${data.message}`);
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); } 
       finally { setIsSuggesting(false); }
   };
 
   const handleExecuteDraw = async () => {
-      const top4 = simulated6.slice(-4);
-      const bot2 = simulated6.slice(2, 4);
-
-      if (!window.confirm(`⚠️ ยืนยันประกาศผลยี่กี รอบที่ ${selectedRound.round_number} ใช่หรือไม่?\n\nแจ็คพอต 8 ตัว: ${simulatedSuper}\nเลขหลัก 6 ตัว: ${simulated6}\n(4 ตัว: ${top4}, 2 ตัวล่าง: ${bot2})\n\n(ระบบจะตรวจบิลและแจกเงินรางวัลทันที)`)) return;
+      if (!window.confirm(`⚠️ ยืนยันประกาศผลยี่กี รอบที่ ${selectedRound.round_number} ใช่หรือไม่?\n\nแจ็คพอต 8 ตัว: ${simulatedSuper}\nเลขหลัก 6 ตัว: ${simulated6}\n\n(ระบบจะตรวจบิลและแจกเงินรางวัลทันที)`)) return;
       
       setIsExecutingDraw(true);
       try {
         const res = await fetch(`${API_URL}/api/admin/execute-yeeki-draw`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_number: top4, bottom_number: bot2 }) 
+          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_6: simulated6 }) 
         });
         const data = await res.json();
         if (data.success) {
@@ -366,9 +351,7 @@ const ManageYeeki = () => {
       finally { setIsSearchingBuyers(false); }
   };
 
-  // ==========================================
-  // 🌟 ฟังก์ชันจัดการตารางรายชื่อ (กลับไปใช้โค้ดดั้งเดิมที่คุณพี่ชอบ)
-  // ==========================================
+  // 💡 โค้ดดั้งเดิมที่คุณพี่ชอบ (ไม่มีตัวกรองที่ทำให้บั๊ก)
   const filteredWinners = activeTab === 'all' 
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
@@ -377,10 +360,13 @@ const ManageYeeki = () => {
       const doc = new jsPDF(); 
       doc.addFont('THSarabunNew', 'normal'); doc.setFontSize(18); 
       doc.text(`Yeeki Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
-      const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
+      const tableColumn = ["Round", "Username", "Type", "Number", "Bet Amount", "Prize Amount", "Currency"];
       const tableRows = [];
       filteredWinners.forEach(w => {
-        tableRows.push([ w.round_number, w.username, w.lottery_type, w.selected_number, w.price, w.prize_amount, w.currency_code, w.status || 'Paid' ]);
+        tableRows.push([ 
+          w.round_number, w.username, w.lottery_type, w.selected_number, 
+          w.price, w.prize_amount, w.currency_code 
+        ]);
       });
       doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); 
       doc.save(`yeeki_winners_${selectedDate}.pdf`);
@@ -390,7 +376,6 @@ const ManageYeeki = () => {
   return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      {/* 🌟 Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ margin: 0, color: '#9d174d', fontSize: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Clock size={28} /> บริหารหวยจับยี่กี (Yeeki VIP)
@@ -404,7 +389,6 @@ const ManageYeeki = () => {
         </div>
       </div>
 
-      {/* 🌟 เลือกรอบจัดการ */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(219, 39, 119, 0.08)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Clock size={20} /> เลือกรอบที่ต้องการจัดการ:
@@ -415,7 +399,9 @@ const ManageYeeki = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px', maxHeight: '450px', overflowY: 'auto', padding: '5px' }}>
             {rounds.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>ไม่พบข้อมูลรอบของวันที่เลือก</div>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>
+                ไม่พบข้อมูลรอบของวันที่เลือกในระบบฐานข้อมูล
+              </div>
             ) : rounds.map(r => {
               const isSelected = selectedRound?.round_id === r.round_id;
               const isCompleted = r.status === 'Completed';
@@ -424,6 +410,7 @@ const ManageYeeki = () => {
               const isFuture = now < r.openTime && !isCompleted;
 
               let statusText = ''; let statusColor = ''; let IconComponent = Ban; 
+
               if (isCompleted) { statusText = 'ออกผลแล้ว'; statusColor = '#16a34a'; IconComponent = CheckCircle; } 
               else if (isClosed) { statusText = 'หมดเวลาแทงแล้ว'; statusColor = '#ef4444'; IconComponent = Ban; } 
               else if (isOpen) { statusText = getCountdown(r.closeTime); statusColor = '#e11d48'; IconComponent = PlayCircle; } 
@@ -458,7 +445,6 @@ const ManageYeeki = () => {
         )}
       </div>
 
-      {/* 🌟 กล่องผลการออกรางวัล */}
       <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', marginBottom: '20px', border: '3px solid #fbcfe8', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '8px', height: '100%', backgroundColor: '#be185d' }}></div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
@@ -483,7 +469,7 @@ const ManageYeeki = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
             {[ 
               { label: '8 ตัว (Super Jackpot)', val: results.prize_8, color: '#7e22ce', bg: '#faf5ff', width: '250px' }, 
-              { label: '6 ตัว (หลัก)', val: results.prize_6, color: '#4f46e5', bg: '#eff6ff', width: '200px' },
+              { label: '6 ตัว (หลัก)', val: results.prize_8 !== '-' ? results.prize_8.slice(-6) : '-', color: '#4f46e5', bg: '#eff6ff', width: '200px' },
               { label: '4 ตัว', val: results.prize_4, color: '#dc2626', bg: '#fef2f2', width: '150px' }, 
               { label: '3 ตัวบน', val: results.prize_3, color: '#ea580c', bg: '#fff7ed', width: '120px' }, 
               { label: '2 ตัวบน', val: results.prize_2_top, color: '#f59e0b', bg: '#fffbeb', width: '120px' }, 
@@ -504,7 +490,6 @@ const ManageYeeki = () => {
         )}
       </div>
 
-      {/* 🌟 ตั้งค่าเรทเงิน & อัตราจ่าย */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยน (LAK เป็น THB)</h4>
@@ -540,7 +525,6 @@ const ManageYeeki = () => {
         </div>
       </div>
 
-      {/* 🌟 โซนควบคุมการออกรางวัล (เลข 8 ตัว และ 6 ตัว) */}
       {selectedRound && selectedRound.status !== 'Completed' && (
         <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '12px', border: '2px solid #fde68a', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.1)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -562,11 +546,10 @@ const ManageYeeki = () => {
               <input type="range" min="0" max="100" value={targetPercent} onChange={(e) => setTargetPercent(e.target.value)} style={{ flex: '1 1 200px', cursor: 'pointer', maxWidth: '400px' }} />
               <span style={{ fontWeight: '900', color: '#d97706', fontSize: '22px', width: '60px' }}>{targetPercent}%</span>
               <button onClick={handleSaveAutoPercent} style={{ padding: '10px 15px', backgroundColor: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><Save size={16} /> บันทึก %</button>
-              <button onClick={handleSuggestDraw} disabled={isSuggesting} style={{ flex: '1 1 auto', padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}><RefreshCw size={20} className={isSuggesting ? "spin" : ""} /> {isSuggesting ? 'ระบบกำลังคำนวณแยกชุด...' : 'สุ่มเลขแบบแยกชุดที่ปลอดภัยที่สุด'}</button>
+              <button onClick={handleSuggestDraw} disabled={isSuggesting} style={{ flex: '1 1 auto', padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}><RefreshCw size={20} className={isSuggesting ? "spin" : ""} /> {isSuggesting ? 'ระบบกำลังสุ่มหาเลข...' : 'สุ่มเลขแบบแยกชุดที่ปลอดภัยที่สุด'}</button>
             </div>
           </div>
 
-          {/* 💡 กรอกแค่เลข 8 ตัว และ 6 ตัวเท่านั้น */}
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '25px', backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ flex: '1 1 250px' }}>
               <span style={{ fontWeight: 'bold', color: '#7e22ce', display: 'block', marginBottom: '8px' }}>🏆 เลข 8 หลัก (Super Jackpot):</span>
@@ -616,7 +599,6 @@ const ManageYeeki = () => {
                       const data = analysisResult.analysis?.find(a => a.lottery_type === type);
                       let numSlice = '-';
                       
-                      // 💡 ระบบตัดเลขให้เป๊ะตามสูตร 6 ตัว
                       if (simulatedSuper.length === 8 && simulated6.length === 6) {
                           const top4 = simulated6.slice(-4);
                           const bot2 = simulated6.slice(2, 4);
@@ -703,7 +685,7 @@ const ManageYeeki = () => {
         </div>
       )}
 
-      {/* 🌟 โซนตารางรายชื่อผู้ถูกรางวัล (อิงตามโค้ดดั้งเดิมที่ใช้ filteredWinners) */}
+      {/* 🌟 ตารางรายชื่อ (อิงตามโค้ดเดิมที่คุณพี่มั่นใจ) */}
       {winners.length > 0 && selectedRound && selectedRound.status === 'Completed' && (
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
@@ -759,7 +741,7 @@ const ManageYeeki = () => {
         </div>
       )}
 
-      {/* 🌟 โซนค้นหาประวัติย้อนหลัง */}
+      {/* 🌟 ค้นหาประวัติย้อนหลัง */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}><Search size={22} color="#be185d" /> ค้นหาประวัติการซื้อจากตัวเลข (อิงตามวันที่เลือก)</h4>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
