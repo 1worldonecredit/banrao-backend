@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Settings, Download, Trophy, Power, PlayCircle, StopCircle, 
   Play, Calendar, Calculator, Save, RefreshCw, AlertTriangle, 
-  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight, Ban, Lock
+  Crosshair, DollarSign, Search, CheckCircle, Eye, X, Clock, ChevronRight, Ban
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -109,6 +109,7 @@ const ManageYeeki = () => {
   const fetchRounds = useCallback(async (silent = false) => {
     if (!silent) setIsProcessing(true);
     try {
+      // 💡 จุดที่ 1: แก้ให้ดึง API แอดมิน เพื่อให้มีข้อมูล result_... ติดมาด้วย
       const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${selectedDate}`);
       const data = await res.json();
       
@@ -120,7 +121,6 @@ const ManageYeeki = () => {
           closeTime: new Date(r.close_time.replace(' ', 'T')), 
           drawTime: new Date(r.draw_time.replace(' ', 'T')),   
           status: r.status,
-          // ดึงผลการออกรางวัลมาแสดงในการ์ด
           result_8_super: r.result_8_super,
           result_4_top: r.result_4_top,
           result_3_top: r.result_3_top,
@@ -142,7 +142,8 @@ const ManageYeeki = () => {
         });
 
       } else {
-        setRounds([]); setSelectedRound(null);
+        setRounds([]); 
+        setSelectedRound(null);
       }
     } catch (err) { console.error('Error fetching rounds:', err); } 
     finally { if (!silent) setIsProcessing(false); }
@@ -362,10 +363,12 @@ const ManageYeeki = () => {
       finally { setIsSearchingBuyers(false); }
   };
 
+  // 💡 กรองรายชื่อให้อิงตามแท็บที่เลือก (8 ตัว, 3 ตัวบน, วิ่งบน ฯลฯ)
   const filteredWinners = activeTab === 'all' 
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
+  // 💡 กรองอีกชั้นเพื่อแสดงเฉพาะรอบที่คลิกอยู่ (selectedRound)
   const currentRoundWinners = filteredWinners.filter(w => 
       String(w.round_number) === String(selectedRound?.round_number) || 
       String(w.round_id) === String(selectedRound?.round_id)
@@ -383,7 +386,6 @@ const ManageYeeki = () => {
       doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); 
       doc.save(`yeeki_winners_round_${selectedRound?.round_number}_${selectedDate}.pdf`);
   };
-
 return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
@@ -408,11 +410,22 @@ return (
         </h4>
         
         {isProcessing ? (
-           <div style={{ padding: '30px', textAlign: 'center', color: '#db2777' }}><RefreshCw className="spin" size={28}/></div>
+           <div style={{ padding: '30px', textAlign: 'center', color: '#db2777' }}>
+               <RefreshCw className="spin" size={28}/>
+           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px' }}>
+          <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+              gap: '15px', 
+              maxHeight: '500px', 
+              overflowY: 'auto', 
+              padding: '5px' 
+          }}>
             {rounds.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>ไม่พบข้อมูลรอบของวันที่เลือก</div>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>
+                  ไม่พบข้อมูลรอบของวันที่เลือก
+              </div>
             ) : rounds.map(r => {
               const isSelected = selectedRound?.round_id === r.round_id;
               const isCompleted = r.status === 'Completed';
@@ -420,39 +433,73 @@ return (
               const isOpen = now >= r.openTime && now <= r.closeTime && !isCompleted;
               const isFuture = now < r.openTime && !isCompleted;
 
-              let statusText = ''; let statusColor = ''; let IconComponent = Ban; 
-              if (isCompleted) { statusText = 'ออกผลแล้ว'; statusColor = '#16a34a'; IconComponent = CheckCircle; } 
-              else if (isClosed) { statusText = 'หมดเวลาแทงแล้ว'; statusColor = '#ef4444'; IconComponent = Ban; } 
-              else if (isOpen) { statusText = getCountdown(r.closeTime); statusColor = '#e11d48'; IconComponent = PlayCircle; } 
-              else if (isFuture) { statusText = 'รอเปิดรับแทง'; statusColor = '#d97706'; IconComponent = Clock; }
+              let statusText = ''; 
+              let statusColor = ''; 
+              let IconComponent = Ban; 
+
+              if (isCompleted) { 
+                  statusText = 'ออกผลแล้ว'; 
+                  statusColor = '#16a34a'; 
+                  IconComponent = CheckCircle; 
+              } else if (isClosed) { 
+                  statusText = 'หมดเวลาแทงแล้ว'; 
+                  statusColor = '#ef4444'; 
+                  IconComponent = Ban; 
+              } else if (isOpen) { 
+                  statusText = getCountdown(r.closeTime); 
+                  statusColor = '#e11d48'; 
+                  IconComponent = PlayCircle; 
+              } else if (isFuture) { 
+                  statusText = 'รอเปิดรับแทง'; 
+                  statusColor = '#d97706'; 
+                  IconComponent = Clock; 
+              }
 
               const formatTimeOnly = (dateObj) => dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' น.';
 
               return (
                 <div key={r.round_id}
-                  onClick={() => { setSelectedRound(r); setAnalysisResult(null); setSimulatedSuper(''); setSimulated6(''); setSimulatedBottom(''); }}
+                  onClick={() => { 
+                      setSelectedRound(r); 
+                      setAnalysisResult(null); 
+                      setSimulatedSuper(''); 
+                      setSimulated6(''); 
+                      setSimulatedBottom(''); 
+                  }}
                   style={{
                     backgroundColor: isSelected ? '#fdf2f8' : (isCompleted || isClosed) ? '#f9fafb' : 'white',
                     border: isSelected ? '2px solid #be185d' : (isCompleted || isClosed) ? '1px solid #e5e7eb' : isOpen ? '1px solid #fbcfe8' : '1px dashed #e2e8f0',
-                    borderRadius: '12px', padding: '15px', cursor: 'pointer',
+                    borderRadius: '12px', 
+                    padding: '15px', 
+                    cursor: 'pointer',
                     boxShadow: isSelected ? '0 4px 12px rgba(190, 24, 93, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s', opacity: (isCompleted || isClosed) && !isSelected ? 0.7 : 1
+                    transition: 'all 0.2s', 
+                    opacity: (isCompleted || isClosed) && !isSelected ? 0.7 : 1
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isSelected ? '#be185d' : (isCompleted || isClosed) ? '#9ca3af' : '#db2777', fontWeight: 'bold', fontSize: '15px' }}>
                         <IconComponent size={18} /> รอบที่ {r.round_number}
                     </div>
-                    {isCompleted && <span style={{ fontSize: '12px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>ออกผลแล้ว</span>}
+                    {isCompleted && (
+                        <span style={{ fontSize: '12px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                            ออกผลแล้ว
+                        </span>
+                    )}
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px', color: '#64748b', marginBottom: '15px' }}>
-                      <span>เปิดขาย:</span><span style={{ textAlign: 'right', color: '#10b981', fontWeight: 'bold' }}>{formatTimeOnly(r.openTime)}</span>
-                      <span>ปิดรับแทง:</span><span style={{ textAlign: 'right', color: '#ef4444', fontWeight: 'bold' }}>{formatTimeOnly(r.closeTime)}</span>
-                      <span>ออกผล:</span><span style={{ textAlign: 'right', color: '#d97706', fontWeight: 'bold' }}>{formatTimeOnly(r.drawTime)}</span>
+                      <span>เปิดขาย:</span>
+                      <span style={{ textAlign: 'right', color: '#10b981', fontWeight: 'bold' }}>{formatTimeOnly(r.openTime)}</span>
+                      
+                      <span>ปิดรับแทง:</span>
+                      <span style={{ textAlign: 'right', color: '#ef4444', fontWeight: 'bold' }}>{formatTimeOnly(r.closeTime)}</span>
+                      
+                      <span>ออกผล:</span>
+                      <span style={{ textAlign: 'right', color: '#d97706', fontWeight: 'bold' }}>{formatTimeOnly(r.drawTime)}</span>
                   </div>
 
-                  {/* แสดงผลรางวัลในการ์ดถ้ารอบนั้นออกผลแล้ว */}
+                  {/* 💡 แสดงผลรางวัลในการ์ดถ้ารอบนั้นออกผลแล้ว */}
                   {isCompleted && r.result_4_top && (
                     <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                       <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>ผลรางวัล</div>
@@ -463,7 +510,11 @@ return (
                     </div>
                   )}
 
-                  {!isCompleted && <div style={{ textAlign: 'center', fontWeight: '900', fontSize: isOpen ? '18px' : '13px', color: statusColor }}>{statusText}</div>}
+                  {!isCompleted && (
+                      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: isOpen ? '18px' : '13px', color: statusColor }}>
+                          {statusText}
+                      </div>
+                  )}
                 </div>
               );
             })}
@@ -494,6 +545,7 @@ return (
 
         {selectedRound && selectedRound.status === 'Completed' ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+            {/* 💡 ดึงผลจาก selectedRound มาแสดงให้ตรงเป๊ะกับรอบที่คลิก */}
             {[ 
               { label: '8 ตัว (Super Jackpot)', val: selectedRound.result_8_super || '-', color: '#7e22ce', bg: '#faf5ff', width: '250px' }, 
               { label: '6 ตัว', val: selectedRound.result_8_super ? selectedRound.result_8_super.slice(-6) : '-', color: '#4f46e5', bg: '#eff6ff', width: '200px' },
@@ -520,28 +572,55 @@ return (
       {/* 🌟 ตั้งค่าเรทเงิน & อัตราจ่าย */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยน (LAK เป็น THB)</h4>
+          <h4 style={{ margin: '0 0 15px 0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <DollarSign size={20} color="#15803d" /> อัตราแลกเปลี่ยน (LAK เป็น THB)
+          </h4>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', backgroundColor: '#f0fdf4', padding: '10px 15px', borderRadius: '8px', border: '1px solid #bbf7d0', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>1 THB = </span>
-            <input type="number" value={exchangeRateLAK} onChange={(e) => setExchangeRateLAK(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100px', fontWeight: 'bold', fontSize: '16px', outline: 'none' }} />
+            <input 
+              type="number" 
+              value={exchangeRateLAK} 
+              onChange={(e) => setExchangeRateLAK(e.target.value)} 
+              style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100px', fontWeight: 'bold', fontSize: '16px', outline: 'none' }} 
+            />
             <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>LAK</span>
           </div>
-          <button onClick={handleSaveExchangeRate} style={{ padding: '10px 20px', backgroundColor: '#15803d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Save size={18} /> บันทึกเรทแลกเปลี่ยน</button>
+          <button onClick={handleSaveExchangeRate} style={{ padding: '10px 20px', backgroundColor: '#15803d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Save size={18} /> บันทึกเรทแลกเปลี่ยน
+          </button>
         </div>
 
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ margin: '0 0 15px 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}><Calculator size={20} color="#8b5cf6" /> ปรับอัตราการจ่ายยี่กี (ตัวคูณ)</h4>
+          <h4 style={{ margin: '0 0 15px 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calculator size={20} color="#8b5cf6" /> ปรับอัตราการจ่ายยี่กี (ตัวคูณ)
+          </h4>
           <div style={{ overflowX: 'auto', marginBottom: '15px', maxHeight: '180px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
-              <thead><tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}><th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0' }}>ประเภทรางวัล</th><th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0' }}>อัตราจ่าย (ตัวคูณ)</th></tr></thead>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                  <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0' }}>ประเภทรางวัล</th>
+                  <th style={{ padding: '8px', borderBottom: '2px solid #e2e8f0' }}>อัตราจ่าย (ตัวคูณ)</th>
+                </tr>
+              </thead>
               <tbody>
                 {prizeRates.map((rate, index) => (
                   <tr key={rate.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>{rate.lottery_type}</td>
+                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>
+                      {rate.lottery_type}
+                    </td>
                     <td style={{ padding: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontWeight: 'bold', color: '#8b5cf6' }}>X</span>
-                        <input type="number" value={rate.multiplier} onChange={(e) => { const newRates = [...prizeRates]; newRates[index].multiplier = e.target.value; setPrizeRates(newRates); }} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '110px', fontWeight: 'bold', outline: 'none' }} />
+                        <input 
+                          type="number" 
+                          value={rate.multiplier} 
+                          onChange={(e) => { 
+                            const newRates = [...prizeRates]; 
+                            newRates[index].multiplier = e.target.value; 
+                            setPrizeRates(newRates); 
+                          }} 
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '110px', fontWeight: 'bold', outline: 'none' }} 
+                        />
                       </div>
                     </td>
                   </tr>
@@ -549,7 +628,9 @@ return (
               </tbody>
             </table>
           </div>
-          <button onClick={handleSavePrizeRates} style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Save size={18} /> บันทึกอัตราจ่ายยี่กี</button>
+          <button onClick={handleSavePrizeRates} style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Save size={18} /> บันทึกอัตราจ่ายยี่กี
+          </button>
         </div>
       </div>
 
@@ -558,10 +639,16 @@ return (
         <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '12px', border: '2px solid #fde68a', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.1)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}><Crosshair size={26} /> ควบคุมการออกรางวัล (รอบที่ {selectedRound.round_number})</h4>
+              <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
+                <Crosshair size={26} /> ควบคุมการออกรางวัล (รอบที่ {selectedRound.round_number})
+              </h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-                 <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}><Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.drawTime)}</span>
-                 <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 6 ตัว (หลัก), ชุด 2 ตัว (ล่าง)</p>
+                 <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}>
+                    <Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.drawTime)}
+                 </span>
+                 <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>
+                    แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 6 ตัว (หลัก), ชุด 2 ตัว (ล่าง)
+                 </p>
               </div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: settings.is_auto_draw ? '#10b981' : '#e2e8f0', color: settings.is_auto_draw ? 'white' : '#475569', padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', transition: '0.3s', boxShadow: settings.is_auto_draw ? '0 4px 10px rgba(16, 185, 129, 0.3)' : 'none' }}>
@@ -571,38 +658,86 @@ return (
           </div>
 
           <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-            <p style={{ margin: '0 0 15px 0', fontWeight: 'bold', color: '#334155', fontSize: '15px' }}>1. ให้ระบบแนะนำเลขเด็ด (เพื่อให้ยอดจ่ายไม่เกินเป้า)</p>
+            <p style={{ margin: '0 0 15px 0', fontWeight: 'bold', color: '#334155', fontSize: '15px' }}>
+              1. ให้ระบบแนะนำเลขเด็ด (เพื่อให้ยอดจ่ายไม่เกินเป้า)
+            </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              <input type="range" min="0" max="100" value={targetPercent} onChange={(e) => setTargetPercent(e.target.value)} style={{ flex: '1 1 200px', cursor: 'pointer', maxWidth: '400px' }} />
-              <span style={{ fontWeight: '900', color: '#d97706', fontSize: '22px', width: '60px' }}>{targetPercent}%</span>
-              <button onClick={handleSaveAutoPercent} style={{ padding: '10px 15px', backgroundColor: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><Save size={16} /> บันทึก %</button>
-              <button onClick={handleSuggestDraw} disabled={isSuggesting} style={{ flex: '1 1 auto', padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}><RefreshCw size={20} className={isSuggesting ? "spin" : ""} /> {isSuggesting ? 'ระบบกำลังคำนวณแยกชุด...' : 'สุ่มเลขแบบแยกชุดที่ปลอดภัยที่สุด'}</button>
+              <input 
+                type="range" min="0" max="100" value={targetPercent} 
+                onChange={(e) => setTargetPercent(e.target.value)} 
+                style={{ flex: '1 1 200px', cursor: 'pointer', maxWidth: '400px' }} 
+              />
+              <span style={{ fontWeight: '900', color: '#d97706', fontSize: '22px', width: '60px' }}>
+                {targetPercent}%
+              </span>
+              <button 
+                onClick={handleSaveAutoPercent} 
+                style={{ padding: '10px 15px', backgroundColor: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}
+              >
+                <Save size={16} /> บันทึก %
+              </button>
+              <button 
+                onClick={handleSuggestDraw} disabled={isSuggesting} 
+                style={{ flex: '1 1 auto', padding: '12px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
+              >
+                <RefreshCw size={20} className={isSuggesting ? "spin" : ""} /> 
+                {isSuggesting ? 'ระบบกำลังคำนวณแยกชุด...' : 'สุ่มเลขแบบแยกชุดที่ปลอดภัยที่สุด'}
+              </button>
             </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+              * กด <b>"บันทึก %"</b> เพื่อให้ระบบจำค่านี้ไว้ใช้สุ่มเลขอัตโนมัติในทุกๆ รอบ
+            </p>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '25px', backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ flex: '1 1 250px' }}>
-              <span style={{ fontWeight: 'bold', color: '#7e22ce', display: 'block', marginBottom: '8px' }}>🏆 เลข 8 หลัก (Super Jackpot):</span>
-              <input type="tel" placeholder="XXXXXXXX" maxLength="8" value={simulatedSuper} onChange={(e) => setSimulatedSuper(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #c084fc', outline: 'none', letterSpacing: '4px', color: '#6b21a8', textAlign: 'center', boxSizing: 'border-box' }} />
+              <span style={{ fontWeight: 'bold', color: '#7e22ce', display: 'block', marginBottom: '8px' }}>
+                🏆 เลข 8 หลัก (Super Jackpot):
+              </span>
+              <input 
+                type="tel" placeholder="XXXXXXXX" maxLength="8" 
+                value={simulatedSuper} onChange={(e) => setSimulatedSuper(e.target.value.replace(/\D/g, ''))} 
+                style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #c084fc', outline: 'none', letterSpacing: '4px', color: '#6b21a8', textAlign: 'center', boxSizing: 'border-box' }} 
+              />
             </div>
             <div style={{ flex: '1 1 250px' }}>
-              <span style={{ fontWeight: 'bold', color: '#b91c1c', display: 'block', marginBottom: '8px' }}>🔥 เลข 6 หลัก (เลขหลัก):</span>
-              <input type="tel" placeholder="XXXXXX" maxLength="6" value={simulated6} onChange={(e) => setSimulated6(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #fca5a5', outline: 'none', letterSpacing: '6px', color: '#991b1b', textAlign: 'center', boxSizing: 'border-box' }} />
+              <span style={{ fontWeight: 'bold', color: '#b91c1c', display: 'block', marginBottom: '8px' }}>
+                🔥 เลข 6 หลัก (เลขหลัก):
+              </span>
+              <input 
+                type="tel" placeholder="XXXXXX" maxLength="6" 
+                value={simulated6} onChange={(e) => setSimulated6(e.target.value.replace(/\D/g, ''))} 
+                style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #fca5a5', outline: 'none', letterSpacing: '6px', color: '#991b1b', textAlign: 'center', boxSizing: 'border-box' }} 
+              />
             </div>
             <div style={{ flex: '1 1 120px' }}>
-              <span style={{ fontWeight: 'bold', color: '#1d4ed8', display: 'block', marginBottom: '8px' }}>👇 เลข 2 หลัก (ล่าง):</span>
-              <input type="tel" placeholder="XX" maxLength="2" value={simulatedBottom} onChange={(e) => setSimulatedBottom(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #7dd3fc', outline: 'none', letterSpacing: '6px', color: '#075985', textAlign: 'center', boxSizing: 'border-box' }} />
+              <span style={{ fontWeight: 'bold', color: '#1d4ed8', display: 'block', marginBottom: '8px' }}>
+                👇 เลข 2 หลัก (ล่าง):
+              </span>
+              <input 
+                type="tel" placeholder="XX" maxLength="2" 
+                value={simulatedBottom} onChange={(e) => setSimulatedBottom(e.target.value.replace(/\D/g, ''))} 
+                style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #7dd3fc', outline: 'none', letterSpacing: '6px', color: '#075985', textAlign: 'center', boxSizing: 'border-box' }} 
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '20px', width: '100%' }}>
-              <button onClick={handleAnalyzeDraw} disabled={isAnalyzing || simulatedSuper.length !== 8 || simulated6.length !== 6 || simulatedBottom.length !== 2} style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 8 && simulated6.length === 6 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}>
+              <button 
+                onClick={handleAnalyzeDraw} 
+                disabled={isAnalyzing || simulatedSuper.length !== 8 || simulated6.length !== 6 || simulatedBottom.length !== 2} 
+                style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 8 && simulated6.length === 6 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}
+              >
                 {isAnalyzing ? 'กำลังประมวลผล...' : '🔍 กดเช็คยอดจ่ายทันที'}
               </button>
 
               {(simulatedSuper.length === 8 && simulated6.length === 6 && simulatedBottom.length === 2) && (
                 <div style={{ width: '100%', maxWidth: '500px', textAlign: 'center', padding: '20px', backgroundColor: '#ecfdf5', borderRadius: '12px', border: '1px dashed #34d399' }}>
                   <h4 style={{ color: '#047857', margin: '0 0 15px 0' }}>✅ ได้เลขรางวัลครบถ้วน พร้อมจ่ายเงินแล้ว!</h4>
-                  <button onClick={handleExecuteDraw} disabled={isExecutingDraw} style={{ padding: '15px 40px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '50px', cursor: isExecutingDraw ? 'not-allowed' : 'pointer', fontWeight: '900', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)', opacity: isExecutingDraw ? 0.7 : 1, transition: 'all 0.3s', width: '100%' }}>
+                  <button 
+                    onClick={handleExecuteDraw} 
+                    disabled={isExecutingDraw} 
+                    style={{ padding: '15px 40px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '50px', cursor: isExecutingDraw ? 'not-allowed' : 'pointer', fontWeight: '900', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)', opacity: isExecutingDraw ? 0.7 : 1, transition: 'all 0.3s', width: '100%' }}
+                  >
                     <Trophy size={24} /> {isExecutingDraw ? 'กำลังโอนเงินรางวัล...' : 'ยืนยันประกาศผลยี่กี ทันที!'}
                   </button>
                   <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '15px', fontWeight: 'bold' }}>* ระบบจะทำการตรวจบิลทั้งหมด และโอนเงินเข้า Wallet อัตโนมัติ</p>
@@ -622,10 +757,10 @@ return (
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
                       <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>รางวัล</th>
-                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>เลขที่จะถูก (สลับ 6 ประตู)</th>
+                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>เลขที่จะถูก</th>
                       <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>จำนวนคนถูก</th>
-                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>ยอดจ่าย (THB)</th>
-                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>ดูบิล</th>
+                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>ยอดจ่ายสุทธิ (THB)</th>
+                      <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>ตรวจสอบบิล</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -634,16 +769,12 @@ return (
                       let numSlice = '-';
                       
                       if (simulatedSuper.length === 8 && simulated6.length === 6 && simulatedBottom.length === 2) {
-                          const top4 = simulated6.slice(-4);
-                          const top3 = simulated6.slice(-3);
-                          const top2 = simulated6.slice(-2);
-
                           if (type === '8 ตัว (Super)') numSlice = simulatedSuper;
                           if (type === '6 ตัว') numSlice = simulated6;
-                          if (type === '4 ตัวท้าย') numSlice = top4;
-                          if (type === '3 ตัวบน') numSlice = top3;
-                          if (type === '3 ตัวโต๊ด') numSlice = `สลับ (${getTodPermutations(top3)})`;
-                          if (type === '2 ตัวบน') numSlice = top2;
+                          if (type === '4 ตัวท้าย') numSlice = simulated6.slice(-4);
+                          if (type === '3 ตัวบน') numSlice = simulated6.slice(-3);
+                          if (type === '3 ตัวโต๊ด') numSlice = `สลับ (${getTodPermutations(simulated6.slice(-3))})`;
+                          if (type === '2 ตัวบน') numSlice = simulated6.slice(-2);
                           if (type === '2 ตัวล่าง') numSlice = simulatedBottom;
                           if (type === 'วิ่งบน') numSlice = simulated6.slice(-1);
                           if (type === 'วิ่งล่าง') numSlice = simulatedBottom.slice(-1);
@@ -669,10 +800,11 @@ return (
                 </table>
               </div>
 
+              {/* Modal โชว์รายชื่อจำลอง */}
               {showSimulatedUsers && (
                 <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '12px', marginTop: '15px', border: '1px solid #cbd5e1' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ margin: 0, color: '#334155', fontSize: '16px' }}>รายชื่อผู้ที่ซื้อเลขนี้</h4>
+                    <h4 style={{ margin: '0', color: '#334155', fontSize: '16px' }}>รายชื่อผู้ที่ซื้อเลขนี้</h4>
                     <button onClick={() => setShowSimulatedUsers(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><X size={24} /></button>
                   </div>
                   {simulatedUserLoading ? ( <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>กำลังโหลด...</div> ) : (
@@ -680,16 +812,26 @@ return (
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', whiteSpace: 'nowrap' }}>
                         <thead>
                           <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#475569', backgroundColor: '#f8fafc' }}>
-                            <th style={{ padding: '10px' }}>Username</th><th style={{ padding: '10px' }}>สกุลเงิน</th><th style={{ padding: '10px' }}>ยอดแทง</th><th style={{ padding: '10px', color: '#b91c1c' }}>รางวัล (สกุลเดิม)</th><th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
+                            <th style={{ padding: '10px' }}>Username</th>
+                            <th style={{ padding: '10px' }}>สกุลเงิน</th>
+                            <th style={{ padding: '10px' }}>ยอดแทง</th>
+                            <th style={{ padding: '10px', color: '#b91c1c' }}>รางวัล (สกุลเดิม)</th>
+                            <th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
                           </tr>
                         </thead>
                         <tbody>
                           {simulatedUsersList.map((u, i) => (
                             <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px', fontWeight: 'bold' }}>{u.username}</td><td style={{ padding: '10px' }}>{u.currency_code}</td><td style={{ padding: '10px' }}>{u.price.toLocaleString()}</td><td style={{ padding: '10px', fontWeight: '900', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td><td style={{ padding: '10px', fontWeight: '900', color: '#0ea5e9' }}>{Number(u.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                              <td style={{ padding: '10px', fontWeight: 'bold' }}>{u.username}</td>
+                              <td style={{ padding: '10px' }}>{u.currency_code}</td>
+                              <td style={{ padding: '10px' }}>{u.price.toLocaleString()}</td>
+                              <td style={{ padding: '10px', fontWeight: '900', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td>
+                              <td style={{ padding: '10px', fontWeight: '900', color: '#0ea5e9' }}>{Number(u.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
                             </tr>
                           ))}
-                          {simulatedUsersList.length === 0 && (<tr><td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#64748b' }}>ไม่พบรายชื่อผู้ถูกรางวัล</td></tr>)}
+                          {simulatedUsersList.length === 0 && (
+                            <tr><td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#64748b' }}>ไม่พบรายชื่อผู้ถูกรางวัล</td></tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -698,20 +840,37 @@ return (
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #cbd5e1', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
-                <div><span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมรอบนี้ (THB)</span><span style={{ fontSize: '20px', fontWeight: '900', color: '#0ea5e9' }}>{formatCurrency(analysisResult.totalSalesTHB)}</span></div>
-                <div style={{ textAlign: 'right' }}><span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดจ่ายรวม (Payout THB)</span><span style={{ fontSize: '24px', fontWeight: '900', color: '#ef4444' }}>{formatCurrency(analysisResult.analysis?.reduce((sum, item) => sum + item.total_payout_thb, 0))}</span></div>
+                <div>
+                  <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมรอบนี้ (THB)</span>
+                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#0ea5e9' }}>{formatCurrency(analysisResult.totalSalesTHB)}</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดจ่ายรวม (Payout THB)</span>
+                  <span style={{ fontSize: '24px', fontWeight: '900', color: '#ef4444' }}>
+                    {formatCurrency(analysisResult.analysis?.reduce((sum, item) => sum + item.total_payout_thb, 0))}
+                  </span>
+                </div>
               </div>
               
               {(() => {
                 const totalPayoutTHB = analysisResult.analysis.reduce((sum, item) => sum + item.total_payout_thb, 0);
                 const riskPercent = analysisResult.totalSalesTHB > 0 ? (totalPayoutTHB / analysisResult.totalSalesTHB) * 100 : 0;
-                let alertColor = '#166534'; let alertBg = '#f0fdf4'; let alertText = '(ปลอดภัย ระบบมีกำไร)';
-                if (riskPercent > 100) { alertColor = '#b91c1c'; alertBg = '#fef2f2'; alertText = '(ขาดทุนยับ!)'; } 
-                else if (riskPercent >= 90) { alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก)'; } 
-                else if (riskPercent > targetPercent) { alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(จ่ายสูงกว่าเป้าหมาย)'; }
+                let alertColor = '#166534'; 
+                let alertBg = '#f0fdf4'; 
+                let alertText = '(ปลอดภัย ระบบมีกำไร)';
+
+                if (riskPercent > 100) { 
+                  alertColor = '#b91c1c'; alertBg = '#fef2f2'; alertText = '(ขาดทุนยับ!)'; 
+                } else if (riskPercent >= 90) { 
+                  alertColor = '#d97706'; alertBg = '#fffbeb'; alertText = '(กำไรน้อยมาก/เกือบเท่าทุน)'; 
+                } else if (riskPercent > targetPercent) { 
+                  alertColor = '#c2410c'; alertBg = '#ffedd5'; alertText = '(จ่ายสูงกว่าเป้าหมายที่ตั้ง)'; 
+                }
+
                 return ( 
                   <div style={{ marginTop: '15px', textAlign: 'center', padding: '10px', backgroundColor: alertBg, borderRadius: '8px', color: alertColor, fontWeight: 'bold', fontSize: '13px' }}>
-                    <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {alertText}
+                    <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> 
+                    สัดส่วนยอดจ่าย: {riskPercent.toFixed(2)}% {alertText}
                   </div> 
                 );
               })()}
@@ -720,22 +879,41 @@ return (
         </div>
       )}
 
-      {/* 🌟 ตารางรายชื่อ (แสดงเฉพาะเมื่อคลิกรอบที่ออกผลแล้ว) */}
+      {/* 🌟 ตารางรายชื่อผู้ถูกรางวัล (อิงตามรอบที่เลือก) */}
       {winners.length > 0 && selectedRound && selectedRound.status === 'Completed' && (
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
             <h4 style={{ margin: '0', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
               <Trophy size={20} /> รายชื่อผู้ถูกรางวัลรอบที่ {selectedRound.round_number}
             </h4>
-            <button onClick={exportPDF} style={{ padding: '8px 15px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+            <button 
+              onClick={exportPDF} 
+              style={{ padding: '8px 15px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}
+            >
               <Download size={16} /> โหลด PDF
             </button>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
-            {[ { id: 'all', label: 'ทั้งหมด' }, { id: '8 ตัว (Super)', label: '8 ตัว (Super)' }, { id: '6 ตัว', label: '6 ตัว' }, { id: '4 ตัวท้าย', label: '4 ตัวท้าย' }, { id: '3 ตัวบน', label: '3 ตัวบน' }, { id: '3 ตัวโต๊ด', label: '3 ตัวโต๊ด' }, { id: '2 ตัวบน', label: '2 ตัวบน' }, { id: '2 ตัวล่าง', label: '2 ตัวล่าง' }, { id: 'วิ่งบน', label: 'วิ่งบน' }, { id: 'วิ่งล่าง', label: 'วิ่งล่าง' }
+            {[ 
+              { id: 'all', label: 'ทั้งหมด' }, 
+              { id: '8 ตัว (Super)', label: '8 ตัว (Super)' }, 
+              { id: '6 ตัว', label: '6 ตัว' }, 
+              { id: '4 ตัวท้าย', label: '4 ตัวท้าย' }, 
+              { id: '3 ตัวบน', label: '3 ตัวบน' }, 
+              { id: '3 ตัวโต๊ด', label: '3 ตัวโต๊ด' }, 
+              { id: '2 ตัวบน', label: '2 ตัวบน' },
+              { id: '2 ตัวล่าง', label: '2 ตัวล่าง' },
+              { id: 'วิ่งบน', label: 'วิ่งบน' },
+              { id: 'วิ่งล่าง', label: 'วิ่งล่าง' }
             ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '6px 12px', backgroundColor: activeTab === tab.id ? '#0ea5e9' : 'transparent', color: activeTab === tab.id ? 'white' : '#64748b', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>{tab.label}</button>
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id)} 
+                style={{ padding: '6px 12px', backgroundColor: activeTab === tab.id ? '#0ea5e9' : 'transparent', color: activeTab === tab.id ? 'white' : '#64748b', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
 
@@ -776,12 +954,24 @@ return (
         </div>
       )}
 
-      {/* 🌟 โซนค้นหาประวัติย้อนหลัง */}
+      {/* 🌟 ค้นหาประวัติย้อนหลัง */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}><Search size={22} color="#be185d" /> ค้นหาประวัติการซื้อจากตัวเลข (อิงตามวันที่เลือก)</h4>
+        <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+          <Search size={22} color="#be185d" /> ค้นหาประวัติการซื้อจากตัวเลข (อิงตามวันที่เลือก)
+        </h4>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
-          <input type="text" placeholder="กรอกตัวเลขที่ต้องการค้นหา" value={searchNumber} onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))} style={{ flex: '1 1 200px', padding: '12px 15px', fontSize: '16px', borderRadius: '8px', border: '2px solid #fbcfe8', outline: 'none', fontWeight: 'bold', color: '#9d174d' }} />
-          <button onClick={handleSearchBuyers} disabled={isSearchingBuyers} style={{ flex: '0 0 auto', padding: '12px 25px', backgroundColor: '#be185d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>{isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหาประวัติ'}</button>
+          <input 
+            type="text" placeholder="กรอกตัวเลขที่ต้องการค้นหา" 
+            value={searchNumber} 
+            onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))} 
+            style={{ flex: '1 1 200px', padding: '12px 15px', fontSize: '16px', borderRadius: '8px', border: '2px solid #fbcfe8', outline: 'none', fontWeight: 'bold', color: '#9d174d' }} 
+          />
+          <button 
+            onClick={handleSearchBuyers} disabled={isSearchingBuyers} 
+            style={{ flex: '0 0 auto', padding: '12px 25px', backgroundColor: '#be185d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}
+          >
+            {isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหาประวัติ'}
+          </button>
         </div>
 
         {searchedBuyers !== null && (
@@ -789,16 +979,32 @@ return (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', whiteSpace: 'nowrap', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#fdf2f8', color: '#831843' }}>
-                  <th style={{ padding: '12px' }}>รอบที่</th><th style={{ padding: '12px' }}>ผู้ใช้</th><th style={{ padding: '12px' }}>ประเภท</th><th style={{ padding: '12px' }}>เลขที่ซื้อ</th><th style={{ padding: '12px' }}>ยอดซื้อ</th><th style={{ padding: '12px' }}>รางวัล (สกุลเดิม)</th><th style={{ padding: '12px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
+                  <th style={{ padding: '12px' }}>รอบที่</th>
+                  <th style={{ padding: '12px' }}>ผู้ใช้</th>
+                  <th style={{ padding: '12px' }}>ประเภท</th>
+                  <th style={{ padding: '12px' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '12px' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '12px' }}>รางวัล (สกุลเดิม)</th>
+                  <th style={{ padding: '12px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
                 </tr>
               </thead>
               <tbody>
                 {searchedBuyers.map((w, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', fontWeight: '900', color: '#9d174d' }}>{w.round_number}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td><td style={{ padding: '12px' }}>{w.lottery_type}</td><td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td><td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td><td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td><td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>{Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                    <td style={{ padding: '12px', fontWeight: '900', color: '#9d174d' }}>{w.round_number}</td>
+                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '12px' }}>{w.lottery_type}</td>
+                    <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td>
+                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>
+                      {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+                    </td>
                   </tr>
                 ))}
-                {searchedBuyers.length === 0 && (<tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ไม่พบประวัติการซื้อเลขนี้ในระบบ</td></tr>)}
+                {searchedBuyers.length === 0 && (
+                  <tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ไม่พบประวัติการซื้อเลขนี้ในระบบ</td></tr>
+                )}
               </tbody>
             </table>
           </div>
