@@ -437,18 +437,21 @@ const ManageYeeki = () => {
       finally { setSimulatedUserLoading(false); }
   };
 
- const handleSearchBuyers = async () => {
+const handleSearchBuyers = async () => {
       if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
+      // 🌟 เพิ่มบรรทัดนี้: ป้องกันกรณีลืมคลิกเลือกรอบ
+      if (!selectedRound) return alert('กรุณาคลิกเลือกรอบที่ต้องการค้นหาด้านบนก่อนครับ'); 
+
       setIsSearchingBuyers(true); setSearchedBuyers(null);
       try {
         const res = await fetch(`${API_URL}/api/admin/search-yeeki-buyers`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ number: searchNumber, date: selectedDate }) 
+          // 🔴 จุดที่แก้: เปลี่ยนจากส่ง date เป็นส่ง round_id ของรอบที่คลิกอยู่ไปแทน
+          body: JSON.stringify({ number: searchNumber, round_id: selectedRound.round_id }) 
         });
-        const data = await res.json();
         
+        const data = await res.json();
         if (data.success) {
-            // 🌟 ป้องกันพัง: ดักรับทั้ง data.buyers และ data.data หรือถ้าไม่มีให้เป็น []
             setSearchedBuyers(data.buyers || data.data || []);
         }
         else { 
