@@ -437,7 +437,7 @@ const ManageYeeki = () => {
       finally { setSimulatedUserLoading(false); }
   };
 
-  const handleSearchBuyers = async () => {
+ const handleSearchBuyers = async () => {
       if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
       setIsSearchingBuyers(true); setSearchedBuyers(null);
       try {
@@ -446,11 +446,23 @@ const ManageYeeki = () => {
           body: JSON.stringify({ number: searchNumber, date: selectedDate }) 
         });
         const data = await res.json();
-        if (data.success) setSearchedBuyers(data.buyers);
-        else { setSearchedBuyers([]); alert(`❌ ค้นหาไม่สำเร็จ: ${data.message}`); }
-      } catch (err) { setSearchedBuyers([]); alert('❌ เกิดข้อผิดพลาดในการค้นหา'); } 
+        
+        if (data.success) {
+            // 🌟 ป้องกันพัง: ดักรับทั้ง data.buyers และ data.data หรือถ้าไม่มีให้เป็น []
+            setSearchedBuyers(data.buyers || data.data || []);
+        }
+        else { 
+            setSearchedBuyers([]); 
+            alert(`❌ ค้นหาไม่สำเร็จ: ${data.message}`); 
+        }
+      } catch (err) { 
+          setSearchedBuyers([]); 
+          alert('❌ เกิดข้อผิดพลาดในการค้นหา'); 
+      } 
       finally { setIsSearchingBuyers(false); }
   };
+
+
 
   // 💡 ตัวกรองแยก: สำหรับตารางคนที่ถูก "เฉพาะรอบ" (Round Winners) ใช้งานใน Popup 
   // 💡 แก้ปัญหา ReferenceError โดยประกาศตัวแปรให้ครบ
@@ -957,7 +969,8 @@ return (
           </button>
         </div>
 
-        {searchedBuyers !== null && (
+        {/* 🌟 ป้องกันจอขาว: เช็คชัวร์ๆ ว่า searchedBuyers เป็น Array (รายการ) แน่นอน ถึงจะโชว์ตาราง */}
+        {Array.isArray(searchedBuyers) && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', whiteSpace: 'nowrap', fontSize: '13px' }}>
               <thead>
@@ -978,13 +991,16 @@ return (
                     <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
                     <td style={{ padding: '12px' }}>{w.lottery_type}</td>
                     <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td>
-                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
-                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    
+                    {/* 🌟 ป้องกันจอขาว: ครอบ Number(... || 0) ป้องกันตัวเลขเป็น null */}
+                    <td style={{ padding: '12px' }}>{Number(w.price || 0).toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {Number(w.estimated_prize || 0).toLocaleString()} {w.currency_code}</td>
                     <td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>
-                      {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+                      {Number(w.estimated_prize_thb || 0).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
                     </td>
                   </tr>
                 ))}
+                
                 {searchedBuyers.length === 0 && (
                   <tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ไม่พบประวัติการซื้อเลขนี้ในระบบ</td></tr>
                 )}
