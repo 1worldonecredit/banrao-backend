@@ -15,9 +15,57 @@ const SetTimeYeeki = () => {
   const [editForm, setEditForm] = useState({});
   const [now, setNow] = useState(new Date()); 
 
-  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที เพื่อให้นับถอยหลังทำงาน Real-time
+  // 🌟 เพิ่ม Ref เพื่อจำวันล่าสุดที่เช็ค (สำหรับระบบบันทึกข้ามวัน 00:00 น.)
+  const lastCheckedDateRef = React.useRef(new Date().getDate());
+
+  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที + 🚀 ระบบบันทึกอัตโนมัติเวลาเที่ยงคืน (00:00 น.)
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => {
+      const currentTime = new Date();
+      setNow(currentTime);
+
+      // 🔴 ตรวจจับการข้ามวันใหม่ (00:00 น.) 🔴
+      if (currentTime.getDate() !== lastCheckedDateRef.current) {
+        lastCheckedDateRef.current = currentTime.getDate(); // อัปเดตเป็นวันใหม่
+        
+        const newDateStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
+        setSelectedDate(newDateStr); // เปลี่ยนปฏิทินเป็นวันใหม่โดยอัตโนมัติ
+
+        // สร้างตารางข้อมูล 24 รอบ สำหรับวันใหม่
+        const arr = [];
+        for (let i = 1; i <= 24; i++) {
+          const hour = i - 1;
+          const hStr = hour.toString().padStart(2, '0');
+          arr.push({
+            round_id: `new_${i}`,
+            round_number: i,
+            open_time: `${hStr}:01`,
+            close_time: `${hStr}:55`,
+            draw_time: `${hStr}:56`,
+            status: 'Pending',
+            isNew: true 
+          });
+        }
+        setRounds(arr);
+
+        // 🚀 ยิง API บันทึกลงฐานข้อมูลอัตโนมัติทันที! (ไม่ต้องรอคนกด)
+        fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: newDateStr, rounds: arr })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log('✅ ระบบบันทึกข้อมูลรอบเวลา 00:00 น. สำเร็จ!');
+            // รีเฟรชหน้าต่าง 1 ครั้ง เพื่อให้ระบบดึง ID จริงจากฐานข้อมูลมาแสดงให้สมบูรณ์
+            window.location.reload(); 
+          }
+        })
+        .catch(err => console.error('Midnight auto-save failed:', err));
+      }
+    }, 1000);
+    
     return () => clearInterval(timer);
   }, []);
 
@@ -117,6 +165,13 @@ const SetTimeYeeki = () => {
       });
     }
     setRounds(arr);
+
+    // 🚀 [ระบบอัตโนมัติ] สั่งบันทึกลงฐานข้อมูลให้อัตโนมัติทันทีที่ดึงข้อมูลแล้วพบว่าว่างเปล่า (เช่นตอนเช้าเปิดคอมมา)
+    fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: selectedDate, rounds: arr })
+    }).catch(err => console.error("Auto-save on initialize failed:", err));
   };
 
   const handleEditClick = (round) => {
@@ -182,8 +237,7 @@ const SetTimeYeeki = () => {
 
   const isTemplateMode = rounds.length > 0 && rounds[0].isNew;
 
-
-return (
+  return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
