@@ -99,7 +99,7 @@ const ManageYeeki = () => {
   };
 
   // ==========================================
-  // 🌟 ฟังก์ชันดึงข้อมูลรอบที่คลิก (แก้ไขการหารายชื่อ)
+  // 🌟 ฟังก์ชันดึงข้อมูลรอบที่คลิก
   // ==========================================
   const fetchRoundDetail = useCallback(async (roundId) => {
     try {
@@ -107,7 +107,6 @@ const ManageYeeki = () => {
       const data = await res.json();
       if (data.success) {
         
-        // 1. ดึงยอดขายมาเก็บไว้ใน State
         if (data.sales) {
             let thb = 0; let lak = 0;
             data.sales.forEach(s => {
@@ -119,7 +118,6 @@ const ManageYeeki = () => {
             setRoundSales({ THB: 0, LAK: 0 });
         }
         
-        // 2. อัปเดตข้อมูลรอบ และ 💡 "ตรวจบิลหาคนถูกรางวัลเอง" เพื่อให้ชัวร์ 100%
         if (data.round) {
           const res8 = data.round.result_8_super || '-';
           const res4 = data.round.result_4_top || '-';
@@ -128,22 +126,14 @@ const ManageYeeki = () => {
           const res2bot = data.round.result_2_bottom || '-';
           const res6 = (res2bot !== '-' && res4 !== '-') ? `${res2bot}${res4}` : '-';
 
-          setSelectedRound(prev => ({
-            ...prev,
-            result_8_super: res8, result_4_top: res4, result_3_top: res3, result_2_bottom: res2bot
-          }));
+          setSelectedRound(prev => ({ ...prev, result_8_super: res8, result_4_top: res4, result_3_top: res3, result_2_bottom: res2bot }));
           
           setRounds(prevRounds => prevRounds.map(r => 
-            r.round_id === roundId 
-            ? { ...r, result_8_super: res8, result_4_top: res4, result_3_top: res3, result_2_bottom: res2bot }
-            : r
+            r.round_id === roundId ? { ...r, result_8_super: res8, result_4_top: res4, result_3_top: res3, result_2_bottom: res2bot } : r
           ));
 
-          // 💡 ตรวจหาผู้ชนะจากบิลทั้งหมดที่ API ส่งมาให้
           if (data.all_orders && data.all_orders.length > 0) {
               const actualWinners = [];
-              
-              // ดึงเรทจ่ายมาเตรียมคำนวณเงินรางวัล (ถ้าไม่มีในฐานข้อมูล)
               const rateMap = {};
               prizeRates.forEach(r => rateMap[r.lottery_type] = r.multiplier);
 
@@ -167,7 +157,7 @@ const ManageYeeki = () => {
                   if (isWin) {
                       actualWinners.push({
                           ...order,
-                          prize_amount: order.prize_amount || (order.price * (rateMap[type] || 0)), // ถ้าหลังบ้านยังไม่อัปเดตยอดเงิน ให้คูณเรทโชว์ไปก่อน
+                          prize_amount: order.prize_amount || (order.price * (rateMap[type] || 0)),
                           status: order.status === 'ชนะ' ? 'โอนเงินแล้ว' : (order.status || 'รอโอน')
                       });
                   }
@@ -426,16 +416,9 @@ const ManageYeeki = () => {
         if (data.success) {
           alert('✅ ' + data.message);
           localStorage.removeItem('yeekiManageDraft');
-          setSimulatedSuper(''); 
-          setSimulatedTop(''); 
-          setSimulatedBottom(''); 
-          setAnalysisResult(null);
-          fetchRounds(); 
-          fetchDrawHistory(selectedDate);
-          fetchRoundDetail(selectedRound.round_id); 
-        } else {
-          alert(`❌ ประกาศผลไม่สำเร็จ: ${data.message}`);
-        }
+          setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); setAnalysisResult(null);
+          fetchRounds(); fetchDrawHistory(selectedDate); fetchRoundDetail(selectedRound.round_id); 
+        } else { alert(`❌ ประกาศผลไม่สำเร็จ: ${data.message}`); }
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); } 
       finally { setIsExecutingDraw(false); }
   };
@@ -469,20 +452,24 @@ const ManageYeeki = () => {
       finally { setIsSearchingBuyers(false); }
   };
 
-  const currentWinners = selectedRound && selectedRound.status === 'Completed' ? roundWinners : winners;
-  
+  // 💡 ตัวกรองแยก: สำหรับตารางคนที่ถูก "เฉพาะรอบ" (Round Winners) ใช้งานใน Popup 
+  // 💡 แก้ปัญหา ReferenceError โดยประกาศตัวแปรให้ครบ
+  const filteredRoundWinners = activeTab === 'all' 
+    ? roundWinners 
+    : roundWinners.filter(w => w.lottery_type === activeTab);
+
   const filteredWinners = activeTab === 'all' 
-    ? currentWinners 
-    : currentWinners.filter(w => w.lottery_type === activeTab);
+    ? winners 
+    : winners.filter(w => w.lottery_type === activeTab);
 
   const exportPDF = () => {
       const doc = new jsPDF(); 
       doc.addFont('THSarabunNew', 'normal'); doc.setFontSize(18); 
-      doc.text(`Yeeki Winners Report - ${formatThaiDateFull(selectedDate)}`, 14, 20);
-      const tableColumn = ["Round", "Username", "Type", "Number", "Bet Amount", "Prize Amount", "Currency"];
+      doc.text(`Yeeki Winners Report - Round ${selectedRound?.round_number}`, 14, 20);
+      const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
       const tableRows = [];
-      filteredWinners.forEach(w => {
-        tableRows.push([ w.round_number, w.username, w.lottery_type, w.selected_number, w.price, w.prize_amount, w.currency_code ]);
+      filteredRoundWinners.forEach(w => {
+        tableRows.push([ w.round_number, w.username, w.lottery_type, w.selected_number, w.price, w.prize_amount, w.currency_code, w.status || 'Paid' ]);
       });
       doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); 
       doc.save(`yeeki_winners_round_${selectedRound?.round_number}_${selectedDate}.pdf`);
@@ -499,9 +486,7 @@ return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '8px 15px', borderRadius: '8px', border: '1px solid #fbcfe8', boxShadow: '0 2px 5px rgba(219, 39, 119, 0.1)' }}>
           <Calendar size={20} color="#db2777" />
           <input 
-            type="date" 
-            value={selectedDate} 
-            onChange={(e) => setSelectedDate(e.target.value)} 
+            type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} 
             style={{ border: 'none', outline: 'none', fontWeight: 'bold', fontSize: '15px', color: '#831843', cursor: 'pointer' }}
           />
         </div>
@@ -516,9 +501,7 @@ return (
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px' }}>
             {rounds.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>
-                  ไม่พบข้อมูลรอบของวันที่เลือก
-              </div>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#ef4444', fontWeight: 'bold' }}>ไม่มีข้อมูลรอบของวันนี้</div>
             ) : rounds.map(r => {
               const isSelected = selectedRound?.round_id === r.round_id;
               const isCompleted = r.status === 'Completed';
@@ -535,16 +518,12 @@ return (
               const formatTimeOnly = (dateObj) => dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' น.';
 
               return (
-                <div 
-                  key={r.round_id}
+                <div key={r.round_id}
                   onClick={() => { 
                       setSelectedRound(r); 
-                      setAnalysisResult(null); 
-                      setSimulatedSuper(''); 
-                      setSimulatedTop(''); 
-                      setSimulatedBottom(''); 
+                      setAnalysisResult(null); setSimulatedSuper(''); setSimulatedTop(''); setSimulatedBottom(''); 
                       if (r.status === 'Completed') {
-                          setShowWinnersModal(true);
+                          setShowWinnersModal(true); 
                       }
                   }}
                   style={{
@@ -559,9 +538,7 @@ return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isSelected ? '#be185d' : (isCompleted || isClosed) ? '#9ca3af' : '#db2777', fontWeight: 'bold', fontSize: '15px' }}>
                         <IconComponent size={18} /> รอบที่ {r.round_number}
                     </div>
-                    {isCompleted && (
-                        <span style={{ fontSize: '12px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>ออกผลแล้ว</span>
-                    )}
+                    {isCompleted && (<span style={{ fontSize: '12px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>ออกผลแล้ว</span>)}
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px', color: '#64748b', marginBottom: '15px' }}>
@@ -784,6 +761,35 @@ return (
                 </table>
               </div>
 
+              {/* Modal โชว์รายชื่อจำลอง */}
+              {showSimulatedUsers && (
+                <div style={{ backgroundColor: '#f1f5f9', padding: '15px', borderRadius: '12px', marginTop: '15px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ margin: '0', color: '#334155', fontSize: '16px' }}>รายชื่อผู้ที่ซื้อเลขนี้</h4>
+                    <button onClick={() => setShowSimulatedUsers(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><X size={24} /></button>
+                  </div>
+                  {simulatedUserLoading ? ( <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>กำลังโหลด...</div> ) : (
+                    <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#475569', backgroundColor: '#f8fafc' }}>
+                            <th style={{ padding: '10px' }}>Username</th><th style={{ padding: '10px' }}>สกุลเงิน</th><th style={{ padding: '10px' }}>ยอดแทง</th><th style={{ padding: '10px', color: '#b91c1c' }}>รางวัล (สกุลเดิม)</th><th style={{ padding: '10px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {simulatedUsersList.map((u, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px', fontWeight: 'bold' }}>{u.username}</td><td style={{ padding: '10px' }}>{u.currency_code}</td><td style={{ padding: '10px' }}>{u.price.toLocaleString()}</td><td style={{ padding: '10px', fontWeight: '900', color: '#b91c1c' }}>{u.estimated_prize.toLocaleString()}</td><td style={{ padding: '10px', fontWeight: '900', color: '#0ea5e9' }}>{Number(u.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                            </tr>
+                          ))}
+                          {simulatedUsersList.length === 0 && (<tr><td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#64748b' }}>ไม่พบรายชื่อผู้ถูกรางวัล</td></tr>)}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #cbd5e1', flexWrap: 'wrap', gap: '15px', marginTop: '20px' }}>
                 <div><span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดขายรวมรอบนี้ (THB)</span><span style={{ fontSize: '20px', fontWeight: '900', color: '#0ea5e9' }}>{formatCurrency(analysisResult.totalSalesTHB)}</span></div>
                 <div style={{ textAlign: 'right' }}><span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>ยอดจ่ายรวม (Payout THB)</span><span style={{ fontSize: '24px', fontWeight: '900', color: '#ef4444' }}>{formatCurrency(analysisResult.analysis?.reduce((sum, item) => sum + item.total_payout_thb, 0))}</span></div>
@@ -793,7 +799,7 @@ return (
         </div>
       )}
 
-      {/* 🌟 Popup แสดงรายชื่อ และ ยอดขายเมื่อคลิกการ์ด */}
+      {/* 🌟 Popup แสดงรายชื่อ และ ยอดขายเมื่อคลิกการ์ด (อัปเดตตามคำสั่งล่าสุด) */}
       {showWinnersModal && selectedRound && selectedRound.status === 'Completed' && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
@@ -813,7 +819,7 @@ return (
               </div>
             </div>
 
-            {/* 💡 ส่วนใหม่: แสดงเลขที่ออกและยอดขายใน Popup (ไม่รวม 8 ตัว) */}
+            {/* ส่วนแสดงเลขที่ออก (ยกเว้น 8 ตัว) และ ยอดขาย/ยอดจ่าย */}
             <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '15px' }}>
                  {[
@@ -832,7 +838,6 @@ return (
                  ))}
                </div>
                
-               {/* ยอดขายและยอดจ่าย */}
                {(() => {
                  const totalPayoutTHB = roundWinners.filter(w => w.currency_code === 'THB').reduce((sum, w) => sum + w.prize_amount, 0);
                  const totalPayoutLAK = roundWinners.filter(w => w.currency_code === 'LAK').reduce((sum, w) => sum + w.prize_amount, 0);
@@ -934,23 +939,55 @@ return (
 
       {/* 🌟 ค้นหาประวัติย้อนหลัง */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}><Search size={22} color="#be185d" /> ค้นหาประวัติการซื้อจากตัวเลข (อิงตามวันที่เลือก)</h4>
+        <h4 style={{ margin: '0 0 15px 0', color: '#9d174d', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+          <Search size={22} color="#be185d" /> ค้นหาประวัติการซื้อจากตัวเลข (อิงตามวันที่เลือก)
+        </h4>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
-          <input type="text" placeholder="กรอกตัวเลขที่ต้องการค้นหา" value={searchNumber} onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))} style={{ flex: '1 1 200px', padding: '12px 15px', fontSize: '16px', borderRadius: '8px', border: '2px solid #fbcfe8', outline: 'none', fontWeight: 'bold', color: '#9d174d' }} />
-          <button onClick={handleSearchBuyers} disabled={isSearchingBuyers} style={{ flex: '0 0 auto', padding: '12px 25px', backgroundColor: '#be185d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>{isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหาประวัติ'}</button>
+          <input 
+            type="text" placeholder="กรอกตัวเลขที่ต้องการค้นหา" 
+            value={searchNumber} 
+            onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ''))} 
+            style={{ flex: '1 1 200px', padding: '12px 15px', fontSize: '16px', borderRadius: '8px', border: '2px solid #fbcfe8', outline: 'none', fontWeight: 'bold', color: '#9d174d' }} 
+          />
+          <button 
+            onClick={handleSearchBuyers} disabled={isSearchingBuyers} 
+            style={{ flex: '0 0 auto', padding: '12px 25px', backgroundColor: '#be185d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}
+          >
+            {isSearchingBuyers ? 'กำลังค้นหา...' : 'ค้นหาประวัติ'}
+          </button>
         </div>
 
         {searchedBuyers !== null && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', whiteSpace: 'nowrap', fontSize: '13px' }}>
-              <thead><tr style={{ backgroundColor: '#fdf2f8', color: '#831843' }}><th style={{ padding: '12px' }}>รอบที่</th><th style={{ padding: '12px' }}>ผู้ใช้</th><th style={{ padding: '12px' }}>ประเภท</th><th style={{ padding: '12px' }}>เลขที่ซื้อ</th><th style={{ padding: '12px' }}>ยอดซื้อ</th><th style={{ padding: '12px' }}>รางวัล (สกุลเดิม)</th><th style={{ padding: '12px', color: '#0ea5e9' }}>เทียบเป็น THB</th></tr></thead>
+              <thead>
+                <tr style={{ backgroundColor: '#fdf2f8', color: '#831843' }}>
+                  <th style={{ padding: '12px' }}>รอบที่</th>
+                  <th style={{ padding: '12px' }}>ผู้ใช้</th>
+                  <th style={{ padding: '12px' }}>ประเภท</th>
+                  <th style={{ padding: '12px' }}>เลขที่ซื้อ</th>
+                  <th style={{ padding: '12px' }}>ยอดซื้อ</th>
+                  <th style={{ padding: '12px' }}>รางวัล (สกุลเดิม)</th>
+                  <th style={{ padding: '12px', color: '#0ea5e9' }}>เทียบเป็น THB</th>
+                </tr>
+              </thead>
               <tbody>
                 {searchedBuyers.map((w, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', fontWeight: '900', color: '#9d174d' }}>{w.round_number}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td><td style={{ padding: '12px' }}>{w.lottery_type}</td><td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td><td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td><td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td><td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>{Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</td>
+                    <td style={{ padding: '12px', fontWeight: '900', color: '#9d174d' }}>{w.round_number}</td>
+                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
+                    <td style={{ padding: '12px' }}>{w.lottery_type}</td>
+                    <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td>
+                    <td style={{ padding: '12px' }}>{w.price.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {w.estimated_prize.toLocaleString()} {w.currency_code}</td>
+                    <td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>
+                      {Number(w.estimated_prize_thb).toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿
+                    </td>
                   </tr>
                 ))}
-                {searchedBuyers.length === 0 && (<tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ไม่พบประวัติการซื้อเลขนี้ในระบบ</td></tr>)}
+                {searchedBuyers.length === 0 && (
+                  <tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ไม่พบประวัติการซื้อเลขนี้ในระบบ</td></tr>
+                )}
               </tbody>
             </table>
           </div>
