@@ -19,7 +19,7 @@ const ManageYeeki = () => {
   };
   
   const savedDraft = JSON.parse(localStorage.getItem('yeekiManageDraft') || '{}');
-  const [selectedDate, setSelectedDate] = useState(savedDraft.selectedDate || getTodayDate());
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [rounds, setRounds] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
 
