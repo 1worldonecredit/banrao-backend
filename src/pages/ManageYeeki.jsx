@@ -7,6 +7,7 @@ import {
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const ManageYeeki = () => {
@@ -478,16 +479,44 @@ const handleSearchBuyers = async () => {
     : winners.filter(w => w.lottery_type === activeTab);
 
   const exportPDF = () => {
-      const doc = new jsPDF(); 
-      doc.addFont('THSarabunNew', 'normal'); doc.setFontSize(18); 
-      doc.text(`Yeeki Winners Report - Round ${selectedRound?.round_number}`, 14, 20);
-      const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
-      const tableRows = [];
-      filteredRoundWinners.forEach(w => {
-        tableRows.push([ w.round_number, w.username, w.lottery_type, w.selected_number, w.price, w.prize_amount, w.currency_code, w.status || 'Paid' ]);
-      });
-      doc.autoTable({ head: [tableColumn], body: tableRows, startY: 30 }); 
-      doc.save(`yeeki_winners_round_${selectedRound?.round_number}_${selectedDate}.pdf`);
+      try {
+          const doc = new jsPDF(); 
+          
+          // 🔴 ปิดการทำงานของฟอนต์ไว้ก่อน (นี่คือตัวการที่ทำให้ระบบพัง)
+          // doc.addFont('THSarabunNew', 'normal'); 
+          // doc.setFont('THSarabunNew');
+          
+          doc.setFontSize(18); 
+          doc.text(`Yeeki Winners Report - Round ${selectedRound?.round_number}`, 14, 20);
+          
+          const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
+          const tableRows = [];
+          
+          filteredRoundWinners.forEach(w => {
+              tableRows.push([ 
+                  w.round_number, 
+                  w.username, 
+                  w.lottery_type, 
+                  w.selected_number, 
+                  w.price, 
+                  w.prize_amount, 
+                  w.currency_code, 
+                  w.status || 'Paid' 
+              ]);
+          });
+          
+          doc.autoTable({ 
+              head: [tableColumn], 
+              body: tableRows, 
+              startY: 30 
+          }); 
+          
+          doc.save(`yeeki_winners_round_${selectedRound?.round_number}_${selectedDate}.pdf`);
+          
+      } catch (error) {
+          console.error("PDF Error: ", error);
+          alert("โหลด PDF ไม่สำเร็จ เช็ค Error ใน Console");
+      }
   };
 
 return (
