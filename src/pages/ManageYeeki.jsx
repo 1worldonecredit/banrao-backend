@@ -478,7 +478,7 @@ const handleSearchBuyers = async () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
- const exportPDF = () => {
+const exportPDF = () => {
     try {
         const doc = new jsPDF(); 
         
@@ -488,13 +488,50 @@ const handleSearchBuyers = async () => {
         const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
         const tableRows = [];
         
-        // กันเหนียว: เช็คก่อนว่ามีข้อมูลหรือไม่
+        // 🌟 ฟังก์ชันแปลภาษาเป็นภาษาอังกฤษ (กันฟอนต์พัง)
+        const translateType = (typeTh) => {
+            if (!typeTh) return '-';
+            const dict = {
+                '8 ตัว (Super)': '8 Super',
+                '6 ตัว': '6 Digits',
+                '4 ตัวท้าย': '4 Bottom',
+                '3 ตัวบน': '3 Top',
+                '3 ตัวโต๊ด': '3 Tode',
+                '2 ตัวบน': '2 Top',
+                '2 ตัวล่าง': '2 Bottom',
+                'วิ่งบน': 'Run Top',
+                'วิ่งล่าง': 'Run Bottom'
+            };
+            return dict[typeTh] || typeTh; 
+        };
+
+        // 🌟 กำหนดลำดับการเรียงจากรางวัลใหญ่ไปเล็ก
+        const typeOrder = {
+            '8 ตัว (Super)': 1,
+            '6 ตัว': 2,
+            '4 ตัวท้าย': 3,
+            '3 ตัวบน': 4,
+            '3 ตัวโต๊ด': 5,
+            '2 ตัวบน': 6,
+            '2 ตัวล่าง': 7,
+            'วิ่งบน': 8,
+            'วิ่งล่าง': 9
+        };
+
         if (filteredRoundWinners && filteredRoundWinners.length > 0) {
-            filteredRoundWinners.forEach(w => {
+            // 🌟 นำข้อมูลมาจัดเรียง (Sort) ตาม typeOrder ที่เรากำหนดไว้ก่อน
+            const sortedWinners = [...filteredRoundWinners].sort((a, b) => {
+                const orderA = typeOrder[a.lottery_type] || 99; // ถ้าหาประเภทไม่เจอ ให้เด้งไปอยู่ล่างสุด
+                const orderB = typeOrder[b.lottery_type] || 99;
+                return orderA - orderB; // เรียงจากเลขน้อย (1) ไปเลขมาก (99)
+            });
+
+            // 🌟 นำข้อมูลที่จัดเรียงแล้ว มาใส่ตาราง
+            sortedWinners.forEach(w => {
                 tableRows.push([ 
                     w.round_number || '-', 
                     w.username || '-', 
-                    w.lottery_type || '-', 
+                    translateType(w.lottery_type), 
                     w.selected_number || '-', 
                     w.price || '0', 
                     w.prize_amount || '0', 
@@ -504,20 +541,13 @@ const handleSearchBuyers = async () => {
             });
         }
         
-        // 🔴 เปลี่ยนวิธีสร้างตาราง (นี่คือจุดที่ทำให้หาย Error ครับ!)
-        autoTable(doc, { 
-            head: [tableColumn], 
-            body: tableRows, 
-            startY: 30 
-        }); 
+        autoTable(doc, { head: [tableColumn], body: tableRows, startY: 30 }); 
         
-        // กันเหนียว: เผื่อตัวแปร selectedDate ขาดหาย
         const safeDate = typeof selectedDate !== 'undefined' ? selectedDate : 'export';
         doc.save(`yeeki_winners_round_${selectedRound?.round_number || 'latest'}_${safeDate}.pdf`);
         
     } catch (error) {
         console.error("PDF Export Error: ", error);
-        // แสดงข้อความ Error ที่แท้จริงออกมาบนจอเลย จะได้รู้ว่าติดที่ไหน
         alert(`โหลด PDF ไม่สำเร็จ: ${error.message}`); 
     }
 };
