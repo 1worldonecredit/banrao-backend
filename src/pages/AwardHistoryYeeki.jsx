@@ -40,6 +40,14 @@ const AwardHistoryYeeki = () => {
     }
   };
 
+  // 🌟 ฟังก์ชันแก้ปัญหาเวลาเพี้ยน (ป้องกันเบราว์เซอร์บวกเวลาเพิ่ม 7 ชม.)
+  const formatCorrectTime = (timeStr) => {
+    if (!timeStr) return '-';
+    // ตัดตัว Z ออก เพื่อบังคับให้เบราว์เซอร์อ่านเป็นเวลา Local ของไทยตาม Database
+    const cleanStr = timeStr.endsWith('Z') ? timeStr.slice(0, -1) : timeStr;
+    return new Date(cleanStr).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  };
+
   const NumberBadge = ({ number, color, bg }) => (
     <span style={{ 
       display: 'inline-block', 
@@ -98,7 +106,6 @@ const AwardHistoryYeeki = () => {
               <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '14px' }}>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>รอบที่</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>เวลา</th>
-                {/* 🌟 เปลี่ยนเป็น 6 ตัว, 3 ตัวบน, 2 ตัวบน, 2 ตัวล่าง */}
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>6 ตัว</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>3 ตัวบน</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวบน</th>
@@ -112,28 +119,28 @@ const AwardHistoryYeeki = () => {
               ) : historyData.length > 0 ? (
                 historyData.map((round) => {
                   
-                  // 🌟 ดึงเลข 2 ตัวบน มาจาก 2 หลักสุดท้ายของ 3 ตัวบน
-                  const top2 = round.result_3_top ? round.result_3_top.slice(-2) : '-';
-                  
-                 // 🌟 เปลี่ยนวิธีดึงเลข 6 ตัวใหม่: 
-                  // ถ้ามีผล 6 ตัวตรงๆ ให้ใช้เลย แต่ถ้าไม่มี ให้เอาเลข 8 ตัวมาหั่นเอา 6 ตัวหลังสุด
-                  const top6 = round.result_6_top || (round.result_8_super ? round.result_8_super.slice(-6) : '-');
+                  // 🌟 ดึงข้อมูลตรงๆ จาก Database (รับประกันว่าเลขท้ายตรงกัน 100%)
+                  const super8 = round.result_8_super || '-';
+                  const top6 = super8 !== '-' ? super8.slice(-6) : '-'; // หั่น 6 ตัวจากแจ็คพอต
+                  const top3 = round.result_3_top || '-';
+                  const top2 = top3 !== '-' ? top3.slice(-2) : '-'; // หั่น 2 ตัวบนจาก 3 ตัวบน
 
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
                       <td style={{ padding: '15px', fontWeight: 'bold', color: '#334155' }}>{round.round_number}</td>
+                      
+                      {/* 🌟 แสดงเวลาที่แก้ไขแล้ว */}
                       <td style={{ padding: '15px', color: '#64748b' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                          <Clock size={14} /> {round.draw_time ? new Date(round.draw_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                          <Clock size={14} /> {formatCorrectTime(round.draw_time)}
                         </div>
                       </td>
                       
-                      {/* 🌟 แสดงผลตัวเลขเรียงตามคอลัมน์ใหม่ */}
                       <td style={{ padding: '15px' }}>
                         <NumberBadge number={top6} color="#8b5cf6" bg="#ede9fe" />
                       </td>
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={round.result_3_top} color="#ef4444" bg="#fee2e2" />
+                        <NumberBadge number={top3} color="#ef4444" bg="#fee2e2" />
                       </td>
                       <td style={{ padding: '15px' }}>
                         <NumberBadge number={top2} color="#f59e0b" bg="#fef3c7" />
