@@ -36,15 +36,25 @@ const ReceivingAccount = () => {
       if (response.ok) {
         const data = await response.json();
         console.log("ได้ข้อมูลมาแล้ว:", data);
-        setBanks(data);
+        
+        // 🌟 จุดที่แก้ไข: เช็คว่าข้อมูลถูกห่อมาในกล่อง banks หรือไม่
+        if (data && data.banks && Array.isArray(data.banks)) {
+            // ถ้าส่งมาแบบ { success: true, banks: [...] }
+            setBanks(data.banks); 
+        } else if (Array.isArray(data)) {
+            // ถ้าส่งมาเป็น Array ตรงๆ [...]
+            setBanks(data);
+        } else {
+            console.error("รูปแบบข้อมูลไม่ถูกต้อง:", data);
+            setBanks([]); // กันเหนียวหน้าเว็บพัง
+        }
+        
       } else {
-        // ถ้า API ตอบกลับมาว่ามีปัญหา (เช่น 404 Not Found, 500 Server Error)
         const errorText = await response.text();
         console.error("API แจ้งเตือน Error:", response.status, errorText);
         alert(`ดึงข้อมูลไม่สำเร็จ (รหัส: ${response.status}) \nลองกด F12 ดูแท็บ Console ครับ`);
       }
     } catch (error) {
-      // ถ้าวิ่งไปไม่ถึงหลังบ้าน (เช่น หลังบ้านปิดอยู่ หรือ URL ผิด)
       console.error("การเชื่อมต่อล้มเหลว:", error);
       alert(`เชื่อมต่อเซิร์ฟเวอร์ไม่ได้! \nเช็คว่า API รันอยู่ไหม หรือดู Error ที่ F12 ครับ`);
     }
