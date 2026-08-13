@@ -27,16 +27,26 @@ const ReceivingAccount = () => {
     fetchBanks();
   }, []);
 
-  const fetchBanks = async () => {
+ const fetchBanks = async () => {
     try {
-      // ⚠️ คุณพี่ต้องสร้าง API GET: /api/admin/banks มารองรับด้วยนะครับ
+      console.log("กำลังดึงข้อมูลจาก:", `${API_URL}/api/admin/banks`); 
+      
       const response = await fetch(`${API_URL}/api/admin/banks`);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("ได้ข้อมูลมาแล้ว:", data);
         setBanks(data);
+      } else {
+        // ถ้า API ตอบกลับมาว่ามีปัญหา (เช่น 404 Not Found, 500 Server Error)
+        const errorText = await response.text();
+        console.error("API แจ้งเตือน Error:", response.status, errorText);
+        alert(`ดึงข้อมูลไม่สำเร็จ (รหัส: ${response.status}) \nลองกด F12 ดูแท็บ Console ครับ`);
       }
     } catch (error) {
-      console.error("Error fetching banks:", error);
+      // ถ้าวิ่งไปไม่ถึงหลังบ้าน (เช่น หลังบ้านปิดอยู่ หรือ URL ผิด)
+      console.error("การเชื่อมต่อล้มเหลว:", error);
+      alert(`เชื่อมต่อเซิร์ฟเวอร์ไม่ได้! \nเช็คว่า API รันอยู่ไหม หรือดู Error ที่ F12 ครับ`);
     }
   };
 
