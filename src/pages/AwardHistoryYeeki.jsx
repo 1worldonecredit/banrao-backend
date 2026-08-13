@@ -1,15 +1,170 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Trophy, Clock, Search, AlertCircle } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const AwardHistoryYeeki = () => {
+  // ฟังก์ชันหาวันที่ปัจจุบัน (YYYY-MM-DD)
+  const getTodayDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [historyData, setHistoryData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ดึงข้อมูลเมื่อเปิดหน้าเว็บ หรือเมื่อเปลี่ยนวันที่
+  useEffect(() => {
+    fetchHistory();
+  }, [selectedDate]);
+
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/yeeki/history?date=${selectedDate}`);
+      if (response.ok) {
+        const data = await response.json();
+        // ตรวจสอบโครงสร้างข้อมูลเพื่อป้องกันหน้าเว็บพัง
+        if (data && data.success && Array.isArray(data.data)) {
+            setHistoryData(data.data);
+        } else if (Array.isArray(data)) {
+            setHistoryData(data);
+        } else {
+            setHistoryData([]);
+        }
+      } else {
+        console.error("Failed to fetch history");
+      }
+    } catch (error) {
+      console.error("Error connecting to server:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // กล่องตัวเลขสวยๆ
+  const NumberBadge = ({ number, color, bg }) => (
+    <span style={{ 
+      display: 'inline-block', 
+      padding: '6px 12px', 
+      backgroundColor: bg, 
+      color: color, 
+      borderRadius: '8px', 
+      fontWeight: 'bold',
+      letterSpacing: '2px',
+      fontSize: '15px',
+      border: `1px solid ${color}40`
+    }}>
+      {number || '-'}
+    </span>
+  );
+
   return (
-    <div>
-      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>ประวัติการออกเลขจับยี่กี</h2>
+    <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ margin: '0 0 15px 0', color: '#475569' }}></h4>
-        <p style={{ color: '#94a3b8' }}>ประวัติการออกเลขจับยี่กี (กำลังพัฒนา...)</p>
+      {/* ส่วนหัวและตัวกรอง */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
+        <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Trophy color="#f59e0b" size={28} /> ประวัติการออกเลขจับยี่กี
+        </h2>
         
-        {/* อนาคตเราจะเอา  ประวัติการออกเลขจับยี่กี*/}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center', backgroundColor: 'white', padding: '15px 20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Calendar size={20} color="#64748b" />
+            <span style={{ fontWeight: 'bold', color: '#475569' }}>เลือกวันที่:</span>
+          </div>
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{ 
+              padding: '10px 15px', 
+              borderRadius: '8px', 
+              border: '1px solid #cbd5e1',
+              outline: 'none',
+              fontSize: '15px',
+              color: '#334155',
+              flexGrow: 1,
+              maxWidth: '250px'
+            }}
+          />
+          <button 
+            onClick={fetchHistory}
+            style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
+          >
+            <Search size={18} /> ค้นหา
+          </button>
+        </div>
+      </div>
+      
+      {/* ตารางแสดงผล */}
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ margin: 0, color: '#334155' }}>ผลการออกรางวัลประจำวันที่ {selectedDate}</h4>
+          <span style={{ fontSize: '14px', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 12px', borderRadius: '20px' }}>
+            ทั้งหมด {historyData.length} รอบ
+          </span>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'center' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '14px' }}>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>รอบที่</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>เวลา</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>8 ตัว (Super)</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>3 ตัวบน</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวล่าง</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan="6" style={{ padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</td></tr>
+              ) : historyData.length > 0 ? (
+                historyData.map((round) => (
+                  <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                    <td style={{ padding: '15px', fontWeight: 'bold', color: '#334155' }}>{round.round_number}</td>
+                    <td style={{ padding: '15px', color: '#64748b' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                        <Clock size={14} /> {round.draw_time ? new Date(round.draw_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <NumberBadge number={round.result_8_super} color="#8b5cf6" bg="#ede9fe" />
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <NumberBadge number={round.result_3_top} color="#ef4444" bg="#fee2e2" />
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <NumberBadge number={round.result_2_bottom} color="#0ea5e9" bg="#e0f2fe" />
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <span style={{ 
+                        padding: '4px 10px', 
+                        borderRadius: '20px', 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        backgroundColor: round.status === 'Completed' ? '#dcfce7' : '#f1f5f9',
+                        color: round.status === 'Completed' ? '#16a34a' : '#64748b'
+                      }}>
+                        {round.status === 'Completed' ? 'ออกผลแล้ว' : 'รอออกผล'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ padding: '50px', color: '#94a3b8', textAlign: 'center' }}>
+                    <AlertCircle size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
+                    <div>ไม่มีข้อมูลการออกรางวัลในวันที่เลือก</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
