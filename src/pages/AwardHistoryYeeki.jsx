@@ -115,8 +115,9 @@ const AwardHistoryYeeki = () => {
                   // 🌟 ดึงเลข 2 ตัวบน มาจาก 2 หลักสุดท้ายของ 3 ตัวบน
                   const top2 = round.result_3_top ? round.result_3_top.slice(-2) : '-';
                   
-                  // 🌟 รองรับกรณีที่มีหรือยังไม่มีคอลัมน์ 6 ตัวในฐานข้อมูล (เผื่อไว้ก่อน)
-                  const top6 = round.result_6_top || round.result_4_top || '-';
+                 // 🌟 เปลี่ยนวิธีดึงเลข 6 ตัวใหม่: 
+                  // ถ้ามีผล 6 ตัวตรงๆ ให้ใช้เลย แต่ถ้าไม่มี ให้เอาเลข 8 ตัวมาหั่นเอา 6 ตัวหลังสุด
+                  const top6 = round.result_6_top || (round.result_8_super ? round.result_8_super.slice(-6) : '-');
 
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
