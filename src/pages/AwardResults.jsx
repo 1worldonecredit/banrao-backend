@@ -25,7 +25,7 @@ const AwardResults = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 🌟 State ใหม่: สำหรับเก็บยอดขายรายวันแยกตามสกุลเงิน
+  // State สำหรับเก็บยอดขายรายวันแยกตามสกุลเงิน
   const [salesData, setSalesData] = useState({ thb: 0, lak: 0 });
 
   // State โซนประวัติรายเดือน (ด้านล่าง)
@@ -89,7 +89,7 @@ const AwardResults = () => {
         setWinners(winnersList);
         setSelectedWinners(winnersList.map(w => w.order_item_id || w.username + w.selected_number)); 
         
-        // 🌟 ดึงยอดขายจาก API มาเก็บไว้ (เตรียมรับค่าจาก Backend)
+        // 🌟 ดึงยอดขายจาก API มาเก็บไว้
         setSalesData({
             thb: data.total_sales_thb || 0,
             lak: data.total_sales_lak || 0
@@ -111,7 +111,7 @@ const AwardResults = () => {
   };
 
   // ==========================================
-  // 🌟 Logic การคำนวณ ยอดขาย, ยอดจ่าย และกำไร (เพิ่มใหม่)
+  // 🌟 Logic การคำนวณ ยอดขาย, ยอดจ่าย และกำไร (สำหรับบอร์ดสรุปด้านบน)
   // ==========================================
   
   // 1. คำนวณยอดเงินที่ต้องจ่ายให้ลูกค้าทั้งหมด (แยกสกุลเงิน)
@@ -145,14 +145,27 @@ const AwardResults = () => {
     else setSelectedWinners([...selectedWinners, id]);
   };
 
-  const totalPayout = filteredWinners
-    .filter(w => selectedWinners.includes(w.order_item_id || w.username + w.selected_number))
+  // 🌟 แก้ไข: ยอดโอนเงินในตาราง แยกสกุลเงินอย่างถูกต้อง (กันพลาดรวมบิล)
+  const selectedWinnersData = filteredWinners.filter(w => selectedWinners.includes(w.order_item_id || w.username + w.selected_number));
+  
+  const totalTransferTHB = selectedWinnersData
+    .filter(w => w.currency_code === 'THB')
+    .reduce((sum, w) => sum + Number(w.prize_amount), 0);
+    
+  const totalTransferLAK = selectedWinnersData
+    .filter(w => w.currency_code === 'LAK' || w.currency_code === '₭')
     .reduce((sum, w) => sum + Number(w.prize_amount), 0);
 
   const handleTransfer = async () => {
     if (selectedWinners.length === 0) return alert("กรุณาเลือกรายการที่ต้องการโอนเงิน");
     if (!adminPassword) return alert("กรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน");
-    if (!window.confirm(`ยืนยันการโอนเงินจำนวน ${formatCurrency(totalPayout)} ให้กับลูกค้า ${selectedWinners.length} รายการ?`)) return;
+    
+    // สร้างข้อความยืนยันแยกสกุลเงินให้ดูง่ายๆ
+    let confirmMsg = `ยืนยันการโอนเงินให้ลูกค้าที่เลือก ${selectedWinners.length} รายการ ใช่หรือไม่?\n\n`;
+    if (totalTransferTHB > 0) confirmMsg += `🇹🇭 ยอดเงินบาท: ${formatCurrency(totalTransferTHB)} THB\n`;
+    if (totalTransferLAK > 0) confirmMsg += `🇱🇦 ยอดเงินกีบ: ${formatCurrency(totalTransferLAK)} LAK\n`;
+    
+    if (!window.confirm(confirmMsg)) return;
 
     setIsProcessing(true);
     try {
@@ -201,7 +214,6 @@ const AwardResults = () => {
     
     doc.save(`Draw_History_${historyStartDate}_to_${historyEndDate}.pdf`);
   };
-
 
 return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -404,10 +416,21 @@ return (
               </table>
             </div>
 
+            {/* 🌟 กล่องสรุปยอดโอน (แยก THB กับ LAK ชัดเจน) */}
             <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '20px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
               <div>
-                <span style={{ color: '#b45309', fontSize: '14px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):</span>
-                <strong style={{ fontSize: '28px', color: '#d97706' }}>{formatCurrency(totalPayout)} THB</strong>
+                <span style={{ color: '#b45309', fontSize: '14px', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
+                  ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):
+                </span>
+                <strong style={{ fontSize: '26px', color: '#d97706', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  {totalTransferTHB > 0 && <span>{formatCurrency(totalTransferTHB)} THB</span>}
+                  
+                  {totalTransferTHB > 0 && totalTransferLAK > 0 && <span style={{ color: '#fcd34d' }}>|</span>}
+                  
+                  {totalTransferLAK > 0 && <span>{formatCurrency(totalTransferLAK)} LAK</span>}
+                  
+                  {totalTransferTHB === 0 && totalTransferLAK === 0 && <span>0.00 THB</span>}
+                </strong>
               </div>
               
               <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
