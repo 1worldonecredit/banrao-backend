@@ -153,15 +153,25 @@ const OverseeThePrize = () => {
 
   const handleUpdateSettings = async (field, value) => {
     const updated = { ...settings, [field]: value };
-    setSettings(updated);
+    
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { 
+      const res = await fetch(`${API_URL}/api/admin/settings`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(updated) 
       });
-      alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว');
-    } catch (err) { console.error(err); }
+      const data = await res.json();
+      
+      if (data.success) {
+        setSettings(updated);
+        alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว');
+      } else {
+        alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
+      }
+    } catch (err) { 
+      console.error(err); 
+      alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+    }
   };
 
   const handleToggleAutoDraw = async (isChecked) => {
@@ -169,15 +179,27 @@ const OverseeThePrize = () => {
     if (!window.confirm(`⚠️ ยืนยันการ${actionText}ระบบออกเลขอัตโนมัติ ใช่หรือไม่?`)) return;
 
     const updated = { ...settings, is_auto_draw: isChecked, auto_draw_percent: targetPercent };
-    setSettings(updated);
+    
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { 
+      const res = await fetch(`${API_URL}/api/admin/settings`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(updated) 
       });
-      alert(isChecked ? `✅ เปิดใช้งานระบบอัตโนมัติเรียบร้อย ระบบจะคุมเป้าหมายจ่ายที่ ${targetPercent}%` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
-    } catch (err) { console.error(err); }
+      const data = await res.json();
+      
+      if (data.success) {
+        setSettings(updated);
+        alert(isChecked ? `✅ เปิดใช้งานระบบอัตโนมัติเรียบร้อย ระบบจะคุมเป้าหมายจ่ายที่ ${targetPercent}%` : '❌ ปิดใช้งานออกเลขอัตโนมัติแล้ว');
+      } else {
+        alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
+        fetchSettings(); // โหลดค่าเดิมกลับมา
+      }
+    } catch (err) { 
+      console.error(err); 
+      alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ (การบันทึกล้มเหลว)');
+      fetchSettings(); // โหลดค่าเดิมกลับมา
+    }
   };
 
   const handleSaveAutoPercent = async () => {
@@ -187,26 +209,46 @@ const OverseeThePrize = () => {
     }
 
     const updated = { ...settings, auto_draw_percent: targetPercent };
-    setSettings(updated);
+    
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { 
+      const res = await fetch(`${API_URL}/api/admin/settings`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(updated) 
       });
-      alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
-    } catch (err) { console.error(err); }
+      const data = await res.json();
+
+      if (data.success) {
+        setSettings(updated);
+        alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
+      } else {
+        alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
+        setTargetPercent(settings.auto_draw_percent); // โหลดค่าเดิมกลับมา
+      }
+    } catch (err) { 
+      console.error(err); 
+      alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ (การบันทึกล้มเหลว)');
+      setTargetPercent(settings.auto_draw_percent); // โหลดค่าเดิมกลับมา
+    }
   };
 
   const handleSaveAllTimes = async () => {
     try {
-      await fetch(`${API_URL}/api/admin/settings`, { 
+      const res = await fetch(`${API_URL}/api/admin/settings`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(settings) 
       });
-      alert('✅ บันทึกเวลาทั้งหมดเรียบร้อยแล้ว');
-    } catch (err) { console.error(err); }
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ บันทึกเวลาทั้งหมดเรียบร้อยแล้ว');
+      } else {
+        alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
+      }
+    } catch (err) { 
+      console.error(err); 
+      alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+    }
   };
 
   const handleSavePrizeRates = async () => {
@@ -283,7 +325,7 @@ const OverseeThePrize = () => {
         alert(data.message);
         fetchDrawHistory(selectedDate);
       } else {
-        alert('❌ เกิดข้อผิดพลาดในการออกรางวัล');
+        alert(`❌ เกิดข้อผิดพลาดในการออกรางวัล: ${data.message || ''}`);
       }
     } catch (err) { console.error(err); } 
     finally { setIsExecutingDraw(false); }
