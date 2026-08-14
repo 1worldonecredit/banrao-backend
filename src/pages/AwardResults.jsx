@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Search, Trophy, CheckSquare, Lock, Send, AlertTriangle, FileText, Filter, List } from 'lucide-react';
+import { Calendar, Search, Trophy, CheckSquare, Lock, Send, AlertTriangle, FileText, Filter, List, Wallet, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -25,6 +25,9 @@ const AwardResults = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // 🌟 State ใหม่: สำหรับเก็บยอดขายรายวันแยกตามสกุลเงิน
+  const [salesData, setSalesData] = useState({ thb: 0, lak: 0 });
+
   // State โซนประวัติรายเดือน (ด้านล่าง)
   const [historyStartDate, setHistoryStartDate] = useState(getFirstDayOfMonth());
   const [historyEndDate, setHistoryEndDate] = useState(getTodayDate());
@@ -58,7 +61,7 @@ const AwardResults = () => {
     } catch { return dateStr; }
   };
 
-  const formatCurrency = (amt) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 }).format(amt);
+  const formatCurrency = (amt) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amt || 0);
 
   // ==========================================
   // ดึงข้อมูล 2 ส่วนเมื่อโหลดหน้าหรือเปลี่ยนวันที่
@@ -85,6 +88,12 @@ const AwardResults = () => {
         const winnersList = data.winners || [];
         setWinners(winnersList);
         setSelectedWinners(winnersList.map(w => w.order_item_id || w.username + w.selected_number)); 
+        
+        // 🌟 ดึงยอดขายจาก API มาเก็บไว้ (เตรียมรับค่าจาก Backend)
+        setSalesData({
+            thb: data.total_sales_thb || 0,
+            lak: data.total_sales_lak || 0
+        });
       }
     } catch (err) { console.error('Error fetching daily results:', err); } 
     finally { setIsLoading(false); }
@@ -102,7 +111,23 @@ const AwardResults = () => {
   };
 
   // ==========================================
-  // ระบบจัดการการโอนเงิน (รายวัน)
+  // 🌟 Logic การคำนวณ ยอดขาย, ยอดจ่าย และกำไร (เพิ่มใหม่)
+  // ==========================================
+  
+  // 1. คำนวณยอดเงินที่ต้องจ่ายให้ลูกค้าทั้งหมด (แยกสกุลเงิน)
+  const totalSystemPayoutTHB = winners.filter(w => w.currency_code === 'THB').reduce((sum, w) => sum + Number(w.prize_amount), 0);
+  const totalSystemPayoutLAK = winners.filter(w => w.currency_code === 'LAK' || w.currency_code === '₭').reduce((sum, w) => sum + Number(w.prize_amount), 0);
+
+  // 2. คำนวณกำไร/ขาดทุน
+  const profitTHB = salesData.thb - totalSystemPayoutTHB;
+  const profitLAK = salesData.lak - totalSystemPayoutLAK;
+
+  // 3. คำนวณ % การจ่ายรางวัล (Payout Percentage)
+  const payoutPercentTHB = salesData.thb > 0 ? ((totalSystemPayoutTHB / salesData.thb) * 100).toFixed(2) : 0;
+  const payoutPercentLAK = salesData.lak > 0 ? ((totalSystemPayoutLAK / salesData.lak) * 100).toFixed(2) : 0;
+
+  // ==========================================
+  // ระบบจัดการการโอนเงิน (รายวัน) สำหรับตาราง
   // ==========================================
   const filteredWinners = winners.filter(w => 
     w.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,7 +156,6 @@ const AwardResults = () => {
 
     setIsProcessing(true);
     try {
-      // จำลองการโอนเงิน
       setTimeout(() => {
         alert("✅ โอนเงินรางวัลให้ลูกค้าเรียบร้อยแล้ว!");
         setAdminPassword('');
@@ -172,13 +196,14 @@ const AwardResults = () => {
       body: tableRows,
       startY: 30,
       styles: { fontSize: 10, halign: 'center' },
-      headStyles: { fillColor: [14, 165, 233] } // สีฟ้า Tailwind
+      headStyles: { fillColor: [14, 165, 233] } 
     });
     
     doc.save(`Draw_History_${historyStartDate}_to_${historyEndDate}.pdf`);
   };
 
-  return (
+
+return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', fontSize: '24px' }}>ประวัติการออกรางวัลและจ่ายเงิน</h2>
       
@@ -208,20 +233,100 @@ const AwardResults = () => {
             ยังไม่มีการออกรางวัลในวันที่นี้
           </div>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '30px', borderBottom: '2px solid #f1f5f9', paddingBottom: '25px' }}>
-            {[
-              { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
-              { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
-              { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
-              { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
-              { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
-            ].map(p => (
-              <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
-                <h2 style={{ margin: 0, color: p.color, fontSize: '28px', letterSpacing: '2px' }}>{p.val}</h2>
+          <>
+            {/* กล่องแสดงตัวเลขรางวัล */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '25px' }}>
+              {[
+                { label: '8 ตัว (ซูเปอร์)', val: results.prize_8, color: '#ec4899' },
+                { label: '6 ตัว (ที่ 1)', val: results.prize_6, color: '#8b5cf6' },
+                { label: '4 ตัวท้าย', val: results.prize_4, color: '#f59e0b' },
+                { label: '3 ตัวท้าย', val: results.prize_3, color: '#10b981' },
+                { label: '2 ตัวท้าย', val: results.prize_2, color: '#3b82f6' }
+              ].map(p => (
+                <div key={p.label} style={{ flex: '1 1 120px', padding: '15px 10px', border: `2px solid ${p.color}`, borderRadius: '12px', minWidth: '120px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', fontWeight: 'bold' }}>{p.label}</p>
+                  <h2 style={{ margin: 0, color: p.color, fontSize: '28px', letterSpacing: '2px' }}>{p.val}</h2>
+                </div>
+              ))}
+            </div>
+
+            {/* 🌟 โซนใหม่: สรุปบัญชี ยอดขาย vs เงินรางวัล */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px', borderTop: '2px dashed #e2e8f0', paddingTop: '25px' }}>
+              
+              {/* บัญชีเงินบาท (THB) */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '20px' }}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Wallet size={20} color="#3b82f6"/> สรุปบัญชีเงินบาท (THB)
+                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ color: '#64748b' }}>ยอดขายรวม:</span>
+                  <span style={{ fontWeight: 'bold', color: '#334155' }}>{formatCurrency(salesData.thb)} ฿</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ color: '#64748b' }}>เงินรางวัลที่จ่าย:</span>
+                  <span style={{ fontWeight: 'bold', color: '#ef4444' }}>- {formatCurrency(totalSystemPayoutTHB)} ฿</span>
+                </div>
+                <div style={{ borderTop: '1px solid #e2e8f0', margin: '10px 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>กำไร / ขาดทุน:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: profitTHB >= 0 ? '#16a34a' : '#ef4444' }}>
+                    {profitTHB >= 0 ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
+                    <span style={{ fontWeight: 'bold', fontSize: '18px' }}>
+                      {profitTHB > 0 ? '+' : ''}{formatCurrency(profitTHB)} ฿
+                    </span>
+                  </div>
+                </div>
+                {/* หลอดแสดง Payout % */}
+                <div style={{ width: '100%', backgroundColor: '#e2e8f0', borderRadius: '8px', overflow: 'hidden', height: '10px' }}>
+                  <div style={{ 
+                    width: `${Math.min(payoutPercentTHB, 100)}%`, 
+                    backgroundColor: payoutPercentTHB > 100 ? '#ef4444' : (payoutPercentTHB > 80 ? '#f59e0b' : '#16a34a'), 
+                    height: '100%', transition: 'width 0.5s ease' 
+                  }}></div>
+                </div>
+                <p style={{ margin: '5px 0 0 0', fontSize: '12px', textAlign: 'right', color: '#64748b' }}>
+                  อัตราการจ่าย (Payout): <strong style={{ color: payoutPercentTHB > 100 ? '#ef4444' : '#334155' }}>{payoutPercentTHB}%</strong>
+                </p>
               </div>
-            ))}
-          </div>
+
+              {/* บัญชีเงินกีบ (LAK) */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '20px' }}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Wallet size={20} color="#10b981"/> สรุปบัญชีเงินกีบ (LAK)
+                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ color: '#64748b' }}>ยอดขายรวม:</span>
+                  <span style={{ fontWeight: 'bold', color: '#334155' }}>{formatCurrency(salesData.lak)} ₭</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ color: '#64748b' }}>เงินรางวัลที่จ่าย:</span>
+                  <span style={{ fontWeight: 'bold', color: '#ef4444' }}>- {formatCurrency(totalSystemPayoutLAK)} ₭</span>
+                </div>
+                <div style={{ borderTop: '1px solid #e2e8f0', margin: '10px 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>กำไร / ขาดทุน:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: profitLAK >= 0 ? '#16a34a' : '#ef4444' }}>
+                    {profitLAK >= 0 ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
+                    <span style={{ fontWeight: 'bold', fontSize: '18px' }}>
+                      {profitLAK > 0 ? '+' : ''}{formatCurrency(profitLAK)} ₭
+                    </span>
+                  </div>
+                </div>
+                {/* หลอดแสดง Payout % */}
+                <div style={{ width: '100%', backgroundColor: '#e2e8f0', borderRadius: '8px', overflow: 'hidden', height: '10px' }}>
+                  <div style={{ 
+                    width: `${Math.min(payoutPercentLAK, 100)}%`, 
+                    backgroundColor: payoutPercentLAK > 100 ? '#ef4444' : (payoutPercentLAK > 80 ? '#f59e0b' : '#16a34a'), 
+                    height: '100%', transition: 'width 0.5s ease' 
+                  }}></div>
+                </div>
+                <p style={{ margin: '5px 0 0 0', fontSize: '12px', textAlign: 'right', color: '#64748b' }}>
+                  อัตราการจ่าย (Payout): <strong style={{ color: payoutPercentLAK > 100 ? '#ef4444' : '#334155' }}>{payoutPercentLAK}%</strong>
+                </p>
+              </div>
+
+            </div>
+          </>
         )}
 
         {/* ==========================================
@@ -280,7 +385,7 @@ const AwardResults = () => {
                           />
                         </td>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
-                        <td style={{ padding: '12px' }}>{w.lottery_type} ตัว</td>
+                        <td style={{ padding: '12px' }}>{w.lottery_type}</td>
                         <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold' }}>{w.selected_number}</td>
                         <td style={{ padding: '12px' }}>{formatCurrency(w.price)} {w.currency_code}</td>
                         <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>{formatCurrency(w.prize_amount)} {w.currency_code}</td>
