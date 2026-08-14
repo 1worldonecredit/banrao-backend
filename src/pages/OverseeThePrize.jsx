@@ -25,6 +25,9 @@ const OverseeThePrize = () => {
   const [results, setResults] = useState({ prize_8: '-', prize_6: '-', prize_4: '-', prize_3: '-', prize_2: '-' });
   const [winners, setWinners] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
+  
+  // 🌟 เพิ่ม State สำหรับแท็บสกุลเงิน
+  const [activeCurrencyTab, setActiveCurrencyTab] = useState('ALL'); 
   const [isProcessing, setIsProcessing] = useState(false);
 
   const getTodayDate = () => {
@@ -94,7 +97,6 @@ const OverseeThePrize = () => {
       const res = await fetch(`${API_URL}/api/admin/settings`);
       const data = await res.json();
       if (data.success && data.data) {
-        // 🌟 บังคับฟอร์แมตเวลาให้เป็น HH:mm (24h) ตัดวินาทีทิ้ง เพื่อให้ input time เข้าใจง่าย
         const formatTime24 = (timeStr) => timeStr ? timeStr.substring(0, 5) : '00:00';
         
         setSettings({
@@ -162,7 +164,6 @@ const OverseeThePrize = () => {
     } catch (err) { console.error(err); }
   };
 
-  // 🌟 บันทึกการตั้งค่าระบบออโต้ (เปิด/ปิด) พร้อม Popup ยืนยัน
   const handleToggleAutoDraw = async (isChecked) => {
     const actionText = isChecked ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
     if (!window.confirm(`⚠️ ยืนยันการ${actionText}ระบบออกเลขอัตโนมัติ ใช่หรือไม่?`)) return;
@@ -179,10 +180,9 @@ const OverseeThePrize = () => {
     } catch (err) { console.error(err); }
   };
 
-  // 🌟 บันทึก % การสุ่มแบบถาวร พร้อม Popup ยืนยัน
   const handleSaveAutoPercent = async () => {
     if (!window.confirm(`⚠️ ยืนยันการตั้งค่า "สัดส่วนเป้าหมายการจ่ายเงิน" เป็น ${targetPercent}% ใช่หรือไม่?\n\n(ระบบจะจำค่านี้ไว้และใช้ตลอดจนกว่าคุณจะเปลี่ยนใหม่)`)) {
-      setTargetPercent(settings.auto_draw_percent); // คืนค่าเดิมถ้ากดยกเลิก
+      setTargetPercent(settings.auto_draw_percent); 
       return;
     }
 
@@ -349,9 +349,15 @@ const OverseeThePrize = () => {
     doc.save(`winners_report_${selectedDate}.pdf`);
   };
 
-  const filteredWinners = activeTab === 'all' 
-    ? winners 
-    : winners.filter(w => w.lottery_type === activeTab);
+  // 🌟🌟 จัดเรียงข้อมูลผู้ถูกรางวัล (กรองเลข, กรองสกุลเงิน, เรียงลำดับจากมากไปน้อย)
+  const filteredWinners = winners
+    .filter(w => activeTab === 'all' || w.lottery_type === activeTab)
+    .filter(w => activeCurrencyTab === 'ALL' || w.currency_code === activeCurrencyTab)
+    .sort((a, b) => {
+      if (a.lottery_type < b.lottery_type) return -1;
+      if (a.lottery_type > b.lottery_type) return 1;
+      return b.prize_amount - a.prize_amount;
+    });
 
 return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -360,9 +366,6 @@ return (
       </h2>
       
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. โซนตั้งเวลา */}
-      {/* ------------------------------------------------------------------------- */}
-     {/* ------------------------------------------------------------------------- */}
       {/* 1. โซนตั้งเวลา */}
       {/* ------------------------------------------------------------------------- */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
@@ -836,6 +839,28 @@ return (
             >
               <Download size={16} /> โหลด PDF
             </button>
+          </div>
+
+          {/* 🌟 เพิ่มปุ่มกรองสกุลเงิน (Currency Tabs) ด้านบน */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            {['ALL', 'THB', 'LAK'].map(curr => (
+              <button 
+                key={curr}
+                onClick={() => setActiveCurrencyTab(curr)}
+                style={{ 
+                  padding: '6px 12px', 
+                  backgroundColor: activeCurrencyTab === curr ? '#10b981' : '#f1f5f9', 
+                  color: activeCurrencyTab === curr ? 'white' : '#64748b', 
+                  border: 'none', 
+                  borderRadius: '20px', 
+                  cursor: 'pointer', 
+                  fontWeight: 'bold', 
+                  fontSize: '12px' 
+                }}
+              >
+                {curr === 'ALL' ? 'สกุลเงินทั้งหมด' : `สกุลเงิน ${curr}`}
+              </button>
+            ))}
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px', borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>
