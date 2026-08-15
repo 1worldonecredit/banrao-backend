@@ -278,7 +278,7 @@ const ManageThaiNumber = () => {
                       <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
                           <div><span style={{ display: 'block', fontSize: '11px' }}>รางวัลที่ 1</span><strong style={{ fontSize: '20px', color: '#b91c1c' }}>{r.result_6}</strong></div>
-                          <div><span style={{ display: 'block', fontSize: '11px' }}>เลขท้าย 2 ตัว</span><strong style={{ fontSize: '20px', color: '#1d4ed8' }}>{r.result_2_bottom}</strong></div>
+                          <div><span style={{ display: 'block', fontSize: '11px' }}>เลขล่าง 2 ตัว</span><strong style={{ fontSize: '20px', color: '#1d4ed8' }}>{r.result_2_bottom}</strong></div>
                         </div>
                       </div>
                     ) : (
