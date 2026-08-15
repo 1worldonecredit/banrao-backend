@@ -70,7 +70,7 @@ const ManageThaiNumber = () => {
     setEditingRoundId(round.round_id);
     setEditFormData({
       round_number: round.round_number,
-      open_time: round.open_time.substring(0, 16), // ตัดวินาทีทิ้งเพื่อให้ input type="datetime-local" แสดงผลได้
+      open_time: round.open_time.substring(0, 16),
       close_time: round.close_time.substring(0, 16),
       draw_time: round.draw_time.substring(0, 16)
     });
@@ -122,9 +122,17 @@ const ManageThaiNumber = () => {
     finally { setIsProcessing(false); }
   };
 
+  // 🌟 บังคับการแสดงผลเป็นแบบ 24 ชั่วโมง (hour12: false)
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
-    return d.toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString('th-TH', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false // <- จุดนี้คือตัวบังคับ 24h ครับ
+    });
   };
 
   return (
@@ -230,7 +238,6 @@ const ManageThaiNumber = () => {
                      isOpen ? <span style={{ backgroundColor: '#0ea5e9', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>กำลังเปิดรับแทง</span> :
                      <span style={{ backgroundColor: '#d97706', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>รอเปิดขาย</span>}
                     
-                    {/* 🌟 ปุ่มกดแก้ไข (โชว์เฉพาะตอนยังไม่ออกผล) */}
                     {!isCompleted && !isEditing && (
                       <button onClick={() => startEdit(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} title="แก้ไขงวดนี้">
                         <Edit size={18} />
@@ -239,7 +246,6 @@ const ManageThaiNumber = () => {
                   </div>
                 </div>
                 
-                {/* 🌟 โหมดแก้ไข (แสดง Form แทนข้อมูลเดิม) */}
                 {isEditing ? (
                   <div style={{ padding: '15px', backgroundColor: '#fffbeb' }}>
                     <div style={{ marginBottom: '10px' }}>
@@ -267,7 +273,6 @@ const ManageThaiNumber = () => {
                     </div>
                   </div>
                 ) : (
-                  /* โหมดแสดงผลปกติ */
                   <div style={{ padding: '15px', fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>เปิดรับแทง:</span> <strong>{formatDate(r.open_time)}</strong></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>ปิดรับแทง:</span> <strong style={{ color: '#ef4444' }}>{formatDate(r.close_time)}</strong></div>
