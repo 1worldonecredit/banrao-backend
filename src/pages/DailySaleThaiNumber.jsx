@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Clock, CheckCircle2, AlertCircle, RefreshCw, Printer, Users, Receipt, Search } from 'lucide-react';
+import { BarChart3, Clock, CheckCircle2, AlertCircle, RefreshCw, Printer, Users, Receipt, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -18,12 +18,16 @@ const formatThaiRoundName = (name) => {
 };
 
 // ==========================================
-// 🌟 Component ย่อย: ตารางรายการบิลลูกค้า
+// 🌟 Component ย่อย: ตารางรายการบิลลูกค้า (มี Pagination)
 // ==========================================
 const TicketList = ({ roundId }) => {
   const [tickets, setTickets] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🌟 State สำหรับ Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50; // หน้าละ 50 แถว
 
   const tabs = ['All', '6 ตัว', '3 ตัวบน', '3 ตัวโต๊ด', '2 ตัวบน', '2 ตัวล่าง', 'วิ่งบน', 'วิ่งล่าง'];
 
@@ -39,9 +43,20 @@ const TicketList = ({ roundId }) => {
     fetchTickets();
   }, [roundId]);
 
+  // รีเซ็ตหน้ากลับไปหน้าที่ 1 เสมอเวลาเปลี่ยน Tab
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
   const filteredTickets = activeTab === 'All' ? tickets : tickets.filter(t => t.lottery_type === activeTab);
 
-  // คำนวณยอดรวมของ Tab ที่เลือก (แยกสกุลเงิน)
+  // 🌟 คำนวณข้อมูลสำหรับ Pagination
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredTickets.slice(indexOfFirstItem, indexOfLastItem);
+
+  // คำนวณยอดรวมของ Tab ที่เลือก (คำนวณจากทั้งหมด ไม่ใช่แค่หน้าปัจจุบัน)
   const totalTHB = filteredTickets.filter(t => t.currency_code === 'THB' || t.currency_code === '฿').reduce((sum, t) => sum + Number(t.price), 0);
   const totalLAK = filteredTickets.filter(t => t.currency_code === 'LAK' || t.currency_code === '₭').reduce((sum, t) => sum + Number(t.price), 0);
 
@@ -50,9 +65,14 @@ const TicketList = ({ roundId }) => {
 
   return (
     <div style={{ marginTop: '20px', borderTop: '2px dashed #e2e8f0', paddingTop: '20px' }}>
-      <h4 style={{ margin: '0 0 15px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Receipt size={18} color="#0ea5e9" /> รายละเอียดรายการแทงของลูกค้า
-      </h4>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }} className="no-print">
+         <h4 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <Receipt size={18} color="#0ea5e9" /> รายละเอียดรายการแทงของลูกค้า
+         </h4>
+         <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>
+           รายการทั้งหมด: {filteredTickets.length} บิล
+         </span>
+      </div>
       
       {/* 🌟 เมนู Tabs แยกประเภท */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '15px' }} className="no-print">
@@ -68,6 +88,7 @@ const TicketList = ({ roundId }) => {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+              <th style={{ padding: '10px', textAlign: 'left', color: '#475569' }}>ลำดับ</th>
               <th style={{ padding: '10px', textAlign: 'left', color: '#475569' }}>ลูกค้า (สัญชาติ)</th>
               <th style={{ padding: '10px', textAlign: 'left', color: '#475569' }}>ประเภท</th>
               <th style={{ padding: '10px', textAlign: 'center', color: '#475569' }}>ตัวเลข</th>
@@ -77,10 +98,12 @@ const TicketList = ({ roundId }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredTickets.map((t, idx) => {
+            {currentItems.map((t, idx) => {
               const isLAK = t.currency_code === 'LAK' || t.currency_code === '₭';
+              const rowIndex = indexOfFirstItem + idx + 1; // คำนวณลำดับที่แท้จริง
               return (
                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px', color: '#94a3b8' }}>{rowIndex}</td>
                   <td style={{ padding: '10px' }}>
                     <div style={{ fontWeight: 'bold', color: '#334155' }}>{t.username}</div>
                     <div style={{ fontSize: '11px', color: isLAK ? '#ef4444' : '#3b82f6' }}>{isLAK ? '🇱🇦 ลาว (LAK)' : '🇹🇭 ไทย (THB)'}</div>
@@ -107,9 +130,9 @@ const TicketList = ({ roundId }) => {
         </table>
         
         {/* 🌟 ยอดรวมเรียลไทม์ท้ายตาราง */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', padding: '15px', backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1', borderRadius: '0 0 8px 8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', padding: '15px', backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>ยอดรวม (หมวด: {activeTab})</span>
+            <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>ยอดรวมทั้งหมด (หมวด: {activeTab})</span>
             <strong style={{ fontSize: '16px', color: '#0369a1' }}>🇹🇭 {totalTHB.toLocaleString()} ฿</strong>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -117,6 +140,31 @@ const TicketList = ({ roundId }) => {
             <strong style={{ fontSize: '16px', color: '#b91c1c' }}>🇱🇦 {totalLAK.toLocaleString()} ₭</strong>
           </div>
         </div>
+
+        {/* 🌟 ส่วนควบคุม Pagination */}
+        {totalPages > 1 && (
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: 'white', borderRadius: '0 0 8px 8px', borderTop: '1px solid #f1f5f9' }} className="no-print">
+              <span style={{ fontSize: '13px', color: '#64748b' }}>
+                แสดงหน้าที่ <strong style={{ color: '#0f172a' }}>{currentPage}</strong> จากทั้งหมด <strong style={{ color: '#0f172a' }}>{totalPages}</strong> หน้า
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                 <button 
+                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                   disabled={currentPage === 1}
+                   style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage === 1 ? '#f8fafc' : 'white', color: currentPage === 1 ? '#cbd5e1' : '#475569', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                 >
+                   <ChevronLeft size={16} /> ก่อนหน้า
+                 </button>
+                 <button 
+                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                   disabled={currentPage === totalPages}
+                   style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage === totalPages ? '#f8fafc' : 'white', color: currentPage === totalPages ? '#cbd5e1' : '#475569', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                 >
+                   ถัดไป <ChevronRight size={16} />
+                 </button>
+              </div>
+           </div>
+        )}
       </div>
     </div>
   );
