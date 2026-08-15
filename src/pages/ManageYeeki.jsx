@@ -7,7 +7,6 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const ManageYeeki = () => {
@@ -34,7 +33,7 @@ const ManageYeeki = () => {
   const [exchangeRateLAK, setExchangeRateLAK] = useState(0);
 
   const [simulatedSuper, setSimulatedSuper] = useState(savedDraft.simulatedSuper || '');   
-  const [simulatedTop, setSimulatedTop] = useState(savedDraft.simulatedTop || '');       
+  const [simulatedTop, setSimulatedTop] = useState(savedDraft.simulatedTop || '');        
   const [simulatedBottom, setSimulatedBottom] = useState(savedDraft.simulatedBottom || ''); 
   
   const [analysisResult, setAnalysisResult] = useState(savedDraft.analysisResult || null);
@@ -438,16 +437,14 @@ const ManageYeeki = () => {
       finally { setSimulatedUserLoading(false); }
   };
 
-const handleSearchBuyers = async () => {
+  const handleSearchBuyers = async () => {
       if (!searchNumber) return alert('กรุณากรอกเลขที่ต้องการค้นหา');
-      // 🌟 เพิ่มบรรทัดนี้: ป้องกันกรณีลืมคลิกเลือกรอบ
       if (!selectedRound) return alert('กรุณาคลิกเลือกรอบที่ต้องการค้นหาด้านบนก่อนครับ'); 
 
       setIsSearchingBuyers(true); setSearchedBuyers(null);
       try {
         const res = await fetch(`${API_URL}/api/admin/search-yeeki-buyers`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          // 🔴 จุดที่แก้: เปลี่ยนจากส่ง date เป็นส่ง round_id ของรอบที่คลิกอยู่ไปแทน
           body: JSON.stringify({ number: searchNumber, round_id: selectedRound.round_id }) 
         });
         
@@ -466,10 +463,6 @@ const handleSearchBuyers = async () => {
       finally { setIsSearchingBuyers(false); }
   };
 
-
-
-  // 💡 ตัวกรองแยก: สำหรับตารางคนที่ถูก "เฉพาะรอบ" (Round Winners) ใช้งานใน Popup 
-  // 💡 แก้ปัญหา ReferenceError โดยประกาศตัวแปรให้ครบ
   const filteredRoundWinners = activeTab === 'all' 
     ? roundWinners 
     : roundWinners.filter(w => w.lottery_type === activeTab);
@@ -478,7 +471,7 @@ const handleSearchBuyers = async () => {
     ? winners 
     : winners.filter(w => w.lottery_type === activeTab);
 
-const exportPDF = () => {
+  const exportPDF = () => {
     try {
         const doc = new jsPDF(); 
         
@@ -488,7 +481,6 @@ const exportPDF = () => {
         const tableColumn = ["Round", "Username", "Type", "Number", "Bet", "Prize", "Currency", "Status"];
         const tableRows = [];
         
-        // 🌟 ฟังก์ชันแปลภาษาเป็นภาษาอังกฤษ (กันฟอนต์พัง)
         const translateType = (typeTh) => {
             if (!typeTh) return '-';
             const dict = {
@@ -505,7 +497,6 @@ const exportPDF = () => {
             return dict[typeTh] || typeTh; 
         };
 
-        // 🌟 กำหนดลำดับการเรียงจากรางวัลใหญ่ไปเล็ก
         const typeOrder = {
             '8 ตัว (Super)': 1,
             '6 ตัว': 2,
@@ -519,14 +510,12 @@ const exportPDF = () => {
         };
 
         if (filteredRoundWinners && filteredRoundWinners.length > 0) {
-            // 🌟 นำข้อมูลมาจัดเรียง (Sort) ตาม typeOrder ที่เรากำหนดไว้ก่อน
             const sortedWinners = [...filteredRoundWinners].sort((a, b) => {
-                const orderA = typeOrder[a.lottery_type] || 99; // ถ้าหาประเภทไม่เจอ ให้เด้งไปอยู่ล่างสุด
+                const orderA = typeOrder[a.lottery_type] || 99;
                 const orderB = typeOrder[b.lottery_type] || 99;
-                return orderA - orderB; // เรียงจากเลขน้อย (1) ไปเลขมาก (99)
+                return orderA - orderB; 
             });
 
-            // 🌟 นำข้อมูลที่จัดเรียงแล้ว มาใส่ตาราง
             sortedWinners.forEach(w => {
                 tableRows.push([ 
                     w.round_number || '-', 
@@ -550,7 +539,8 @@ const exportPDF = () => {
         console.error("PDF Export Error: ", error);
         alert(`โหลด PDF ไม่สำเร็จ: ${error.message}`); 
     }
-};
+  };
+
 
 return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
