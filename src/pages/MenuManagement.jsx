@@ -223,6 +223,8 @@ const MenuManagement = () => {
                 <option value="YeekiSaleReport">รายงานขายหวยจับยี่กี(YeekiSaleReport)</option>
                 <option value="AwardHistoryYeeki">ประวัติการออกเลข จับยี่กี(AwardHistoryYeeki)</option>
                 <option value="SaleReportDetails">รายงานขายแต่ละรอบ(SaleReportDetails)</option>
+                <option value="DailySaleThaiNumber">รายงานขายหวยไทย (DailySaleThaiNumber)</option>
+                <option value="ManageThaiNumber">ตัดการควบคุมหวยไทย (ManageThaiNumber)</option>
               </select>
             </div>
 

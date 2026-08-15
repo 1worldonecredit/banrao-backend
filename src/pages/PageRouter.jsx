@@ -37,6 +37,8 @@ import AddNumberYeeki from './AddNumberYeeki';
 import YeekiSaleReport from './YeekiSaleReport';
 import AwardHistoryYeeki from './AwardHistoryYeeki';
 import SaleReportDetails from './SaleReportDetails';
+import ManageThaiNumber from './ManageThaiNumber';
+import DailySaleThaiNumber from './DailySaleThaiNumber';
 
 
 
@@ -76,7 +78,9 @@ const componentsRegistry = {
   'SetTimeYeeki': SetTimeYeeki,
   'AwardHistoryYeeki': AwardHistoryYeeki,
   'YeekiSaleReport': YeekiSaleReport,
-  'SaleReportDetails': SaleReportDetails
+  'SaleReportDetails': SaleReportDetails,
+  'ManageThaiNumber': ManageThaiNumber,
+  'DailySaleThaiNumber': DailySaleThaiNumber
 };
 
 export default function PageRouter() {
