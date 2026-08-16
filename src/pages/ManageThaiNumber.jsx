@@ -3,6 +3,21 @@ import { PlusCircle, Save, Clock, Trophy, CheckCircle, Ban, PlayCircle, RefreshC
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
+// 🌟 ฟังก์ชันอัจฉริยะ: บังคับแปลงวันที่ให้เป็นภาษาไทยแบบสวยงาม (ไม่ง้อภาษาเครื่อง)
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
+  const hours = date.getHours().toString().padStart(2, '0'); // บังคับ 24h
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+
+  return `${day} ${month} ${year} เวลา ${hours}:${minutes} น.`;
+};
+
 const ManageThaiNumber = () => {
   const [rounds, setRounds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,18 +136,6 @@ const ManageThaiNumber = () => {
     finally { setIsProcessing(false); }
   };
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleString('th-TH', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f0f9ff', minHeight: '100vh' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -153,19 +156,26 @@ const ManageThaiNumber = () => {
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#475569', fontSize: '14px' }}>ชื่องวด (เช่น 16 สิงหาคม 2569)</label>
               <input type="text" required value={newRoundTitle} onChange={(e) => setNewRoundTitle(e.target.value)} placeholder="ระบุชื่องวด..." style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
             </div>
-            {/* 🌟 เติม lang="th-TH" เพื่อบังคับเบราว์เซอร์ให้แสดงปฏิทินภาษาไทย */}
+            
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#16a34a', fontSize: '14px' }}>เวลา เปิดรับแทง</label>
-              <input type="datetime-local" lang="th-TH" required value={openDate} onChange={(e) => setOpenDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              <input type="datetime-local" lang="en-GB" required value={openDate} onChange={(e) => setOpenDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              {/* 🌟 แสดงวันที่แบบไทยอยู่ด้านล่าง เพื่อยืนยันความถูกต้อง */}
+              {openDate && <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>✅ {formatThaiDate(openDate)}</div>}
             </div>
+            
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#ef4444', fontSize: '14px' }}>เวลา ปิดรับแทง</label>
-              <input type="datetime-local" lang="th-TH" required value={closeDate} onChange={(e) => setCloseDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              <input type="datetime-local" lang="en-GB" required value={closeDate} onChange={(e) => setCloseDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              {closeDate && <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>✅ {formatThaiDate(closeDate)}</div>}
             </div>
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#d97706', fontSize: '14px' }}>เวลา ประกาศผล</label>
-              <input type="datetime-local" lang="th-TH" required value={drawDate} onChange={(e) => setDrawDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              <input type="datetime-local" lang="en-GB" required value={drawDate} onChange={(e) => setDrawDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              {drawDate && <div style={{ fontSize: '12px', color: '#d97706', marginTop: '4px' }}>✅ {formatThaiDate(drawDate)}</div>}
             </div>
+
             <button type="submit" disabled={isProcessing} style={{ width: '100%', padding: '12px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
               {isProcessing ? <RefreshCw className="spin" size={20} /> : <Save size={20} />} บันทึกเปิดรับแทง
             </button>
@@ -212,6 +222,9 @@ const ManageThaiNumber = () => {
         </div>
       </div>
 
+      {/* ============================== */}
+      {/* ตารางแสดงงวดหวยทั้งหมด */}
+      {/* ============================== */}
       <h3 style={{ color: '#0f172a', marginBottom: '15px' }}>ประวัติและงวดหวยไทยทั้งหมด</h3>
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '30px' }}><RefreshCw className="spin" size={30} color="#0ea5e9" /></div>
@@ -248,18 +261,17 @@ const ManageThaiNumber = () => {
                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>ชื่องวด:</label>
                       <input type="text" value={editFormData.round_number} onChange={e => setEditFormData({...editFormData, round_number: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                     </div>
-                    {/* 🌟 เติม lang="th-TH" ในโหมดแก้ไขด้วย */}
                     <div style={{ marginBottom: '10px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#16a34a' }}>เปิดรับ:</label>
-                      <input type="datetime-local" lang="th-TH" value={editFormData.open_time} onChange={e => setEditFormData({...editFormData, open_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                      <input type="datetime-local" lang="en-GB" value={editFormData.open_time} onChange={e => setEditFormData({...editFormData, open_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                     </div>
                     <div style={{ marginBottom: '10px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#ef4444' }}>ปิดรับ:</label>
-                      <input type="datetime-local" lang="th-TH" value={editFormData.close_time} onChange={e => setEditFormData({...editFormData, close_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                      <input type="datetime-local" lang="en-GB" value={editFormData.close_time} onChange={e => setEditFormData({...editFormData, close_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#d97706' }}>ประกาศผล:</label>
-                      <input type="datetime-local" lang="th-TH" value={editFormData.draw_time} onChange={e => setEditFormData({...editFormData, draw_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                      <input type="datetime-local" lang="en-GB" value={editFormData.draw_time} onChange={e => setEditFormData({...editFormData, draw_time: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
                     </div>
                     
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -271,8 +283,9 @@ const ManageThaiNumber = () => {
                   </div>
                 ) : (
                   <div style={{ padding: '15px', fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>เปิดรับแทง:</span> <strong>{formatDate(r.open_time)}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>ปิดรับแทง:</span> <strong style={{ color: '#ef4444' }}>{formatDate(r.close_time)}</strong></div>
+                    {/* 🌟 แสดงผลการ์ดด้วยฟังก์ชัน formatThaiDate แบบใหม่ */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>เปิดรับแทง:</span> <strong>{formatThaiDate(r.open_time)}</strong></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>ปิดรับแทง:</span> <strong style={{ color: '#ef4444' }}>{formatThaiDate(r.close_time)}</strong></div>
                     
                     {isCompleted ? (
                       <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
