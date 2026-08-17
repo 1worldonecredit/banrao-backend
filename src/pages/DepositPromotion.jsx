@@ -353,13 +353,17 @@ const DepositPromotion = () => {
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (!file) return;
-                  if (file.size > 15 * 1024 * 1024) return alert('❌ ขนาดไฟล์ใหญ่เกินไปครับ (จำกัดไม่เกิน 15MB)');
+                  
+                  // 🌟 บังคับขนาดสูงสุด 10MB เพื่อไม่ให้แอปมือถือลูกค้าแคชเต็ม
+                  if (file.size > 10 * 1024 * 1024) {
+                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 3MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
+                  }
                   
                   const reader = new FileReader();
                   reader.onloadend = () => {
                     setNewAd({
                       ...newAd, 
-                      media_url: reader.result, // แปลงไฟล์เป็น Base64
+                      media_url: reader.result, 
                       media_type: file.type.startsWith('video') ? 'video' : 'image'
                     });
                   };
