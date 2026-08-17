@@ -40,6 +40,7 @@ import SaleReportDetails from './SaleReportDetails';
 import ManageThaiNumber from './ManageThaiNumber';
 import DailySaleThaiNumber from './DailySaleThaiNumber';
 import ThaiLotteryResults from './ThaiLotteryResults';
+import DepositPromotion from './DepositPromotion';
 
 
 
@@ -82,7 +83,8 @@ const componentsRegistry = {
   'SaleReportDetails': SaleReportDetails,
   'ManageThaiNumber': ManageThaiNumber,
   'DailySaleThaiNumber': DailySaleThaiNumber,
-  'ThaiLotteryResults': ThaiLotteryResults
+  'ThaiLotteryResults': ThaiLotteryResults,
+  'DepositPromotion': DepositPromotion
 };
 
 export default function PageRouter() {

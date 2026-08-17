@@ -226,6 +226,7 @@ const MenuManagement = () => {
                 <option value="DailySaleThaiNumber">รายงานขายหวยไทย (DailySaleThaiNumber)</option>
                 <option value="ManageThaiNumber">ตัดการควบคุมหวยไทย (ManageThaiNumber)</option>
                 <option value="ThaiLotteryResults">เพิ่มผลออกเลขรางวัลหวยไทย (ThaiLotteryResults)</option>
+                <option value="DepositPromotion">โปรโมชั่นฝากถอนเงิน P2P (DepositPromotion)</option>
               </select>
             </div>
 
