@@ -322,64 +322,84 @@ const DepositPromotion = () => {
 
       </div>
 
-      {/* ============================================== */}
-      {/* 🌟 โซนป้ายโฆษณา (ADS/VIDEO) */}
+
+     {/* ============================================== */}
+      {/* 🌟 โซนป้ายโฆษณา (ADS/VIDEO) แบบอัปโหลดตรงลง DB */}
       {/* ============================================== */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '4px solid #8b5cf6' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-          <Megaphone size={22} color="#8b5cf6" /> คลังป้ายโฆษณา (แสดงแทนตอนว่างโปรโมชั่น)
+          <Megaphone size={22} color="#8b5cf6" /> คลังป้ายโฆษณา (อัปโหลดวิดีโอ/รูปภาพ 9:16)
         </h4>
 
-        {/* ฟอร์มเพิ่มโฆษณา */}
+        {/* ฟอร์มเพิ่มโฆษณา (แบบอัปโหลดไฟล์) */}
         <form onSubmit={handleAddAd} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>หัวข้อ (Title) - แสดงทับรูปภาพ</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>หัวข้อ (Title)</label>
             <input type="text" placeholder="เช่น โปรเด็ดประจำสัปดาห์" value={newAd.title} onChange={e => setNewAd({...newAd, title: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>ประเภทไฟล์</label>
-            <select value={newAd.media_type} onChange={e => setNewAd({...newAd, media_type: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <option value="image">รูปภาพ (Image / GIF)</option>
-              <option value="video">วิดีโอสั้น (MP4 / WebM)</option>
-            </select>
-          </div>
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>คำอธิบาย (Description) - แสดงทับรูปภาพ</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>คำอธิบาย (Description)</label>
             <input type="text" placeholder="พิมพ์รายละเอียดสั้นๆ..." value={newAd.description} onChange={e => setNewAd({...newAd, description: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
           </div>
-          <div style={{ gridColumn: 'span 2', display: 'flex', gap: '10px', alignItems: 'end' }}>
+          
+          <div style={{ gridColumn: 'span 2', display: 'flex', gap: '15px', alignItems: 'end', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>ลิงก์ไฟล์ (URL รูปภาพ หรือ วิดีโอ)</label>
-              <input type="text" required placeholder="https://..." value={newAd.media_url} onChange={e => setNewAd({...newAd, media_url: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#8b5cf6', marginBottom: '8px' }}>
+                📁 อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)
+              </label>
+              <input 
+                type="file" 
+                accept="image/*,video/mp4,video/webm" 
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 15 * 1024 * 1024) return alert('❌ ขนาดไฟล์ใหญ่เกินไปครับ (จำกัดไม่เกิน 15MB)');
+                  
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setNewAd({
+                      ...newAd, 
+                      media_url: reader.result, // แปลงไฟล์เป็น Base64
+                      media_type: file.type.startsWith('video') ? 'video' : 'image'
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                }} 
+                style={{ width: '100%', padding: '8px', cursor: 'pointer' }} 
+              />
             </div>
-            <button type="submit" style={{ padding: '10px 25px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', height: '42px' }}>
-              <PlusCircle size={18} /> อัปโหลดเข้าคลัง
+            <button type="submit" disabled={!newAd.media_url} style={{ padding: '10px 25px', backgroundColor: newAd.media_url ? '#8b5cf6' : '#cbd5e1', color: 'white', border: 'none', borderRadius: '8px', cursor: newAd.media_url ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', height: '42px' }}>
+              <PlusCircle size={18} /> บันทึกเข้า DB
             </button>
           </div>
         </form>
 
-        {/* ตารางแสดงโฆษณา */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+        {/* ตารางแสดงโฆษณา (ปรับสัดส่วน Preview เป็น 9:16 เหมือนจอมือถือ) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
           {ads.map(ad => (
-            <div key={ad.ad_id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', position: 'relative' }}>
-              <div style={{ position: 'relative', height: '160px', backgroundColor: '#000' }}>
+            <div key={ad.ad_id} style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 15px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+              
+              {/* 🌟 ปรับสัดส่วน 9:16 ตรงนี้ */}
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', backgroundColor: '#000' }}>
                 {ad.media_type === 'video' ? (
-                  <video src={ad.media_url} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <video src={ad.media_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <img src={ad.media_url} alt="ad" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)', padding: '20px 10px 10px 10px' }}>
-                   <h5 style={{ color: 'white', margin: '0 0 4px 0', fontSize: '13px', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.title || 'ไม่มีหัวข้อ'}</h5>
-                   <p style={{ color: '#cbd5e1', margin: 0, fontSize: '10px', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.description || '-'}</p>
+                
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)', padding: '30px 15px 15px 15px' }}>
+                   <h5 style={{ color: 'white', margin: '0 0 6px 0', fontSize: '15px', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.title || 'ไม่มีหัวข้อ'}</h5>
+                   <p style={{ color: '#cbd5e1', margin: 0, fontSize: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.description || '-'}</p>
                 </div>
-                <div style={{ position: 'absolute', top: '10px', left: '10px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 'bold', color: '#0f172a' }}>
-                  {ad.media_type === 'video' ? <Video size={12} color="#8b5cf6" /> : <ImageIcon size={12} color="#8b5cf6" />} {ad.media_type.toUpperCase()}
+                
+                <div style={{ position: 'absolute', top: '12px', left: '12px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 'bold', color: '#0f172a' }}>
+                  {ad.media_type === 'video' ? <Video size={14} color="#8b5cf6" /> : <ImageIcon size={14} color="#8b5cf6" />} {ad.media_type.toUpperCase()}
                 </div>
               </div>
-              <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                 <span style={{ fontSize: '11px', color: '#64748b' }}>เพิ่มเมื่อ: {new Date(ad.created_at).toLocaleDateString('th-TH')}</span>
-                 <button onClick={() => deleteItem('ad', ad.ad_id)} style={{ padding: '6px 12px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                   <Trash2 size={14} /> ลบออก
+
+              <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+                 <button onClick={() => deleteItem('ad', ad.ad_id)} style={{ width: '100%', padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
+                   <Trash2 size={16} /> ลบโฆษณานี้
                  </button>
               </div>
             </div>
