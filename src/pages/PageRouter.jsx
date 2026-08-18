@@ -41,6 +41,7 @@ import ManageThaiNumber from './ManageThaiNumber';
 import DailySaleThaiNumber from './DailySaleThaiNumber';
 import ThaiLotteryResults from './ThaiLotteryResults';
 import DepositPromotion from './DepositPromotion';
+import CommissionP2P from './CommissionP2P';
 
 
 
@@ -84,7 +85,8 @@ const componentsRegistry = {
   'ManageThaiNumber': ManageThaiNumber,
   'DailySaleThaiNumber': DailySaleThaiNumber,
   'ThaiLotteryResults': ThaiLotteryResults,
-  'DepositPromotion': DepositPromotion
+  'DepositPromotion': DepositPromotion,
+  'CommissionP2P': CommissionP2P
 };
 
 export default function PageRouter() {
