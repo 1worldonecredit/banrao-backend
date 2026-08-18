@@ -24,24 +24,30 @@ const CustomersRequestBook = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchRequests = async () => {
-    setIsLoading(true);
+ const fetchRequests = async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true); 
     try {
       const res = await fetch(`${API_URL}/api/admin/user-banks`); 
       const data = await res.json();
       if (data.success) {
-        // ดึงมาทั้งคำขอใหม่ และคำขอที่ส่งแก้มา
         setRequests(data.data.filter(req => req.status === 'Pending' || req.status === 'Re-submitted'));
       }
     } catch (error) {
-      console.error("Error fetching requests:", error);
+      console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchRequests();
+
+// ตั้งเวลาให้โหลดซ้ำทุกๆ 20 วินาที (20000 มิลลิวินาที)
+    const interval = setInterval(() => {
+      fetchRequests(true); // สั่งดึงข้อมูลใหม่แบบเงียบๆ
+    }, 20000);
+
+    return () => clearInterval(interval); // ล้างเวลาเมื่อปิดหน้าต่าง
   }, []);
 
   const handleViewDetails = (req) => {
