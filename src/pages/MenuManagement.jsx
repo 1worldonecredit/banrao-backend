@@ -228,6 +228,7 @@ const MenuManagement = () => {
                 <option value="ThaiLotteryResults">เพิ่มผลออกเลขรางวัลหวยไทย (ThaiLotteryResults)</option>
                 <option value="DepositPromotion">โปรโมชั่นฝากถอนเงิน P2P (DepositPromotion)</option>
                 <option value="CommissionP2P">ปรับ Commission P2P (CommissionP2P)</option>
+                <option value="SetTimeMission">ตั้งเวลาภารกิจ (SetTimeMission)</option>
               </select>
             </div>
 

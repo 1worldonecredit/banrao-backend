@@ -42,6 +42,7 @@ import DailySaleThaiNumber from './DailySaleThaiNumber';
 import ThaiLotteryResults from './ThaiLotteryResults';
 import DepositPromotion from './DepositPromotion';
 import CommissionP2P from './CommissionP2P';
+import SetTimeMission from './SetTimeMission';
 
 
 
@@ -86,7 +87,8 @@ const componentsRegistry = {
   'DailySaleThaiNumber': DailySaleThaiNumber,
   'ThaiLotteryResults': ThaiLotteryResults,
   'DepositPromotion': DepositPromotion,
-  'CommissionP2P': CommissionP2P
+  'CommissionP2P': CommissionP2P,
+  'SetTimeMission': SetTimeMission
 };
 
 export default function PageRouter() {
