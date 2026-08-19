@@ -45,30 +45,38 @@ const ThaiDateTimePicker = ({ label, value, onChange }) => {
   };
 
 
-  // 1. เมื่อกดปุ่มแก้ไขโฆษณา ให้ดึงข้อมูลเดิมมาใส่ Form และเปิด Popup
+  // 🌟 ฟังก์ชันตอนกดปุ่ม "แก้ไข" ในการ์ด
   const handleEditClick = (ad) => {
-    setEditingAd(ad);
-    setEditAdForm({ 
-      title: ad.title || '', 
-      description: ad.description || '' 
+    setEditModeId(ad.ad_id); // เปิดโหมดแก้ไข
+    
+    // ดันข้อมูลเดิมขึ้นไปใส่ในฟอร์มด้านบน
+    setNewAd({
+      title: ad.title || '',
+      description: ad.description || '',
+      media_url: ad.media_url, // ดึงไฟล์มาหลอกฟอร์มไว้ ให้ปุ่มกดทำงานได้
+      media_type: ad.media_type
     });
+    
+    // ไฮไลท์เด็ด: เลื่อนหน้าจอกลับขึ้นไปหาฟอร์มด้านบนสุดแบบนุ่มนวล
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 2. ฟังก์ชันส่งข้อมูลที่แก้ไปบันทึก
+  // 🌟 ฟังก์ชันตอนกดปุ่ม "บันทึกการแก้ไข"
   const handleSaveEditAd = async () => {
     try {
-      // ⚠️ เจ้านายต้องแน่ใจว่าหลังบ้านมี API รองรับการแก้ไขด้วยนะครับ (สมมติว่าเป็นแบบนี้)
-      const res = await fetch(`${API_URL}/api/admin/ads/${editingAd.ad_id}`, {
+      const res = await fetch(`${API_URL}/api/admin/ads/${editModeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editAdForm)
+        // ส่งแค่ชื่อกับรายละเอียดไปอัปเดต (เพราะไฟล์เราไม่ได้แก้)
+        body: JSON.stringify({ title: newAd.title, description: newAd.description }) 
       });
       const data = await res.json();
       
       if (data.success) {
         alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
-        setEditingAd(null);
-        fetchAllData(); // รีเฟรชข้อมูลหน้าจอใหม่
+        setEditModeId(null); // ปิดโหมดแก้ไข
+        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); // เคลียร์ฟอร์ม
+        fetchAllData(); // โหลดข้อมูลใหม่
       } else {
         alert(`ผิดพลาด: ${data.message}`);
       }
