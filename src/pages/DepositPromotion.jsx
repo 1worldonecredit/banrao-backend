@@ -461,39 +461,7 @@ const DepositPromotion = () => {
           ))}
         </div>
 
-        {/* 🌟 Popup สำหรับแก้ไข (จะแสดงเมื่อกดปุ่มแก้ไขเท่านั้น) */}
-        {editingAd && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', width: '90%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-              <h3 style={{ margin: '0 0 20px 0', color: '#0f172a' }}>แก้ไขรายละเอียด</h3>
-              
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#475569', fontWeight: 'bold' }}>หัวข้อ (Title)</label>
-                <input 
-                  type="text" 
-                  value={editAdForm.title} 
-                  onChange={(e) => setEditAdForm({...editAdForm, title: e.target.value})}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontFamily: 'inherit' }}
-                />
-              </div>
-              
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#475569', fontWeight: 'bold' }}>รายละเอียด (Description)</label>
-                <textarea 
-                  value={editAdForm.description} 
-                  onChange={(e) => setEditAdForm({...editAdForm, description: e.target.value})}
-                  rows="4"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setEditingAd(null)} style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>ยกเลิก</button>
-                <button onClick={handleSaveEditAd} style={{ padding: '10px 20px', backgroundColor: '#0284c7', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>บันทึกข้อมูล</button>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
 
       </div>
