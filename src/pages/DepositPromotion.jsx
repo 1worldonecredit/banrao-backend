@@ -114,8 +114,8 @@ const DepositPromotion = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-    const [editingAd, setEditingAd] = useState(null);
-const [editAdForm, setEditAdForm] = useState({ title: '', description: '' });
+ // 🌟 State สำหรับบอกว่าตอนนี้กำลัง "แก้ไข" โฆษณา ID ไหนอยู่ (ถ้าเป็น null คือโหมดเพิ่มใหม่)
+  const [editModeId, setEditModeId] = useState(null);
 
   const [formData, setFormData] = useState({
     deposit_bonus_percent: 0,
