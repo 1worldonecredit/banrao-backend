@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Percent, Clock, CalendarRange, Trash2, PlusCircle, RefreshCw, Zap, Image as ImageIcon, Video, Megaphone, Settings } from 'lucide-react';
+import { Save, Edit, Percent, Clock, CalendarRange, Trash2, PlusCircle, RefreshCw, Zap, Image as ImageIcon, Video, Megaphone, Settings } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -37,9 +37,46 @@ const ThaiDateTimePicker = ({ label, value, onChange }) => {
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
+  const [editingAd, setEditingAd] = useState(null);
+const [editAdForm, setEditAdForm] = useState({ title: '', description: '' });
+
   const handleChange = (field, val) => {
     const newValue = { ...value, [field]: val };
     onChange(newValue);
+  };
+
+
+  // 1. เมื่อกดปุ่มแก้ไขโฆษณา ให้ดึงข้อมูลเดิมมาใส่ Form และเปิด Popup
+  const handleEditClick = (ad) => {
+    setEditingAd(ad);
+    setEditAdForm({ 
+      title: ad.title || '', 
+      description: ad.description || '' 
+    });
+  };
+
+  // 2. ฟังก์ชันส่งข้อมูลที่แก้ไปบันทึก
+  const handleSaveEditAd = async () => {
+    try {
+      // ⚠️ เจ้านายต้องแน่ใจว่าหลังบ้านมี API รองรับการแก้ไขด้วยนะครับ (สมมติว่าเป็นแบบนี้)
+      const res = await fetch(`${API_URL}/api/admin/ads/${editingAd.ad_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editAdForm)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
+        setEditingAd(null);
+        fetchAllData(); // รีเฟรชข้อมูลหน้าจอใหม่
+      } else {
+        alert(`ผิดพลาด: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
   };
 
   return (
@@ -379,7 +416,7 @@ const DepositPromotion = () => {
         </form>
 
         {/* ตารางแสดงโฆษณา (ปรับสัดส่วน Preview เป็น 9:16 เหมือนจอมือถือ) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
           {ads.map(ad => (
             <div key={ad.ad_id} style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 15px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
               
@@ -401,14 +438,54 @@ const DepositPromotion = () => {
                 </div>
               </div>
 
-              <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
-                 <button onClick={() => deleteItem('ad', ad.ad_id)} style={{ width: '100%', padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
-                   <Trash2 size={16} /> ลบโฆษณานี้
+              {/* 🌟 เพิ่มปุ่มแก้ไข ไว้คู่กับปุ่มลบ */}
+              <div style={{ padding: '12px', display: 'flex', gap: '8px', backgroundColor: '#f8fafc' }}>
+                 <button onClick={() => handleEditClick(ad)} style={{ flex: 1, padding: '10px', backgroundColor: '#e0f2fe', color: '#0284c7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
+                   <Edit size={16} /> แก้ไข
+                 </button>
+                 <button onClick={() => deleteItem('ad', ad.ad_id)} style={{ flex: 1, padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
+                   <Trash2 size={16} /> ลบ
                  </button>
               </div>
             </div>
           ))}
         </div>
+
+        {/* 🌟 Popup สำหรับแก้ไข (จะแสดงเมื่อกดปุ่มแก้ไขเท่านั้น) */}
+        {editingAd && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', width: '90%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#0f172a' }}>แก้ไขรายละเอียด</h3>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#475569', fontWeight: 'bold' }}>หัวข้อ (Title)</label>
+                <input 
+                  type="text" 
+                  value={editAdForm.title} 
+                  onChange={(e) => setEditAdForm({...editAdForm, title: e.target.value})}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontFamily: 'inherit' }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#475569', fontWeight: 'bold' }}>รายละเอียด (Description)</label>
+                <textarea 
+                  value={editAdForm.description} 
+                  onChange={(e) => setEditAdForm({...editAdForm, description: e.target.value})}
+                  rows="4"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setEditingAd(null)} style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>ยกเลิก</button>
+                <button onClick={handleSaveEditAd} style={{ padding: '10px 20px', backgroundColor: '#0284c7', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>บันทึกข้อมูล</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
       </div>
 
       <style>{`
