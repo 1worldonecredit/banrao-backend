@@ -37,8 +37,7 @@ const ThaiDateTimePicker = ({ label, value, onChange }) => {
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-  const [editingAd, setEditingAd] = useState(null);
-const [editAdForm, setEditAdForm] = useState({ title: '', description: '' });
+
 
   const handleChange = (field, val) => {
     const newValue = { ...value, [field]: val };
@@ -114,6 +113,9 @@ const DepositPromotion = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+    const [editingAd, setEditingAd] = useState(null);
+const [editAdForm, setEditAdForm] = useState({ title: '', description: '' });
 
   const [formData, setFormData] = useState({
     deposit_bonus_percent: 0,
