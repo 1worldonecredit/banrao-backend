@@ -378,32 +378,64 @@ const DepositPromotion = () => {
           <Megaphone size={22} color="#8b5cf6" /> คลังป้ายโฆษณา (อัปโหลดวิดีโอ/รูปภาพ 9:16)
         </h4>
 
-        {/* ฟอร์มเพิ่มโฆษณา (แบบอัปโหลดไฟล์) */}
-        <form onSubmit={handleAddAd} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+       {/* 🌟 ฟอร์มหลัก (อัจฉริยะ: เป็นทั้งปุ่ม "เพิ่ม" และ "แก้ไข") */}
+        <form 
+          onSubmit={(e) => { 
+            e.preventDefault(); 
+            editModeId ? handleSaveEditAd() : handleAddAd(e); // แยกทางแยกว่าจะวิ่งไปฟังก์ชันไหน
+          }} 
+          style={{ 
+            backgroundColor: editModeId ? '#f0f9ff' : '#f8fafc', // ถ้าโหมดแก้ พื้นหลังจะเปลี่ยนสีฟ้าอ่อน
+            padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px',
+            border: editModeId ? '2px solid #0ea5e9' : '1px solid transparent' // ใส่กรอบให้ชัดเจนตอนกดแก้ไข
+          }}
+        >
+          
+          {/* แสดงข้อความเตือนเมื่ออยู่ในโหมดแก้ไข */}
+          {editModeId && (
+            <div style={{ gridColumn: 'span 2', color: '#0284c7', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '-5px' }}>
+              <Edit size={18} /> โหมดแก้ไขรายละเอียดโฆษณา (ไฟล์วิดีโอ/รูปเดิม จะไม่ถูกแก้ไข)
+            </div>
+          )}
+
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>หัวข้อ (Title)</label>
-            <input type="text" placeholder="เช่น โปรเด็ดประจำสัปดาห์" value={newAd.title} onChange={e => setNewAd({...newAd, title: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+            <input 
+              type="text" 
+              placeholder="เช่น โปรเด็ดประจำสัปดาห์" 
+              value={newAd.title} // 🌟 ดึงข้อมูลมาโชว์ในช่อง
+              onChange={e => setNewAd({...newAd, title: e.target.value})} 
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
+            />
           </div>
+          
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>คำอธิบาย (Description)</label>
-            <input type="text" placeholder="พิมพ์รายละเอียดสั้นๆ..." value={newAd.description} onChange={e => setNewAd({...newAd, description: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+            <input 
+              type="text" 
+              placeholder="พิมพ์รายละเอียดสั้นๆ..." 
+              value={newAd.description} // 🌟 ดึงข้อมูลมาโชว์ในช่อง
+              onChange={e => setNewAd({...newAd, description: e.target.value})} 
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
+            />
           </div>
           
           <div style={{ gridColumn: 'span 2', display: 'flex', gap: '15px', alignItems: 'end', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+            
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#8b5cf6', marginBottom: '8px' }}>
-                📁 อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
+                📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
               </label>
               <input 
                 type="file" 
                 accept="image/*,video/mp4,video/webm" 
+                disabled={editModeId !== null} // 🌟 ล็อคปุ่มเลือกไฟล์เมื่ออยู่ในโหมดแก้ไข
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (!file) return;
                   
-                  // 🌟 บังคับขนาดสูงสุด 10MB เพื่อไม่ให้แอปมือถือลูกค้าแคชเต็ม
                   if (file.size > 10 * 1024 * 1024) {
-                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 3MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
+                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
                   }
                   
                   const reader = new FileReader();
@@ -416,12 +448,39 @@ const DepositPromotion = () => {
                   };
                   reader.readAsDataURL(file);
                 }} 
-                style={{ width: '100%', padding: '8px', cursor: 'pointer' }} 
+                style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
               />
             </div>
-            <button type="submit" disabled={!newAd.media_url} style={{ padding: '10px 25px', backgroundColor: newAd.media_url ? '#8b5cf6' : '#cbd5e1', color: 'white', border: 'none', borderRadius: '8px', cursor: newAd.media_url ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', height: '42px' }}>
-              <PlusCircle size={18} /> บันทึกเข้า DB
+            
+            {/* ปุ่มยกเลิก (โชว์เฉพาะตอนกดแก้ไข) */}
+            {editModeId && (
+              <button 
+                type="button" 
+                onClick={() => { 
+                  setEditModeId(null); 
+                  setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); 
+                }} 
+                style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ยกเลิก
+              </button>
+            )}
+
+            {/* ปุ่ม Submit (เปลี่ยนข้อความและสีอัตโนมัติตามโหมด) */}
+            <button 
+              type="submit" 
+              disabled={!newAd.media_url && !editModeId} // ปลดล็อคปุ่มถ้าอยู่ในโหมดแก้ไข
+              style={{ 
+                padding: '10px 25px', 
+                backgroundColor: (newAd.media_url || editModeId) ? (editModeId ? '#0284c7' : '#8b5cf6') : '#cbd5e1', 
+                color: 'white', border: 'none', borderRadius: '8px', 
+                cursor: (newAd.media_url || editModeId) ? 'pointer' : 'not-allowed', 
+                fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', height: '42px' 
+              }}
+            >
+              {editModeId ? <><Edit size={18} /> บันทึกการแก้ไข</> : <><PlusCircle size={18} /> บันทึกเข้า DB</>}
             </button>
+
           </div>
         </form>
 
