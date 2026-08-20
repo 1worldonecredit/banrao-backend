@@ -45,47 +45,7 @@ const ThaiDateTimePicker = ({ label, value, onChange }) => {
   };
 
 
-  // 🌟 ฟังก์ชันตอนกดปุ่ม "แก้ไข" ในการ์ด
-  const handleEditClick = (ad) => {
-    setEditModeId(ad.ad_id); // เปิดโหมดแก้ไข
-    
-    // ดันข้อมูลเดิมขึ้นไปใส่ในฟอร์มด้านบน
-    setNewAd({
-      title: ad.title || '',
-      description: ad.description || '',
-      media_url: ad.media_url, // ดึงไฟล์มาหลอกฟอร์มไว้ ให้ปุ่มกดทำงานได้
-      media_type: ad.media_type
-    });
-    
-    // ไฮไลท์เด็ด: เลื่อนหน้าจอกลับขึ้นไปหาฟอร์มด้านบนสุดแบบนุ่มนวล
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // 🌟 ฟังก์ชันตอนกดปุ่ม "บันทึกการแก้ไข"
-  const handleSaveEditAd = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/ads/${editModeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        // ส่งแค่ชื่อกับรายละเอียดไปอัปเดต (เพราะไฟล์เราไม่ได้แก้)
-        body: JSON.stringify({ title: newAd.title, description: newAd.description }) 
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
-        setEditModeId(null); // ปิดโหมดแก้ไข
-        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); // เคลียร์ฟอร์ม
-        fetchAllData(); // โหลดข้อมูลใหม่
-      } else {
-        alert(`ผิดพลาด: ${data.message}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-    }
-  };
-
+ 
   return (
     <div style={{ marginBottom: '15px' }}>
       <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#166534', marginBottom: '8px', textAlign: 'center' }}>
@@ -177,6 +137,48 @@ const DepositPromotion = () => {
 
     } catch (err) { console.error("Fetch Error:", err); } 
     finally { setIsLoading(false); }
+  };
+
+
+   // 🌟 ฟังก์ชันตอนกดปุ่ม "แก้ไข" ในการ์ด
+  const handleEditClick = (ad) => {
+    setEditModeId(ad.ad_id); // เปิดโหมดแก้ไข
+    
+    // ดันข้อมูลเดิมขึ้นไปใส่ในฟอร์มด้านบน
+    setNewAd({
+      title: ad.title || '',
+      description: ad.description || '',
+      media_url: ad.media_url, // ดึงไฟล์มาหลอกฟอร์มไว้ ให้ปุ่มกดทำงานได้
+      media_type: ad.media_type
+    });
+    
+    // ไฮไลท์เด็ด: เลื่อนหน้าจอกลับขึ้นไปหาฟอร์มด้านบนสุดแบบนุ่มนวล
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 🌟 ฟังก์ชันตอนกดปุ่ม "บันทึกการแก้ไข"
+  const handleSaveEditAd = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/ads/${editModeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        // ส่งแค่ชื่อกับรายละเอียดไปอัปเดต (เพราะไฟล์เราไม่ได้แก้)
+        body: JSON.stringify({ title: newAd.title, description: newAd.description }) 
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
+        setEditModeId(null); // ปิดโหมดแก้ไข
+        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); // เคลียร์ฟอร์ม
+        fetchAllData(); // โหลดข้อมูลใหม่
+      } else {
+        alert(`ผิดพลาด: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
   };
 
   const handleSaveSettings = async (e) => {
