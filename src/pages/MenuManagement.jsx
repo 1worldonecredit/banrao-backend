@@ -229,6 +229,7 @@ const MenuManagement = () => {
                 <option value="DepositPromotion">โปรโมชั่นฝากถอนเงิน P2P (DepositPromotion)</option>
                 <option value="CommissionP2P">ปรับ Commission P2P (CommissionP2P)</option>
                 <option value="SetTimeMission">ตั้งเวลาภารกิจ (SetTimeMission)</option>
+                <option value="CustomerUnderSurveillance">รายชื่อลูกค้าเฝ่าระวัง (CustomerUnderSurveillance)</option>
               </select>
             </div>
 
