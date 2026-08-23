@@ -11,16 +11,14 @@ const HRMResources = () => {
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
 
-  // 🌟 Form States
+  // 🌟 Form States (เอารหัสออกตอนเริ่ม)
   const [branchForm, setBranchForm] = useState({ branch_code: '', branch_name: '', country_code: 'TH' });
   const [deptForm, setDeptForm] = useState({ dept_code: '', dept_name: '' });
   const [positionForm, setPositionForm] = useState({ position_code: '', position_name: '', dept_code: '', base_salary: '' });
 
-  // 🌟 Edit States (เอาไว้จำว่ากำลังแก้ไขตัวไหนอยู่)
   const [editingBranch, setEditingBranch] = useState(null);
   const [editingDept, setEditingDept] = useState(null);
   const [editingPosition, setEditingPosition] = useState(null);
-
   const [expandedDept, setExpandedDept] = useState(null);
 
   const fetchData = async () => {
@@ -44,12 +42,11 @@ const HRMResources = () => {
     fetchData();
   }, []);
 
-  // 🌟 ฟังก์ชันบันทึกข้อมูล (ใช้ได้ทั้ง สร้างใหม่ และ อัปเดต)
   const handleSave = async (type, formData, setFormFn, initialForm, setEditingFn) => {
-    // เช็คว่ามีค่าพื้นฐานครบไหม
-    if (type === 'branch' && (!formData.branch_code || !formData.branch_name)) return alert('กรุณากรอกข้อมูลสาขาให้ครบครับ');
-    if (type === 'department' && (!formData.dept_code || !formData.dept_name)) return alert('กรุณากรอกข้อมูลแผนกให้ครบครับ');
-    if (type === 'position' && (!formData.position_code || !formData.position_name || !formData.dept_code || !formData.base_salary)) return alert('กรุณากรอกข้อมูลตำแหน่งและเงินเดือนให้ครบครับ');
+    // เอาเรื่องเช็ครหัสออก เพราะเดี๋ยว API สร้างให้
+    if (type === 'branch' && !formData.branch_name) return alert('กรุณากรอกชื่อสาขา');
+    if (type === 'department' && !formData.dept_name) return alert('กรุณากรอกชื่อแผนก');
+    if (type === 'position' && (!formData.position_name || !formData.dept_code || !formData.base_salary)) return alert('กรุณากรอกข้อมูลให้ครบ');
 
     try {
       const res = await fetch(`${API_URL}/api/hrm/${type}`, {
@@ -59,9 +56,9 @@ const HRMResources = () => {
       });
       const data = await res.json();
       if (data.success) {
-        alert('✅ บันทึกข้อมูลสำเร็จ');
+        alert(`✅ บันทึกสำเร็จ! ${data.new_code ? `รหัสใหม่คือ: ${data.new_code}` : ''}`);
         setFormFn(initialForm); 
-        if(setEditingFn) setEditingFn(null); // ยกเลิกสถานะแก้ไข
+        if(setEditingFn) setEditingFn(null); 
         fetchData(); 
       } else {
         alert(`❌ ${data.message}`);
@@ -71,7 +68,6 @@ const HRMResources = () => {
     }
   };
 
-  // ==================== ฟังก์ชันสำหรับกดปุ่ม "แก้ไข" ====================
   const startEditBranch = (b) => {
     setEditingBranch(b.branch_code);
     setBranchForm({ branch_code: b.branch_code, branch_name: b.branch_name, country_code: b.country_code });
@@ -87,9 +83,10 @@ const HRMResources = () => {
   const startEditPosition = (p) => {
     setEditingPosition(p.position_code);
     setPositionForm({ position_code: p.position_code, position_name: p.position_name, dept_code: p.dept_code, base_salary: p.base_salary });
+    // ถ้าแก้ตำแหน่ง ให้ยืดแผนกนั้นออกด้วย จะได้ไม่งง
+    setExpandedDept(p.dept_code);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  // ======================================================================
 
   const toggleDept = (deptCode) => {
       setExpandedDept(expandedDept === deptCode ? null : deptCode);
@@ -142,7 +139,7 @@ const HRMResources = () => {
                         )}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                      <input type="text" placeholder="รหัสสาขา (ห้ามซ้ำ)" value={branchForm.branch_code} onChange={e => setBranchForm({...branchForm, branch_code: e.target.value.toUpperCase()})} disabled={editingBranch !== null} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: editingBranch ? '#e2e8f0' : 'white', cursor: editingBranch ? 'not-allowed' : 'text' }} />
+                      <input type="text" placeholder="รหัสสาขา (Auto)" value={branchForm.branch_code} onChange={e => setBranchForm({...branchForm, branch_code: e.target.value.toUpperCase()})} disabled={!editingBranch} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#e2e8f0', cursor: 'not-allowed', display: editingBranch ? 'block' : 'none' }} />
                       <input type="text" placeholder="ชื่อสาขา" value={branchForm.branch_name} onChange={e => setBranchForm({...branchForm, branch_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                       <select value={branchForm.country_code} onChange={e => setBranchForm({...branchForm, country_code: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <option value="TH">ไทย (TH)</option>
@@ -182,14 +179,14 @@ const HRMResources = () => {
                    <div style={{ backgroundColor: editingDept ? '#f3e8ff' : '#fffbeb', border: `1px solid ${editingDept ? '#e9d5ff' : '#fde68a'}`, padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                         <h4 style={{ margin: 0, color: editingDept ? '#7e22ce' : '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {editingDept ? <><Edit3 size={18} /> กำลังแก้ไขแผนก: {editingDept}</> : <><Plus size={18} /> เพิ่มแผนกใหม่ (Department)</>}
+                            {editingDept ? <><Edit3 size={18} /> กำลังแก้ไขแผนก: {editingDept}</> : <><Plus size={18} /> เพิ่มแผนกใหม่ (ระบบสร้างรหัสให้อัตโนมัติ)</>}
                         </h4>
                         {editingDept && (
                             <button onClick={() => { setEditingDept(null); setDeptForm({ dept_code: '', dept_name: '' }); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}><X size={14}/> ยกเลิกการแก้ไข</button>
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: '15px' }}>
-                      <input type="text" placeholder="รหัสแผนก (ห้ามซ้ำ)" value={deptForm.dept_code} onChange={e => setDeptForm({...deptForm, dept_code: e.target.value.toUpperCase()})} disabled={editingDept !== null} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: editingDept ? '#e2e8f0' : 'white', cursor: editingDept ? 'not-allowed' : 'text' }} />
+                      <input type="text" placeholder="รหัสแผนก" value={deptForm.dept_code} disabled style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#e2e8f0', cursor: 'not-allowed', display: editingDept ? 'block' : 'none' }} />
                       <input type="text" placeholder="ชื่อแผนก" value={deptForm.dept_name} onChange={e => setDeptForm({...deptForm, dept_name: e.target.value})} style={{ flex: 2, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                       <button onClick={() => handleSave('department', deptForm, setDeptForm, { dept_code: '', dept_name: '' }, setEditingDept)} style={{ backgroundColor: editingDept ? '#7e22ce' : '#d97706', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', padding: '10px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '5px' }}>
                         <Save size={16} /> {editingDept ? 'บันทึกการแก้ไข' : 'บันทึกแผนกใหม่'}
@@ -201,28 +198,31 @@ const HRMResources = () => {
                   <div style={{ backgroundColor: editingPosition ? '#e0f2fe' : '#f5f3ff', border: `1px solid ${editingPosition ? '#bae6fd' : '#ddd6fe'}`, padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                         <h4 style={{ margin: 0, color: editingPosition ? '#0369a1' : '#6d28d9', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {editingPosition ? <><Edit3 size={18} /> กำลังแก้ไขตำแหน่ง: {editingPosition}</> : <><Plus size={18} /> เพิ่มตำแหน่งงานในแผนก (Position)</>}
+                            {editingPosition ? <><Edit3 size={18} /> กำลังแก้ไขตำแหน่ง: {editingPosition}</> : <><Plus size={18} /> เพิ่มตำแหน่งงานในแผนก (ระบบสร้างรหัสให้อัตโนมัติ)</>}
                         </h4>
                         {editingPosition && (
                             <button onClick={() => { setEditingPosition(null); setPositionForm({ position_code: '', position_name: '', dept_code: '', base_salary: '' }); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}><X size={14}/> ยกเลิกการแก้ไข</button>
                         )}
                     </div>
-                    {/* 🌟 ปรับ Grid ใหม่ตรงนี้ครับ ให้มัน Auto-fit แล้วค่อยเรียงลงมาถ้าจอแคบ */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', alignItems: 'center' }}>
-                      <select value={positionForm.dept_code} onChange={e => setPositionForm({...positionForm, dept_code: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <select value={positionForm.dept_code} onChange={e => setPositionForm({...positionForm, dept_code: e.target.value})} disabled={editingPosition !== null} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: editingPosition ? '#e2e8f0' : 'white' }}>
                         <option value="">-- เลือกสังกัดแผนก --</option>
                         {departments.map(d => <option key={d.dept_code} value={d.dept_code}>{d.dept_name}</option>)}
                       </select>
-                      <input type="text" placeholder="รหัสตำแหน่ง (ห้ามซ้ำ)" value={positionForm.position_code} onChange={e => setPositionForm({...positionForm, position_code: e.target.value.toUpperCase()})} disabled={editingPosition !== null} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: editingPosition ? '#e2e8f0' : 'white', cursor: editingPosition ? 'not-allowed' : 'text' }} />
+                      
+                      {/* ซ่อนช่องรหัสไว้ จะโชว์เฉพาะตอนกดแก้ไข */}
+                      <input type="text" placeholder="รหัสตำแหน่ง" value={positionForm.position_code} disabled style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#e2e8f0', display: editingPosition ? 'block' : 'none' }} />
+                      
                       <input type="text" placeholder="ชื่อตำแหน่ง" value={positionForm.position_name} onChange={e => setPositionForm({...positionForm, position_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                       <input type="number" placeholder="เงินเดือนเริ่มต้น" value={positionForm.base_salary} onChange={e => setPositionForm({...positionForm, base_salary: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      
                       <button onClick={() => handleSave('position', positionForm, setPositionForm, { position_code: '', position_name: '', dept_code: '', base_salary: '' }, setEditingPosition)} style={{ backgroundColor: editingPosition ? '#0284c7' : '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', padding: '10px' }}>
                         <Save size={16} /> {editingPosition ? 'บันทึกการแก้ไข' : 'บันทึกตำแหน่งใหม่'}
                       </button>
                     </div>
                   </div>
 
-                  {/* 🌟 ตารางแสดงแผนกและตำแหน่ง (แก้ไขได้ ไม่มีปุ่มลบ) */}
+                  {/* 🌟 ตารางแสดงแผนกและตำแหน่ง */}
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                       <thead>
@@ -255,7 +255,6 @@ const HRMResources = () => {
                               </td>
                             </tr>
                             
-                            {/* 🌟 แสดงตำแหน่งลูกๆ เมื่อถูกขยาย */}
                             {expandedDept === d.dept_code && (
                               <tr>
                                 <td colSpan="5" style={{ padding: 0 }}>
