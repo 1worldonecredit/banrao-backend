@@ -207,7 +207,8 @@ const HRMResources = () => {
                             <button onClick={() => { setEditingPosition(null); setPositionForm({ position_code: '', position_name: '', dept_code: '', base_salary: '' }); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}><X size={14}/> ยกเลิกการแก้ไข</button>
                         )}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1fr 1.5fr', gap: '15px' }}>
+                    {/* 🌟 ปรับ Grid ใหม่ตรงนี้ครับ ให้มัน Auto-fit แล้วค่อยเรียงลงมาถ้าจอแคบ */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', alignItems: 'center' }}>
                       <select value={positionForm.dept_code} onChange={e => setPositionForm({...positionForm, dept_code: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <option value="">-- เลือกสังกัดแผนก --</option>
                         {departments.map(d => <option key={d.dept_code} value={d.dept_code}>{d.dept_name}</option>)}
