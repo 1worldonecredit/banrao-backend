@@ -230,6 +230,7 @@ const MenuManagement = () => {
                 <option value="CommissionP2P">ปรับ Commission P2P (CommissionP2P)</option>
                 <option value="SetTimeMission">ตั้งเวลาภารกิจ (SetTimeMission)</option>
                 <option value="CustomerUnderSurveillance">รายชื่อลูกค้าเฝ่าระวัง (CustomerUnderSurveillance)</option>
+                <option value="JobRecruitmentPost">โพ็สรับสมัครคนทำงานหน้าเว็บ (JobRecruitmentPost)</option>
               </select>
             </div>
 
