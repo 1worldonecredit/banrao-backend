@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Network, Briefcase, Plus, Save, Trash2, RefreshCw } from 'lucide-react';
+import { Building2, Network, Briefcase, Plus, Save, Trash2, RefreshCw, ChevronDown, ChevronUp, Users } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -15,7 +15,9 @@ const HRMResources = () => {
   const [deptForm, setDeptForm] = useState({ dept_code: '', dept_name: '' });
   const [positionForm, setPositionForm] = useState({ position_code: '', position_name: '', dept_code: '', base_salary: '', hourly_rate: '', ot_multiplier: '1.5' });
 
-  // ดึงข้อมูลจริงจาก Database
+  // 🌟 State สำหรับเปิด/ปิด แถวรายละเอียดของแต่ละแผนก
+  const [expandedDept, setExpandedDept] = useState(null);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -37,7 +39,6 @@ const HRMResources = () => {
     fetchData();
   }, []);
 
-  // ฟังก์ชันบันทึกข้อมูลแบบ Dynamic
   const handleSave = async (type, formData, setFormFn, initialForm) => {
     try {
       const res = await fetch(`${API_URL}/api/hrm/${type}`, {
@@ -48,8 +49,8 @@ const HRMResources = () => {
       const data = await res.json();
       if (data.success) {
         alert('✅ บันทึกข้อมูลสำเร็จ');
-        setFormFn(initialForm); // ล้างฟอร์ม
-        fetchData(); // โหลดตารางใหม่
+        setFormFn(initialForm); 
+        fetchData(); 
       } else {
         alert(`❌ ${data.message}`);
       }
@@ -58,7 +59,6 @@ const HRMResources = () => {
     }
   };
 
-  // ฟังก์ชันลบข้อมูล
   const handleDelete = async (type, code) => {
     if (!window.confirm(`ยืนยันการลบรหัส: ${code} หรือไม่?`)) return;
     try {
@@ -72,6 +72,15 @@ const HRMResources = () => {
     } catch (err) {
       alert('⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
     }
+  };
+
+  const toggleDept = (deptCode) => {
+      setExpandedDept(expandedDept === deptCode ? null : deptCode);
+  };
+
+  // 🌟 ฟังก์ชันนับจำนวนตำแหน่งในแผนก
+  const countPositionsInDept = (deptCode) => {
+      return positions.filter(p => p.dept_code === deptCode).length;
   };
 
   const tabStyle = (isActive) => ({
@@ -95,9 +104,9 @@ const HRMResources = () => {
       <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
         
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', overflowX: 'auto' }}>
-          <div onClick={() => setActiveTab('branches')} style={tabStyle(activeTab === 'branches')}><Building2 size={18} /> 1. สาขา (Branches)</div>
-          <div onClick={() => setActiveTab('departments')} style={tabStyle(activeTab === 'departments')}><Network size={18} /> 2. แผนก (Departments)</div>
-          <div onClick={() => setActiveTab('positions')} style={tabStyle(activeTab === 'positions')}><Briefcase size={18} /> 3. ตำแหน่ง (Positions)</div>
+          <div onClick={() => setActiveTab('branches')} style={tabStyle(activeTab === 'branches')}><Building2 size={18} /> 1. สาขา ({branches.length})</div>
+          <div onClick={() => setActiveTab('departments')} style={tabStyle(activeTab === 'departments')}><Network size={18} /> 2. แผนกและตำแหน่ง ({departments.length})</div>
+          {/* ซ่อนแท็บ Position แบบเดี่ยวๆ ไปเลย เพราะเราจะเอามารวมกับแผนกแล้ว */}
         </div>
 
         <div style={{ padding: '25px' }}>
@@ -140,69 +149,111 @@ const HRMResources = () => {
                 </div>
               )}
 
-              {/* ==================== DEPARTMENTS ==================== */}
+              {/* ==================== DEPARTMENTS & POSITIONS (รวมกัน) ==================== */}
               {activeTab === 'departments' && (
                 <div>
+                   {/* 🌟 ฟอร์มเพิ่มแผนก */}
                    <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
-                    <h4 style={{ margin: '0 0 15px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> เพิ่มแผนกใหม่</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                      <input type="text" placeholder="รหัสแผนก (เช่น IT)" value={deptForm.dept_code} onChange={e => setDeptForm({...deptForm, dept_code: e.target.value.toUpperCase()})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                      <input type="text" placeholder="ชื่อแผนก (เช่น Information Technology)" value={deptForm.dept_name} onChange={e => setDeptForm({...deptForm, dept_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                      <button onClick={() => handleSave('department', deptForm, setDeptForm, { dept_code: '', dept_name: '' })} style={{ backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', padding: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '5px' }}>
-                        <Save size={16} /> บันทึก
+                    <h4 style={{ margin: '0 0 15px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> เพิ่มแผนกใหม่ (Department)</h4>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                      <input type="text" placeholder="รหัสแผนก (เช่น IT)" value={deptForm.dept_code} onChange={e => setDeptForm({...deptForm, dept_code: e.target.value.toUpperCase()})} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      <input type="text" placeholder="ชื่อแผนก (เช่น Information Technology)" value={deptForm.dept_name} onChange={e => setDeptForm({...deptForm, dept_name: e.target.value})} style={{ flex: 2, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      <button onClick={() => handleSave('department', deptForm, setDeptForm, { dept_code: '', dept_name: '' })} style={{ backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', padding: '10px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '5px' }}>
+                        <Save size={16} /> บันทึกแผนก
                       </button>
                     </div>
                   </div>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
-                      <thead><tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}><th style={{ padding: '12px' }}>รหัสแผนก</th><th style={{ padding: '12px' }}>ชื่อแผนก</th><th style={{ padding: '12px', width:'80px', textAlign: 'center' }}>จัดการ</th></tr></thead>
-                      <tbody>
-                        {departments.map(d => (
-                          <tr key={d.dept_code} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#d97706' }}>{d.dept_code}</td>
-                            <td style={{ padding: '12px', fontWeight: 'bold' }}>{d.dept_name}</td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}><button onClick={() => handleDelete('dept', d.dept_code)} style={{ background:'none', border:'none', color:'#ef4444', cursor:'pointer' }}><Trash2 size={18}/></button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
 
-              {/* ==================== POSITIONS ==================== */}
-              {activeTab === 'positions' && (
-                <div>
-                   <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
-                    <h4 style={{ margin: '0 0 15px 0', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> เพิ่มตำแหน่งงานและฐานเงินเดือน</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                      <input type="text" placeholder="รหัสตำแหน่ง (เช่น DEV)" value={positionForm.position_code} onChange={e => setPositionForm({...positionForm, position_code: e.target.value.toUpperCase()})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                      <input type="text" placeholder="ชื่อตำแหน่ง" value={positionForm.position_name} onChange={e => setPositionForm({...positionForm, position_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  {/* 🌟 ฟอร์มเพิ่มตำแหน่ง (เชื่อมกับแผนก) */}
+                  <div style={{ backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> เพิ่มตำแหน่งงานในแผนก (Position)</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1fr', gap: '15px' }}>
                       <select value={positionForm.dept_code} onChange={e => setPositionForm({...positionForm, dept_code: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <option value="">-- เลือกสังกัดแผนก --</option>
                         {departments.map(d => <option key={d.dept_code} value={d.dept_code}>{d.dept_name}</option>)}
                       </select>
-                      <input type="number" placeholder="ฐานเงินเดือน" value={positionForm.base_salary} onChange={e => setPositionForm({...positionForm, base_salary: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                      <input type="number" placeholder="ค่าล่วงเวลา (OT)" value={positionForm.hourly_rate} onChange={e => setPositionForm({...positionForm, hourly_rate: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                      <button onClick={() => handleSave('position', positionForm, setPositionForm, { position_code: '', position_name: '', dept_code: '', base_salary: '', hourly_rate: '', ot_multiplier: '1.5' })} style={{ backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', padding: '10px' }}>
+                      <input type="text" placeholder="รหัสตำแหน่ง (เช่น DEV)" value={positionForm.position_code} onChange={e => setPositionForm({...positionForm, position_code: e.target.value.toUpperCase()})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      <input type="text" placeholder="ชื่อตำแหน่ง" value={positionForm.position_name} onChange={e => setPositionForm({...positionForm, position_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      
+                      {/* ซ่อนช่องเงินเดือนไปเลย */}
+                      <input type="hidden" value={positionForm.base_salary} />
+                      <input type="hidden" value={positionForm.hourly_rate} />
+                      
+                      <button onClick={() => handleSave('position', positionForm, setPositionForm, { position_code: '', position_name: '', dept_code: '', base_salary: '0', hourly_rate: '0', ot_multiplier: '1.5' })} style={{ backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', padding: '10px' }}>
                         <Save size={16} /> บันทึกตำแหน่ง
                       </button>
                     </div>
                   </div>
 
+                  {/* 🌟 ตารางแสดงแผนก (คลิกเพื่อขยายดูตำแหน่งได้) */}
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-                      <thead><tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}><th style={{ padding: '12px' }}>รหัสตำแหน่ง</th><th style={{ padding: '12px' }}>ชื่อตำแหน่ง</th><th style={{ padding: '12px' }}>แผนก</th><th style={{ padding: '12px' }}>ฐานเงินเดือน</th><th style={{ padding: '12px' }}>ค่าล่วงเวลา</th><th style={{ padding: '12px', width:'80px', textAlign: 'center' }}>จัดการ</th></tr></thead>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                          <th style={{ padding: '12px', width: '40px' }}></th>
+                          <th style={{ padding: '12px' }}>รหัสแผนก</th>
+                          <th style={{ padding: '12px' }}>ชื่อแผนก</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>จำนวนตำแหน่ง</th>
+                          <th style={{ padding: '12px', width:'80px', textAlign: 'center' }}>ลบแผนก</th>
+                        </tr>
+                      </thead>
                       <tbody>
-                        {positions.map(p => (
-                          <tr key={p.position_code} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#7c3aed' }}>{p.position_code}</td>
-                            <td style={{ padding: '12px', fontWeight: 'bold' }}>{p.position_name}</td>
-                            <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>{p.dept_code}</span></td>
-                            <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>฿{Number(p.base_salary).toLocaleString()}</td>
-                            <td style={{ padding: '12px' }}>฿{Number(p.hourly_rate).toLocaleString()}/ชม.</td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}><button onClick={() => handleDelete('position', p.position_code)} style={{ background:'none', border:'none', color:'#ef4444', cursor:'pointer' }}><Trash2 size={18}/></button></td>
-                          </tr>
+                        {departments.map(d => (
+                          <React.Fragment key={d.dept_code}>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: expandedDept === d.dept_code ? '#f0f9ff' : 'white', transition: '0.2s' }}>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                <button onClick={() => toggleDept(d.dept_code)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ea5e9' }}>
+                                  {expandedDept === d.dept_code ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </button>
+                              </td>
+                              <td style={{ padding: '12px', fontWeight: 'bold', color: '#d97706' }}>{d.dept_code}</td>
+                              <td style={{ padding: '12px', fontWeight: 'bold' }}>{d.dept_name}</td>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                                  {countPositionsInDept(d.dept_code)} ตำแหน่ง
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                <button onClick={() => handleDelete('dept', d.dept_code)} style={{ background:'none', border:'none', color:'#ef4444', cursor:'pointer' }}><Trash2 size={18}/></button>
+                              </td>
+                            </tr>
+                            
+                            {/* 🌟 แสดงตำแหน่งลูกๆ เมื่อถูกขยาย */}
+                            {expandedDept === d.dept_code && (
+                              <tr>
+                                <td colSpan="5" style={{ padding: 0 }}>
+                                  <div style={{ backgroundColor: '#f8fafc', padding: '15px 15px 15px 50px', borderBottom: '1px solid #e2e8f0' }}>
+                                    
+                                    {positions.filter(p => p.dept_code === d.dept_code).length > 0 ? (
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                        <thead>
+                                          <tr style={{ backgroundColor: '#ede9fe', color: '#5b21b6' }}>
+                                            <th style={{ padding: '10px' }}>รหัสตำแหน่ง</th>
+                                            <th style={{ padding: '10px' }}>ชื่อตำแหน่ง</th>
+                                            <th style={{ padding: '10px', width: '80px', textAlign: 'center' }}>ลบตำแหน่ง</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {positions.filter(p => p.dept_code === d.dept_code).map(p => (
+                                            <tr key={p.position_code} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                              <td style={{ padding: '10px', fontWeight: 'bold', color: '#7c3aed' }}>{p.position_code}</td>
+                                              <td style={{ padding: '10px' }}>{p.position_name}</td>
+                                              <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                <button onClick={() => handleDelete('position', p.position_code)} style={{ background:'none', border:'none', color:'#ef4444', cursor:'pointer' }}><Trash2 size={16}/></button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    ) : (
+                                      <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>-- ยังไม่มีตำแหน่งงานในแผนกนี้ --</div>
+                                    )}
+
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
