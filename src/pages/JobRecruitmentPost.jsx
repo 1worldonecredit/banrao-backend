@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Calendar, Type, AlignLeft, ToggleLeft, ToggleRight, Clock, Info } from 'lucide-react';
+import { Save, Calendar, Type, AlignLeft, ToggleLeft, ToggleRight, Clock, Megaphone } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -13,13 +13,11 @@ const DatePickerTH = ({ label, dateValue, onChange, colorTheme }) => {
   const [hour, setHour] = useState(d.getHours().toString().padStart(2, '0'));
   const [minute, setMinute] = useState(d.getMinutes().toString().padStart(2, '0'));
 
-  // เมื่อค่า dropdown เปลี่ยน ให้ส่งค่ากลับไปเป็น Date Object
   useEffect(() => {
     const newDate = new Date(year - 543, month, parseInt(day), parseInt(hour), parseInt(minute));
     onChange(newDate);
   }, [day, month, year, hour, minute]);
 
-  // ฟังก์ชันสร้าง option ตัวเลข
   const generateOptions = (start, end, pad = true) => {
     const opts = [];
     for (let i = start; i <= end; i++) {
@@ -29,28 +27,28 @@ const DatePickerTH = ({ label, dateValue, onChange, colorTheme }) => {
   };
 
   return (
-    <div style={{ flex: 1, backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: `1px solid ${colorTheme}` }}>
+    <div style={{ flex: 1, backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: `1px solid ${colorTheme}`, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
       <div style={{ color: colorTheme, fontWeight: 'bold', marginBottom: '10px', textAlign: 'center' }}>
         {label}
       </div>
       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', marginBottom: '10px' }}>
-        <select value={day} onChange={(e) => setDay(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+        <select value={day} onChange={(e) => setDay(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}>
           {generateOptions(1, 31)}
         </select>
-        <select value={month} onChange={(e) => setMonth(parseInt(e.target.value))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+        <select value={month} onChange={(e) => setMonth(parseInt(e.target.value))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}>
           {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
         </select>
-        <select value={year} onChange={(e) => setYear(parseInt(e.target.value))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+        <select value={year} onChange={(e) => setYear(parseInt(e.target.value))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}>
           {generateOptions(new Date().getFullYear() + 543, new Date().getFullYear() + 545, false)}
         </select>
       </div>
       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center' }}>
         <span style={{ fontSize: '14px', color: '#64748b' }}>เวลา</span>
-        <select value={hour} onChange={(e) => setHour(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+        <select value={hour} onChange={(e) => setHour(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}>
           {generateOptions(0, 23)}
         </select>
         <span>:</span>
-        <select value={minute} onChange={(e) => setMinute(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+        <select value={minute} onChange={(e) => setMinute(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}>
           {generateOptions(0, 59)}
         </select>
         <span style={{ fontSize: '14px', color: '#64748b' }}>น.</span>
@@ -59,7 +57,6 @@ const DatePickerTH = ({ label, dateValue, onChange, colorTheme }) => {
   );
 };
 
-// ... (โค้ดหลักของ JobRecruitmentPost)
 const JobRecruitmentPost = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -70,14 +67,13 @@ const JobRecruitmentPost = () => {
     ad_title: '',
     ad_description: '',
     start_time: new Date(), 
-    end_time: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000) // Default +7 วัน
+    end_time: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000) 
   });
 
   useEffect(() => {
     fetchJobAdData();
   }, []);
 
-  // 🌟 ระบบนับถอยหลัง
   useEffect(() => {
     if (!adData.is_active || !adData.end_time) return;
     const timer = setInterval(() => {
@@ -149,41 +145,65 @@ const JobRecruitmentPost = () => {
     }
   };
 
-  if (isLoading) return <div>กำลังโหลด...</div>;
+  if (isLoading) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>กำลังโหลดข้อมูล...</div>;
 
   return (
-    <div>
-      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>ระบบจัดการประกาศรับสมัครงาน</h2>
+    <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}>
       
-      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', maxWidth: '800px' }}>
+      {/* 🌟 ปรับ Header ให้ล้อไปกับหน้า Master Data */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Megaphone size={28} color="#0ea5e9" /> ระบบจัดการประกาศรับสมัครงาน
+        </h2>
+      </div>
+      
+      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', maxWidth: '900px' }}>
         <form onSubmit={handleSave}>
           
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0', marginBottom: '25px' }}>
+          {/* 🌟 บล็อก 1: สวิตช์เปิด-ปิดการใช้งาน (ธีมสีเขียว-เทา) */}
+          <div style={{ 
+              backgroundColor: adData.is_active ? '#f0fdf4' : '#f8fafc', 
+              border: `1px solid ${adData.is_active ? '#bbf7d0' : '#e2e8f0'}`, 
+              padding: '20px', borderRadius: '12px', marginBottom: '25px', 
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              transition: 'all 0.3s'
+          }}>
             <div>
-              <h4 style={{ margin: '0 0 5px 0', color: '#0f172a', fontSize: '18px' }}>เปิดใช้งานระบบ</h4>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>อนุญาตให้ระบบตรวจสอบเวลาทำงานอัตโนมัติ</p>
+              <h4 style={{ margin: '0 0 5px 0', color: adData.is_active ? '#166534' : '#475569', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                เปิดใช้งานระบบประกาศ
+              </h4>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>อนุญาตให้ระบบเริ่มตรวจสอบเวลาแสดงผลอัตโนมัติที่หน้าเว็บลูกค้า</p>
             </div>
-            <div onClick={() => setAdData({...adData, is_active: !adData.is_active})} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 'bold', color: adData.is_active ? '#16a34a' : '#94a3b8' }}>
-                {adData.is_active ? 'เปิดใช้งาน' : 'ปิดการใช้งาน'}
+            <div onClick={() => setAdData({...adData, is_active: !adData.is_active})} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 15px', backgroundColor: 'white', borderRadius: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <span style={{ fontWeight: 'bold', color: adData.is_active ? '#16a34a' : '#94a3b8', fontSize: '14px' }}>
+                {adData.is_active ? 'กำลังเปิดใช้งาน' : 'ปิดการใช้งาน'}
               </span>
-              {adData.is_active ? <ToggleRight size={40} color="#16a34a" /> : <ToggleLeft size={40} color="#94a3b8" />}
+              {adData.is_active ? <ToggleRight size={35} color="#16a34a" /> : <ToggleLeft size={35} color="#cbd5e1" />}
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* 🌟 บล็อก 2: กรอกข้อมูล หัวข้อ & รายละเอียด (ธีมสีฟ้าอ่อน) */}
+          <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h4 style={{ margin: 0, color: '#0369a1', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Type size={18} /> ข้อมูลประกาศรับสมัคร
+            </h4>
             <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: '#334155', marginBottom: '8px' }}><Type size={18} /> หัวข้อประกาศ</label>
-              <input type="text" required value={adData.ad_title} onChange={(e) => setAdData({...adData, ad_title: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+              <label style={{ display: 'block', color: '#0c4a6e', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>หัวข้อประกาศ</label>
+              <input type="text" required value={adData.ad_title} onChange={(e) => setAdData({...adData, ad_title: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', outline: 'none' }} placeholder="เช่น: เปิดรับสมัครเพื่อนร่วมทีมด่วน!" />
             </div>
 
             <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: '#334155', marginBottom: '8px' }}><AlignLeft size={18} /> รายละเอียดงาน</label>
-              <textarea required rows={5} value={adData.ad_description} onChange={(e) => setAdData({...adData, ad_description: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', resize: 'vertical' }} />
+              <label style={{ display: 'block', color: '#0c4a6e', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>รายละเอียดงาน</label>
+              <textarea required rows={4} value={adData.ad_description} onChange={(e) => setAdData({...adData, ad_description: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', outline: 'none' }} placeholder="เขียนอธิบายสั้นๆ ดึงดูดผู้สมัคร..." />
             </div>
+          </div>
 
-            {/* 🌟 Component เลือกเวลาแบบหวยไทย */}
-            <div style={{ display: 'flex', gap: '20px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          {/* 🌟 บล็อก 3: ตั้งเวลา (ธีมสีเทาพาสเทล) */}
+          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
+            <h4 style={{ margin: '0 0 15px 0', color: '#475569', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={18} /> กำหนดระยะเวลาแสดงผล
+            </h4>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <DatePickerTH 
                 label="เวลา เปิดรับสมัคร" 
                 colorTheme="#16a34a" 
@@ -198,19 +218,20 @@ const JobRecruitmentPost = () => {
               />
             </div>
 
-            {/* 🌟 แสดงเวลานับถอยหลังฝั่ง Admin */}
-            <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#fff7ed', border: '1px dashed #fdba74', borderRadius: '8px', color: '#ea580c', fontWeight: 'bold', fontSize: '18px' }}>
-                <Clock size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+            {/* เวลานับถอยหลัง */}
+            <div style={{ marginTop: '20px', textAlign: 'center', padding: '15px', backgroundColor: '#fff7ed', border: '1px dashed #fdba74', borderRadius: '8px', color: '#ea580c', fontWeight: 'bold', fontSize: '16px' }}>
+                <Clock size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                 {adData.is_active ? countdown : 'ระบบปิดการใช้งานอยู่'}
             </div>
-
           </div>
 
-          <div style={{ marginTop: '30px', textAlign: 'center' }}>
-            <button type="submit" disabled={isSaving} style={{ width: '100%', maxWidth: '300px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-              <Save size={18} style={{ verticalAlign: 'middle', marginRight: '5px' }} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกเปิดรับสมัคร'}
+          {/* 🌟 ปุ่มบันทึก */}
+          <div style={{ textAlign: 'right' }}>
+            <button type="submit" disabled={isSaving} style={{ padding: '12px 30px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(14, 165, 233, 0.2)' }}>
+              <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกประกาศรับสมัคร'}
             </button>
           </div>
+
         </form>
       </div>
     </div>
