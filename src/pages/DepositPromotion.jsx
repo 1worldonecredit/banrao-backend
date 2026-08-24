@@ -227,7 +227,9 @@ const DepositPromotion = () => {
     } catch (err) { alert('Error!'); }
   };
 
+
  // 🌟 ฟังก์ชันอัปโหลดวิดีโอ (โหมด Super Debug จับผิด Error)
+ 
   const handleAddAd = async (e) => {
     e.preventDefault();
     if (!newAd.media_url || !newAd.title) {
@@ -245,28 +247,27 @@ const DepositPromotion = () => {
            return alert('หาไฟล์ไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
       }
 
-      // สเต็ป 1: ขอ URL
+      // สเต็ป 1: ขอ URL และ Video ID ล่วงหน้า
       console.log("ขอ URL อัปโหลด...");
       const urlRes = await fetch(`${API_URL}/api/get-upload-url`, { method: 'POST' });
-      const urlText = await urlRes.text(); // แปลงเป็นข้อความก่อน เผื่อมันพัง
-      let urlData;
-      try { urlData = JSON.parse(urlText); } catch(err) { throw new Error('API ขอ URL พัง: ' + urlText); }
+      const urlData = await urlRes.json();
       
       if (!urlData.success) throw new Error('ขอ URL อัปโหลดไม่สำเร็จ: ' + urlData.message);
 
-      // สเต็ป 2: อัปโหลดขึ้น Cloudflare
+      // สเต็ป 2: ยิงไฟล์ขึ้น Cloudflare
       console.log("กำลังอัปโหลดขึ้น Cloudflare...");
       const formData = new FormData();
       formData.append('file', file);
 
       const cfRes = await fetch(urlData.uploadUrl, { method: 'POST', body: formData });
-      const cfText = await cfRes.text(); // จับผิด Cloudflare
-      let cfData;
-      try { cfData = JSON.parse(cfText); } catch(err) { throw new Error('Cloudflare ตอบกลับมาแปลกๆ: ' + cfText); }
+      
+      // 💡 ไฮไลท์: ไม่ต้องพยายามอ่าน JSON จาก Cloudflare แล้ว! เช็คแค่ว่ายิงผ่าน (200 OK) ก็พอ
+      if (!cfRes.ok) {
+          throw new Error('Cloudflare ปฏิเสธไฟล์ Status: ' + cfRes.status);
+      }
 
-      if (!cfData.success) throw new Error('อัปโหลดไป Cloudflare ล้มเหลว');
-
-      const cfVideoId = cfData.result.uid;
+      // 💡 ดึงรหัส Video ID มาจากสเต็ปที่ 1 ได้เลย! พระเอกของเราอยู่ตรงนี้!
+      const cfVideoId = urlData.uid;
       console.log("อัปโหลดสำเร็จ! Video ID:", cfVideoId);
 
       // สเต็ป 3: เซฟลง Vercel Postgres (Railway)
@@ -281,9 +282,7 @@ const DepositPromotion = () => {
         })
       });
       
-      const saveText = await saveRes.text(); // จับผิด Railway
-      let saveData;
-      try { saveData = JSON.parse(saveText); } catch(err) { throw new Error('เซิร์ฟเวอร์ Database พัง: ' + saveText); }
+      const saveData = await saveRes.json();
 
       if (saveData.success) {
         alert('✅ เยี่ยม! อัปโหลดและบันทึกโฆษณาสำเร็จ 100%!');
@@ -295,7 +294,7 @@ const DepositPromotion = () => {
 
     } catch (err) { 
         console.error(err);
-        alert('🚨 แจ้งเตือนสาเหตุที่แท้จริง: ' + err.message); // มันจะฟ้องหน้าจอเลยว่าใครทำพัง!
+        alert('🚨 เกิดข้อผิดพลาด: ' + err.message); 
     } finally {
         setIsSaving(false);
     }
