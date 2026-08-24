@@ -227,17 +227,16 @@ const DepositPromotion = () => {
     } catch (err) { alert('Error!'); }
   };
 
- // 🌟 ฟังก์ชันอัปโหลดวิดีโอขึ้น Cloudflare & บันทึกข้อมูล
+ // 🌟 ฟังก์ชันอัปโหลดวิดีโอ (โหมด Super Debug จับผิด Error)
   const handleAddAd = async (e) => {
     e.preventDefault();
     if (!newAd.media_url || !newAd.title) {
         return alert('กรุณากรอกหัวข้อและเลือกไฟล์ก่อนครับเจ้านาย!');
     }
 
-    setIsSaving(true); // ปรับ state เพื่อโชว์ Loading ตอนกำลังอัปโหลด
+    setIsSaving(true); 
 
     try {
-      // ดึงไฟล์ตัวจริงที่ผู้ใช้เลือกออกมาจาก Input File (ไม่ใช่ Base64 แล้ว)
       const fileInput = document.getElementById('ad-file-upload');
       const file = fileInput.files[0];
       
@@ -246,35 +245,31 @@ const DepositPromotion = () => {
            return alert('หาไฟล์ไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
       }
 
-      // สเต็ป 1: ขอตั๋ว (URL) สำหรับอัปโหลดจาก Cloudflare (ผ่าน API หลังบ้านเรา)
+      // สเต็ป 1: ขอ URL
       console.log("ขอ URL อัปโหลด...");
       const urlRes = await fetch(`${API_URL}/api/get-upload-url`, { method: 'POST' });
-      const urlData = await urlRes.json();
+      const urlText = await urlRes.text(); // แปลงเป็นข้อความก่อน เผื่อมันพัง
+      let urlData;
+      try { urlData = JSON.parse(urlText); } catch(err) { throw new Error('API ขอ URL พัง: ' + urlText); }
       
-      if (!urlData.success) {
-          throw new Error('ขอ URL อัปโหลดไม่สำเร็จ: ' + urlData.message);
-      }
+      if (!urlData.success) throw new Error('ขอ URL อัปโหลดไม่สำเร็จ: ' + urlData.message);
 
-      // สเต็ป 2: ยิงไฟล์ขึ้น Cloudflare ทันที!
+      // สเต็ป 2: อัปโหลดขึ้น Cloudflare
       console.log("กำลังอัปโหลดขึ้น Cloudflare...");
       const formData = new FormData();
       formData.append('file', file);
 
-      const cfRes = await fetch(urlData.uploadUrl, {
-          method: 'POST',
-          body: formData
-      });
-      const cfData = await cfRes.json();
+      const cfRes = await fetch(urlData.uploadUrl, { method: 'POST', body: formData });
+      const cfText = await cfRes.text(); // จับผิด Cloudflare
+      let cfData;
+      try { cfData = JSON.parse(cfText); } catch(err) { throw new Error('Cloudflare ตอบกลับมาแปลกๆ: ' + cfText); }
 
-      if (!cfData.success) {
-           throw new Error('อัปโหลดไฟล์ไป Cloudflare ล้มเหลว');
-      }
+      if (!cfData.success) throw new Error('อัปโหลดไป Cloudflare ล้มเหลว');
 
-      // ได้ Video ID จาก Cloudflare มาแล้ว
       const cfVideoId = cfData.result.uid;
       console.log("อัปโหลดสำเร็จ! Video ID:", cfVideoId);
 
-      // สเต็ป 3: ส่งข้อมูล (Title, Desc, VideoID) กลับไปเซฟลง Vercel Postgres
+      // สเต็ป 3: เซฟลง Vercel Postgres (Railway)
       console.log("บันทึกข้อมูลลงฐานข้อมูล...");
       const saveRes = await fetch(`${API_URL}/api/video-promotions`, {
         method: 'POST',
@@ -285,20 +280,22 @@ const DepositPromotion = () => {
             cf_video_id: cfVideoId
         })
       });
-      const saveData = await saveRes.json();
+      
+      const saveText = await saveRes.text(); // จับผิด Railway
+      let saveData;
+      try { saveData = JSON.parse(saveText); } catch(err) { throw new Error('เซิร์ฟเวอร์ Database พัง: ' + saveText); }
 
       if (saveData.success) {
         alert('✅ เยี่ยม! อัปโหลดและบันทึกโฆษณาสำเร็จ 100%!');
-        setNewAd({ title: '', description: '', media_type: 'video', media_url: '' }); // รีเซ็ตฟอร์ม
-        fileInput.value = ''; // ล้างค่าใน input file
-        // fetchAllData(); // โหลดข้อมูลใหม่ (เดี๋ยวต้องไปแก้ API ดึงข้อมูลด้วย)
+        setNewAd({ title: '', description: '', media_type: 'video', media_url: '' }); 
+        fileInput.value = ''; 
       } else {
         throw new Error('บันทึกลงฐานข้อมูลไม่สำเร็จ: ' + saveData.message);
       }
 
     } catch (err) { 
         console.error(err);
-        alert('เกิดข้อผิดพลาด: ' + err.message); 
+        alert('🚨 แจ้งเตือนสาเหตุที่แท้จริง: ' + err.message); // มันจะฟ้องหน้าจอเลยว่าใครทำพัง!
     } finally {
         setIsSaving(false);
     }
