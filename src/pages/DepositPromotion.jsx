@@ -11,7 +11,6 @@ const THAI_MONTHS = [
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
-// แปลงค่าจาก Date Object เป็น { day, month, year, hour, minute }
 const parseDateObj = (dateStr) => {
   if (!dateStr) return { day: '1', month: '1', year: new Date().getFullYear().toString(), hour: '00', minute: '00' };
   const d = new Date(dateStr);
@@ -24,12 +23,10 @@ const parseDateObj = (dateStr) => {
   };
 };
 
-// แปลงจากค่า Dropdown กลับเป็น ISO String ส่งไป API
 const formatToISO = ({ day, month, year, hour, minute }) => {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${minute}:00`;
 };
 
-// คอมโพเนนต์ช่วยสร้าง Dropdown วันเวลาไทยแบบสวยๆ
 const ThaiDateTimePicker = ({ label, value, onChange }) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear + i);
@@ -37,15 +34,11 @@ const ThaiDateTimePicker = ({ label, value, onChange }) => {
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-
-
   const handleChange = (field, val) => {
     const newValue = { ...value, [field]: val };
     onChange(newValue);
   };
 
-
- 
   return (
     <div style={{ marginBottom: '15px' }}>
       <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#166534', marginBottom: '8px', textAlign: 'center' }}>
@@ -82,7 +75,6 @@ const DepositPromotion = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
- // 🌟 State สำหรับบอกว่าตอนนี้กำลัง "แก้ไข" โฆษณา ID ไหนอยู่ (ถ้าเป็น null คือโหมดเพิ่มใหม่)
   const [editModeId, setEditModeId] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -95,22 +87,38 @@ const DepositPromotion = () => {
 
   const [promotions, setPromotions] = useState([]);
   
-  // State สำหรับฟอร์มเพิ่มโปรโมชั่นใหม่ (ใช้ Object เก็บแยกชิ้นส่วนเวลา)
   const [newPromo, setNewPromo] = useState({ 
     title: '', 
     bonus_percent: '', 
     start: parseDateObj(new Date()), 
-    end: parseDateObj(new Date(new Date().getTime() + 86400000)) // +1 วัน
+    end: parseDateObj(new Date(new Date().getTime() + 86400000)) 
   });
 
   const [ads, setAds] = useState([]);
   const [newAd, setNewAd] = useState({ title: '', description: '', media_type: 'image', media_url: '' });
+  
+  // 🌟 เพิ่ม State สำหรับเก็บรายการวิดีโอ (ตัวใหม่ที่ใช้แสดง)
+  const [videoList, setVideoList] = useState([]);
 
   useEffect(() => {
     fetchAllData();
+    fetchVideos(); // 🌟 ดึงข้อมูลวิดีโอตัวใหม่ตอนเปิดหน้าเว็บ
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // 🌟 ฟังก์ชันดึงวิดีโอจาก API ตัวเดียวกับหน้าเว็บ
+  const fetchVideos = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/video-promotions`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setVideoList(data.ads);
+      }
+    } catch (err) {
+      console.error("Error fetching videos:", err);
+    }
+  };
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -131,47 +139,36 @@ const DepositPromotion = () => {
       const dataPromos = await resPromos.json();
       if (dataPromos.success) setPromotions(dataPromos.promotions);
 
-      const resAds = await fetch(`${API_URL}/api/admin/ads`);
-      const dataAds = await resAds.json();
-      if (dataAds.success) setAds(dataAds.ads);
-
     } catch (err) { console.error("Fetch Error:", err); } 
     finally { setIsLoading(false); }
   };
 
-
-   // 🌟 ฟังก์ชันตอนกดปุ่ม "แก้ไข" ในการ์ด
   const handleEditClick = (ad) => {
-    setEditModeId(ad.ad_id); // เปิดโหมดแก้ไข
-    
-    // ดันข้อมูลเดิมขึ้นไปใส่ในฟอร์มด้านบน
+    setEditModeId(ad.ad_id); 
     setNewAd({
       title: ad.title || '',
       description: ad.description || '',
-      media_url: ad.media_url, // ดึงไฟล์มาหลอกฟอร์มไว้ ให้ปุ่มกดทำงานได้
+      media_url: ad.media_url, 
       media_type: ad.media_type
     });
-    
-    // ไฮไลท์เด็ด: เลื่อนหน้าจอกลับขึ้นไปหาฟอร์มด้านบนสุดแบบนุ่มนวล
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 🌟 ฟังก์ชันตอนกดปุ่ม "บันทึกการแก้ไข"
   const handleSaveEditAd = async () => {
     try {
+      // 🌟 API ต้องแก้ข้อมูลใน Vercel (ต้องมีหลังบ้านมารองรับการแก้ไขด้วยนะครับ)
       const res = await fetch(`${API_URL}/api/admin/ads/${editModeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        // ส่งแค่ชื่อกับรายละเอียดไปอัปเดต (เพราะไฟล์เราไม่ได้แก้)
         body: JSON.stringify({ title: newAd.title, description: newAd.description }) 
       });
       const data = await res.json();
       
       if (data.success) {
         alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
-        setEditModeId(null); // ปิดโหมดแก้ไข
-        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); // เคลียร์ฟอร์ม
-        fetchAllData(); // โหลดข้อมูลใหม่
+        setEditModeId(null); 
+        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); 
+        fetchVideos(); // 🌟 รีเฟรชข้อมูลวิดีโอใหม่
       } else {
         alert(`ผิดพลาด: ${data.message}`);
       }
@@ -200,8 +197,6 @@ const DepositPromotion = () => {
 
   const handleAddPromo = async (e) => {
     e.preventDefault();
-    
-    // รวมร่าง Object เวลา กลับไปเป็น String เพื่อเช็ค
     const startIso = formatToISO(newPromo.start);
     const endIso = formatToISO(newPromo.end);
 
@@ -227,10 +222,7 @@ const DepositPromotion = () => {
     } catch (err) { alert('Error!'); }
   };
 
-
- // 🌟 ฟังก์ชันอัปโหลดวิดีโอ (โหมด Super Debug จับผิด Error)
- 
-  const handleAddAd = async (e) => {
+const handleAddAd = async (e) => {
     e.preventDefault();
     if (!newAd.media_url || !newAd.title) {
         return alert('กรุณากรอกหัวข้อและเลือกไฟล์ก่อนครับเจ้านาย!');
@@ -247,30 +239,25 @@ const DepositPromotion = () => {
            return alert('หาไฟล์ไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
       }
 
-      // สเต็ป 1: ขอ URL และ Video ID ล่วงหน้า
       console.log("ขอ URL อัปโหลด...");
       const urlRes = await fetch(`${API_URL}/api/get-upload-url`, { method: 'POST' });
       const urlData = await urlRes.json();
       
       if (!urlData.success) throw new Error('ขอ URL อัปโหลดไม่สำเร็จ: ' + urlData.message);
 
-      // สเต็ป 2: ยิงไฟล์ขึ้น Cloudflare
       console.log("กำลังอัปโหลดขึ้น Cloudflare...");
       const formData = new FormData();
       formData.append('file', file);
 
       const cfRes = await fetch(urlData.uploadUrl, { method: 'POST', body: formData });
       
-      // 💡 ไฮไลท์: ไม่ต้องพยายามอ่าน JSON จาก Cloudflare แล้ว! เช็คแค่ว่ายิงผ่าน (200 OK) ก็พอ
       if (!cfRes.ok) {
           throw new Error('Cloudflare ปฏิเสธไฟล์ Status: ' + cfRes.status);
       }
 
-      // 💡 ดึงรหัส Video ID มาจากสเต็ปที่ 1 ได้เลย! พระเอกของเราอยู่ตรงนี้!
       const cfVideoId = urlData.uid;
       console.log("อัปโหลดสำเร็จ! Video ID:", cfVideoId);
 
-      // สเต็ป 3: เซฟลง Vercel Postgres (Railway)
       console.log("บันทึกข้อมูลลงฐานข้อมูล...");
       const saveRes = await fetch(`${API_URL}/api/video-promotions`, {
         method: 'POST',
@@ -288,6 +275,7 @@ const DepositPromotion = () => {
         alert('✅ เยี่ยม! อัปโหลดและบันทึกโฆษณาสำเร็จ 100%!');
         setNewAd({ title: '', description: '', media_type: 'video', media_url: '' }); 
         fileInput.value = ''; 
+        fetchVideos(); // 🌟 รีเฟรชข้อมูลวิดีโอใหม่ทันที
       } else {
         throw new Error('บันทึกลงฐานข้อมูลไม่สำเร็จ: ' + saveData.message);
       }
@@ -305,6 +293,7 @@ const DepositPromotion = () => {
     try {
       await fetch(`${API_URL}/api/admin/${type === 'promo' ? 'promotions' : 'ads'}/${id}`, { method: 'DELETE' });
       fetchAllData();
+      if (type === 'ad') fetchVideos(); // ถ้าระบบรองรับการลบวิดีโอ ก็ให้รีเฟรชข้อมูลวิดีโอด้วย
     } catch (err) { console.error(err); }
   };
 
@@ -324,7 +313,7 @@ const DepositPromotion = () => {
         <h2 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Settings size={28} color="#0ea5e9" /> ศูนย์จัดการ P2P & โปรโมชั่น
         </h2>
-        <button onClick={fetchAllData} style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+        <button onClick={() => { fetchAllData(); fetchVideos(); }} style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
           <RefreshCw size={18} /> รีเฟรชข้อมูล
         </button>
       </div>
@@ -385,7 +374,6 @@ const DepositPromotion = () => {
               </div>
             </div>
 
-            {/* 🌟 ปฏิทินแบบหวยไทย (Dropdown) */}
             <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #a7f3d0', marginBottom: '20px' }}>
                <ThaiDateTimePicker label="เวลา เริ่มโปรโมชั่น" value={newPromo.start} onChange={(val) => setNewPromo({...newPromo, start: val})} />
                <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '15px 0' }}></div>
@@ -395,7 +383,6 @@ const DepositPromotion = () => {
             <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>+ บันทึกเปิดโปรโมชั่น</button>
           </form>
 
-          {/* รายการโปรโมชั่นที่มี */}
           <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead style={{ backgroundColor: '#f8fafc', position: 'sticky', top: 0 }}>
@@ -441,19 +428,18 @@ const DepositPromotion = () => {
         <form 
           onSubmit={(e) => { 
             e.preventDefault(); 
-            editModeId ? handleSaveEditAd() : handleAddAd(e); // แยกทางแยกว่าจะวิ่งไปฟังก์ชันไหน
+            editModeId ? handleSaveEditAd() : handleAddAd(e);
           }} 
           style={{ 
-            backgroundColor: editModeId ? '#f0f9ff' : '#f8fafc', // ถ้าโหมดแก้ พื้นหลังจะเปลี่ยนสีฟ้าอ่อน
+            backgroundColor: editModeId ? '#f0f9ff' : '#f8fafc',
             padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px',
-            border: editModeId ? '2px solid #0ea5e9' : '1px solid transparent' // ใส่กรอบให้ชัดเจนตอนกดแก้ไข
+            border: editModeId ? '2px solid #0ea5e9' : '1px solid transparent'
           }}
         >
           
-          {/* แสดงข้อความเตือนเมื่ออยู่ในโหมดแก้ไข */}
           {editModeId && (
             <div style={{ gridColumn: 'span 2', color: '#0284c7', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '-5px' }}>
-              <Edit size={18} /> โหมดแก้ไขรายละเอียดโฆษณา (ไฟล์วิดีโอ/รูปเดิม จะไม่ถูกแก้ไข)
+              <Edit size={18} /> โหมดแก้ไขรายละเอียดโฆษณา (ไฟล์วิดีโอเดิม จะไม่ถูกแก้ไข)
             </div>
           )}
 
@@ -462,7 +448,7 @@ const DepositPromotion = () => {
             <input 
               type="text" 
               placeholder="เช่น โปรเด็ดประจำสัปดาห์" 
-              value={newAd.title} // 🌟 ดึงข้อมูลมาโชว์ในช่อง
+              value={newAd.title}
               onChange={e => setNewAd({...newAd, title: e.target.value})} 
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
             />
@@ -473,7 +459,7 @@ const DepositPromotion = () => {
             <input 
               type="text" 
               placeholder="พิมพ์รายละเอียดสั้นๆ..." 
-              value={newAd.description} // 🌟 ดึงข้อมูลมาโชว์ในช่อง
+              value={newAd.description}
               onChange={e => setNewAd({...newAd, description: e.target.value})} 
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
             />
@@ -481,39 +467,35 @@ const DepositPromotion = () => {
           
           <div style={{ gridColumn: 'span 2', display: 'flex', gap: '15px', alignItems: 'end', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
             
-           <div style={{ flex: 1 }}>
-  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
-    📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
-  </label>
-  <input 
-    id="ad-file-upload" // 🌟 เพิ่มบรรทัดนี้เข้ามาครับ เพื่อให้โค้ดดึงไฟล์ไปส่ง Cloudflare ได้!
-    type="file" 
-    accept="image/*,video/mp4,video/webm" 
-    disabled={editModeId !== null} 
-    onChange={(e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      if (file.size > 10 * 1024 * 1024) {
-          return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
-      }
-      
-      // ส่วนนี้เก็บไว้เพื่อทำภาพ Preview ให้แอดมินดูก่อนกดปุ่มบันทึกครับ
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewAd({
-          ...newAd, 
-          media_url: reader.result, 
-          media_type: file.type.startsWith('video') ? 'video' : 'image'
-        });
-      };
-      reader.readAsDataURL(file);
-    }} 
-    style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
-  />
-</div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
+                📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
+              </label>
+              <input 
+                id="ad-file-upload" 
+                type="file" 
+                accept="image/*,video/mp4,video/webm" 
+                disabled={editModeId !== null} 
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) {
+                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
+                  }
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setNewAd({
+                      ...newAd, 
+                      media_url: reader.result, 
+                      media_type: file.type.startsWith('video') ? 'video' : 'image'
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                }} 
+                style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
+              />
+            </div>
             
-            {/* ปุ่มยกเลิก (โชว์เฉพาะตอนกดแก้ไข) */}
             {editModeId && (
               <button 
                 type="button" 
@@ -527,10 +509,9 @@ const DepositPromotion = () => {
               </button>
             )}
 
-            {/* ปุ่ม Submit (เปลี่ยนข้อความและสีอัตโนมัติตามโหมด) */}
             <button 
               type="submit" 
-              disabled={!newAd.media_url && !editModeId} // ปลดล็อคปุ่มถ้าอยู่ในโหมดแก้ไข
+              disabled={!newAd.media_url && !editModeId}
               style={{ 
                 padding: '10px 25px', 
                 backgroundColor: (newAd.media_url || editModeId) ? (editModeId ? '#0284c7' : '#8b5cf6') : '#cbd5e1', 
@@ -545,43 +526,55 @@ const DepositPromotion = () => {
           </div>
         </form>
 
-        {/* ตารางแสดงโฆษณา (ปรับสัดส่วน Preview เป็น 9:16 เหมือนจอมือถือ) */}
-       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-          {ads.map(ad => (
-            <div key={ad.ad_id} style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 15px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
-              
-              {/* 🌟 ปรับสัดส่วน 9:16 ตรงนี้ */}
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', backgroundColor: '#000' }}>
-                {ad.media_type === 'video' ? (
-                  <video src={ad.media_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <img src={ad.media_url} alt="ad" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                )}
-                
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)', padding: '30px 15px 15px 15px' }}>
-                   <h5 style={{ color: 'white', margin: '0 0 6px 0', fontSize: '15px', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.title || 'ไม่มีหัวข้อ'}</h5>
-                   <p style={{ color: '#cbd5e1', margin: 0, fontSize: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.description || '-'}</p>
-                </div>
-                
-                <div style={{ position: 'absolute', top: '12px', left: '12px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '5px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 'bold', color: '#0f172a' }}>
-                  {ad.media_type === 'video' ? <Video size={14} color="#8b5cf6" /> : <ImageIcon size={14} color="#8b5cf6" />} {ad.media_type.toUpperCase()}
-                </div>
-              </div>
+        {/* 🌟 🌟 ตารางแสดงโฆษณา (ดึงจาก Database) 🌟 🌟 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginTop: '30px' }}>
+            {videoList.length > 0 ? (
+                videoList.map((vid) => (
+                    <div key={vid.ad_id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+                        
+                        {/* ส่วนแสดงวิดีโอ (สัดส่วน 9:16) */}
+                        <div style={{ aspectRatio: '9/16', backgroundColor: '#000', position: 'relative' }}>
+                            <video src={vid.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
+                            <div style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
+                                ID: {vid.ad_id}
+                            </div>
+                        </div>
 
-              {/* 🌟 เพิ่มปุ่มแก้ไข ไว้คู่กับปุ่มลบ */}
-              <div style={{ padding: '12px', display: 'flex', gap: '8px', backgroundColor: '#f8fafc' }}>
-                 <button onClick={() => handleEditClick(ad)} style={{ flex: 1, padding: '10px', backgroundColor: '#e0f2fe', color: '#0284c7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
-                   <Edit size={16} /> แก้ไข
-                 </button>
-                 <button onClick={() => deleteItem('ad', ad.ad_id)} style={{ flex: 1, padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 'bold' }}>
-                   <Trash2 size={16} /> ลบ
-                 </button>
-              </div>
-            </div>
-          ))}
+                        {/* ส่วนรายละเอียดเนื้อหา */}
+                        <div style={{ padding: '15px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#1e293b', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {vid.title}
+                            </h4>
+                            <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
+                                {vid.description}
+                            </p>
+                            
+                            {/* แถบโชว์สถิติให้แอดมินชื่นใจ */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px', borderRadius: '8px', marginBottom: '15px', fontSize: '11px', color: '#475569', fontWeight: 'bold' }}>
+                                <span title="ยอดวิว">👁️ {vid.views_count || 0}</span>
+                                <span title="ยอดไลก์">❤️ {vid.likes_count || 0}</span>
+                                <span title="ยอดแชร์">🔗 {vid.shares_count || 0}</span>
+                                <span title="คอมเมนต์">💬 {vid.comments_count || 0}</span>
+                            </div>
+
+                            {/* ปุ่ม Action */}
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={() => handleEditClick(vid)} style={{ flex: 1, padding: '8px', backgroundColor: '#f1f5f9', color: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                    ✏️ แก้ไข
+                                </button>
+                                <button onClick={() => alert('ฟังก์ชันลบกำลังพัฒนาครับเจ้านาย!')} style={{ flex: 1, padding: '8px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                    🗑️ ลบ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))
+            ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
+                    ยังไม่มีวิดีโอโฆษณา ลองอัปโหลดสักคลิปสิครับ!
+                </div>
+            )}
         </div>
-
-        
 
 
       </div>
