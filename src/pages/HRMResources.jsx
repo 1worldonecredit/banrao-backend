@@ -11,10 +11,10 @@ const HRMResources = () => {
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
 
-  // 🌟 Form States (เอารหัสออกตอนเริ่ม)
+  // 🌟 Form States (เพิ่ม job_responsibilities เข้ามา)
   const [branchForm, setBranchForm] = useState({ branch_code: '', branch_name: '', country_code: 'TH' });
   const [deptForm, setDeptForm] = useState({ dept_code: '', dept_name: '' });
-  const [positionForm, setPositionForm] = useState({ position_code: '', position_name: '', dept_code: '', base_salary: '' });
+  const [positionForm, setPositionForm] = useState({ position_code: '', position_name: '', dept_code: '', base_salary: '', job_responsibilities: '' });
 
   const [editingBranch, setEditingBranch] = useState(null);
   const [editingDept, setEditingDept] = useState(null);
@@ -43,10 +43,9 @@ const HRMResources = () => {
   }, []);
 
   const handleSave = async (type, formData, setFormFn, initialForm, setEditingFn) => {
-    // เอาเรื่องเช็ครหัสออก เพราะเดี๋ยว API สร้างให้
     if (type === 'branch' && !formData.branch_name) return alert('กรุณากรอกชื่อสาขา');
     if (type === 'department' && !formData.dept_name) return alert('กรุณากรอกชื่อแผนก');
-    if (type === 'position' && (!formData.position_name || !formData.dept_code || !formData.base_salary)) return alert('กรุณากรอกข้อมูลให้ครบ');
+    if (type === 'position' && (!formData.position_name || !formData.dept_code || !formData.base_salary)) return alert('กรุณากรอกข้อมูลตำแหน่งให้ครบ');
 
     try {
       const res = await fetch(`${API_URL}/api/hrm/${type}`, {
@@ -82,8 +81,14 @@ const HRMResources = () => {
 
   const startEditPosition = (p) => {
     setEditingPosition(p.position_code);
-    setPositionForm({ position_code: p.position_code, position_name: p.position_name, dept_code: p.dept_code, base_salary: p.base_salary });
-    // ถ้าแก้ตำแหน่ง ให้ยืดแผนกนั้นออกด้วย จะได้ไม่งง
+    // 🌟 ดึงข้อมูลความรับผิดชอบมาแสดงตอนกดแก้ไข
+    setPositionForm({ 
+        position_code: p.position_code, 
+        position_name: p.position_name, 
+        dept_code: p.dept_code, 
+        base_salary: p.base_salary,
+        job_responsibilities: p.job_responsibilities || '' 
+    });
     setExpandedDept(p.dept_code);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -201,7 +206,7 @@ const HRMResources = () => {
                             {editingPosition ? <><Edit3 size={18} /> กำลังแก้ไขตำแหน่ง: {editingPosition}</> : <><Plus size={18} /> เพิ่มตำแหน่งงานในแผนก (ระบบสร้างรหัสให้อัตโนมัติ)</>}
                         </h4>
                         {editingPosition && (
-                            <button onClick={() => { setEditingPosition(null); setPositionForm({ position_code: '', position_name: '', dept_code: '', base_salary: '' }); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}><X size={14}/> ยกเลิกการแก้ไข</button>
+                            <button onClick={() => { setEditingPosition(null); setPositionForm({ position_code: '', position_name: '', dept_code: '', base_salary: '', job_responsibilities: '' }); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}><X size={14}/> ยกเลิกการแก้ไข</button>
                         )}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', alignItems: 'center' }}>
@@ -210,13 +215,19 @@ const HRMResources = () => {
                         {departments.map(d => <option key={d.dept_code} value={d.dept_code}>{d.dept_name}</option>)}
                       </select>
                       
-                      {/* ซ่อนช่องรหัสไว้ จะโชว์เฉพาะตอนกดแก้ไข */}
                       <input type="text" placeholder="รหัสตำแหน่ง" value={positionForm.position_code} disabled style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#e2e8f0', display: editingPosition ? 'block' : 'none' }} />
-                      
                       <input type="text" placeholder="ชื่อตำแหน่ง" value={positionForm.position_name} onChange={e => setPositionForm({...positionForm, position_name: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                       <input type="number" placeholder="เงินเดือนเริ่มต้น" value={positionForm.base_salary} onChange={e => setPositionForm({...positionForm, base_salary: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                       
-                      <button onClick={() => handleSave('position', positionForm, setPositionForm, { position_code: '', position_name: '', dept_code: '', base_salary: '' }, setEditingPosition)} style={{ backgroundColor: editingPosition ? '#0284c7' : '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', padding: '10px' }}>
+                      {/* 🌟 ช่องกรอก หน้าที่ความรับผิดชอบ (ยาวเต็มบรรทัด) */}
+                      <textarea 
+                        placeholder="หน้าที่ความรับผิดชอบ (เช่น พัฒนาระบบ, ดูแลเซิร์ฟเวอร์, ประสานงานลูกค้า)" 
+                        value={positionForm.job_responsibilities} 
+                        onChange={e => setPositionForm({...positionForm, job_responsibilities: e.target.value})} 
+                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', gridColumn: '1 / -1', minHeight: '60px', fontFamily: 'inherit', resize: 'vertical' }} 
+                      />
+
+                      <button onClick={() => handleSave('position', positionForm, setPositionForm, { position_code: '', position_name: '', dept_code: '', base_salary: '', job_responsibilities: '' }, setEditingPosition)} style={{ gridColumn: '1 / -1', backgroundColor: editingPosition ? '#0284c7' : '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', padding: '12px' }}>
                         <Save size={16} /> {editingPosition ? 'บันทึกการแก้ไข' : 'บันทึกตำแหน่งใหม่'}
                       </button>
                     </div>
@@ -264,19 +275,26 @@ const HRMResources = () => {
                                       <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                                         <thead>
                                           <tr style={{ backgroundColor: '#ede9fe', color: '#5b21b6' }}>
-                                            <th style={{ padding: '10px' }}>รหัสตำแหน่ง</th>
-                                            <th style={{ padding: '10px' }}>ชื่อตำแหน่ง</th>
-                                            <th style={{ padding: '10px' }}>เงินเดือนเริ่มต้น</th>
-                                            <th style={{ padding: '10px', width: '80px', textAlign: 'center' }}>แก้ไข</th>
+                                            <th style={{ padding: '10px', width: '15%' }}>รหัสตำแหน่ง</th>
+                                            <th style={{ padding: '10px', width: '45%' }}>ชื่อตำแหน่ง / ความรับผิดชอบ</th>
+                                            <th style={{ padding: '10px', width: '20%' }}>เงินเดือนเริ่มต้น</th>
+                                            <th style={{ padding: '10px', width: '20%', textAlign: 'center' }}>แก้ไข</th>
                                           </tr>
                                         </thead>
                                         <tbody>
                                           {positions.filter(p => p.dept_code === d.dept_code).map(p => (
                                             <tr key={p.position_code} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: editingPosition === p.position_code ? '#e0f2fe' : 'white' }}>
-                                              <td style={{ padding: '10px', fontWeight: 'bold', color: '#7c3aed' }}>{p.position_code}</td>
-                                              <td style={{ padding: '10px' }}>{p.position_name}</td>
-                                              <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold' }}>{Number(p.base_salary).toLocaleString()}</td>
-                                              <td style={{ padding: '10px', textAlign: 'center' }}>
+                                              <td style={{ padding: '10px', fontWeight: 'bold', color: '#7c3aed', verticalAlign: 'top' }}>{p.position_code}</td>
+                                              <td style={{ padding: '10px', verticalAlign: 'top' }}>
+                                                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{p.position_name}</div>
+                                                  {p.job_responsibilities && (
+                                                      <div style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'pre-wrap' }}>
+                                                          {p.job_responsibilities}
+                                                      </div>
+                                                  )}
+                                              </td>
+                                              <td style={{ padding: '10px', color: '#16a34a', fontWeight: 'bold', verticalAlign: 'top' }}>{Number(p.base_salary).toLocaleString()}</td>
+                                              <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'top' }}>
                                                 <button onClick={() => startEditPosition(p)} style={{ background:'none', border:'none', color:'#eab308', cursor:'pointer' }}><Edit3 size={16}/></button>
                                               </td>
                                             </tr>
