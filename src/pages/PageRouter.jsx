@@ -45,6 +45,7 @@ import CommissionP2P from './CommissionP2P';
 import SetTimeMission from './SetTimeMission';
 import CustomerUnderSurveillance from './CustomerUnderSurveillance';
 import JobRecruitmentPost from './JobRecruitmentPost';
+import ListOfJobApplicants from './ListOfJobApplicants';
 
 
 
@@ -92,7 +93,8 @@ const componentsRegistry = {
   'CommissionP2P': CommissionP2P,
   'SetTimeMission': SetTimeMission,
   'CustomerUnderSurveillance': CustomerUnderSurveillance,
-  'JobRecruitmentPost': JobRecruitmentPost
+  'JobRecruitmentPost': JobRecruitmentPost,
+  'ListOfJobApplicants': ListOfJobApplicants
 };
 
 export default function PageRouter() {

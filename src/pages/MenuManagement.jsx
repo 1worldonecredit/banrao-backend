@@ -231,6 +231,7 @@ const MenuManagement = () => {
                 <option value="SetTimeMission">ตั้งเวลาภารกิจ (SetTimeMission)</option>
                 <option value="CustomerUnderSurveillance">รายชื่อลูกค้าเฝ่าระวัง (CustomerUnderSurveillance)</option>
                 <option value="JobRecruitmentPost">โพ็สรับสมัครคนทำงานหน้าเว็บ (JobRecruitmentPost)</option>
+                <option value="ListOfJobApplicants">รายชื่อคำขอสมัครงาน (ListOfJobApplicants)</option>
               </select>
             </div>
 
