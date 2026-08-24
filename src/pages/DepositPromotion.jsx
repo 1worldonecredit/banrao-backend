@@ -227,20 +227,81 @@ const DepositPromotion = () => {
     } catch (err) { alert('Error!'); }
   };
 
+ // 🌟 ฟังก์ชันอัปโหลดวิดีโอขึ้น Cloudflare & บันทึกข้อมูล
   const handleAddAd = async (e) => {
     e.preventDefault();
+    if (!newAd.media_url || !newAd.title) {
+        return alert('กรุณากรอกหัวข้อและเลือกไฟล์ก่อนครับเจ้านาย!');
+    }
+
+    setIsSaving(true); // ปรับ state เพื่อโชว์ Loading ตอนกำลังอัปโหลด
+
     try {
-      const res = await fetch(`${API_URL}/api/admin/ads`, {
+      // ดึงไฟล์ตัวจริงที่ผู้ใช้เลือกออกมาจาก Input File (ไม่ใช่ Base64 แล้ว)
+      const fileInput = document.getElementById('ad-file-upload');
+      const file = fileInput.files[0];
+      
+      if(!file){
+           setIsSaving(false);
+           return alert('หาไฟล์ไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
+      }
+
+      // สเต็ป 1: ขอตั๋ว (URL) สำหรับอัปโหลดจาก Cloudflare (ผ่าน API หลังบ้านเรา)
+      console.log("ขอ URL อัปโหลด...");
+      const urlRes = await fetch(`${API_URL}/api/get-upload-url`, { method: 'POST' });
+      const urlData = await urlRes.json();
+      
+      if (!urlData.success) {
+          throw new Error('ขอ URL อัปโหลดไม่สำเร็จ: ' + urlData.message);
+      }
+
+      // สเต็ป 2: ยิงไฟล์ขึ้น Cloudflare ทันที!
+      console.log("กำลังอัปโหลดขึ้น Cloudflare...");
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const cfRes = await fetch(urlData.uploadUrl, {
+          method: 'POST',
+          body: formData
+      });
+      const cfData = await cfRes.json();
+
+      if (!cfData.success) {
+           throw new Error('อัปโหลดไฟล์ไป Cloudflare ล้มเหลว');
+      }
+
+      // ได้ Video ID จาก Cloudflare มาแล้ว
+      const cfVideoId = cfData.result.uid;
+      console.log("อัปโหลดสำเร็จ! Video ID:", cfVideoId);
+
+      // สเต็ป 3: ส่งข้อมูล (Title, Desc, VideoID) กลับไปเซฟลง Vercel Postgres
+      console.log("บันทึกข้อมูลลงฐานข้อมูล...");
+      const saveRes = await fetch(`${API_URL}/api/video-promotions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAd)
+        body: JSON.stringify({
+            title: newAd.title,
+            description: newAd.description,
+            cf_video_id: cfVideoId
+        })
       });
-      if ((await res.json()).success) {
-        alert('✅ เพิ่มโฆษณาสำเร็จ!');
-        setNewAd({ title: '', description: '', media_type: 'image', media_url: '' });
-        fetchAllData();
+      const saveData = await saveRes.json();
+
+      if (saveData.success) {
+        alert('✅ เยี่ยม! อัปโหลดและบันทึกโฆษณาสำเร็จ 100%!');
+        setNewAd({ title: '', description: '', media_type: 'video', media_url: '' }); // รีเซ็ตฟอร์ม
+        fileInput.value = ''; // ล้างค่าใน input file
+        // fetchAllData(); // โหลดข้อมูลใหม่ (เดี๋ยวต้องไปแก้ API ดึงข้อมูลด้วย)
+      } else {
+        throw new Error('บันทึกลงฐานข้อมูลไม่สำเร็จ: ' + saveData.message);
       }
-    } catch (err) { alert('Error!'); }
+
+    } catch (err) { 
+        console.error(err);
+        alert('เกิดข้อผิดพลาด: ' + err.message); 
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   const deleteItem = async (type, id) => {
@@ -424,35 +485,37 @@ const DepositPromotion = () => {
           
           <div style={{ gridColumn: 'span 2', display: 'flex', gap: '15px', alignItems: 'end', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
             
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
-                📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
-              </label>
-              <input 
-                type="file" 
-                accept="image/*,video/mp4,video/webm" 
-                disabled={editModeId !== null} // 🌟 ล็อคปุ่มเลือกไฟล์เมื่ออยู่ในโหมดแก้ไข
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  
-                  if (file.size > 10 * 1024 * 1024) {
-                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
-                  }
-                  
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setNewAd({
-                      ...newAd, 
-                      media_url: reader.result, 
-                      media_type: file.type.startsWith('video') ? 'video' : 'image'
-                    });
-                  };
-                  reader.readAsDataURL(file);
-                }} 
-                style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
-              />
-            </div>
+           <div style={{ flex: 1 }}>
+  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
+    📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
+  </label>
+  <input 
+    id="ad-file-upload" // 🌟 เพิ่มบรรทัดนี้เข้ามาครับ เพื่อให้โค้ดดึงไฟล์ไปส่ง Cloudflare ได้!
+    type="file" 
+    accept="image/*,video/mp4,video/webm" 
+    disabled={editModeId !== null} 
+    onChange={(e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (file.size > 10 * 1024 * 1024) {
+          return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
+      }
+      
+      // ส่วนนี้เก็บไว้เพื่อทำภาพ Preview ให้แอดมินดูก่อนกดปุ่มบันทึกครับ
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewAd({
+          ...newAd, 
+          media_url: reader.result, 
+          media_type: file.type.startsWith('video') ? 'video' : 'image'
+        });
+      };
+      reader.readAsDataURL(file);
+    }} 
+    style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
+  />
+</div>
             
             {/* ปุ่มยกเลิก (โชว์เฉพาะตอนกดแก้ไข) */}
             {editModeId && (
