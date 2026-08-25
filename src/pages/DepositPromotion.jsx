@@ -95,19 +95,18 @@ const DepositPromotion = () => {
   });
 
   const [ads, setAds] = useState([]);
-  const [newAd, setNewAd] = useState({ title: '', description: '', media_type: 'image', media_url: '' });
+  // 🌟 เพิ่ม thumbnail_url ใน State
+  const [newAd, setNewAd] = useState({ title: '', description: '', media_type: 'image', media_url: '', thumbnail_url: '' });
   
-  // 🌟 เพิ่ม State สำหรับเก็บรายการวิดีโอ (ตัวใหม่ที่ใช้แสดง)
   const [videoList, setVideoList] = useState([]);
 
   useEffect(() => {
     fetchAllData();
-    fetchVideos(); // 🌟 ดึงข้อมูลวิดีโอตัวใหม่ตอนเปิดหน้าเว็บ
+    fetchVideos(); 
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 🌟 ฟังก์ชันดึงวิดีโอจาก API ตัวเดียวกับหน้าเว็บ
   const fetchVideos = async () => {
     try {
       const res = await fetch(`${API_URL}/api/video-promotions`, { cache: 'no-store' });
@@ -149,26 +148,27 @@ const DepositPromotion = () => {
       title: ad.title || '',
       description: ad.description || '',
       media_url: ad.media_url, 
-      media_type: ad.media_type
+      media_type: ad.media_type,
+      thumbnail_url: ad.thumbnail_url || '' // 🌟 ดึงปกเดิมมาด้วย
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveEditAd = async () => {
     try {
-      // 🌟 API ต้องแก้ข้อมูลใน Vercel (ต้องมีหลังบ้านมารองรับการแก้ไขด้วยนะครับ)
       const res = await fetch(`${API_URL}/api/admin/ads/${editModeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newAd.title, description: newAd.description }) 
+        // 🌟 ส่ง thumbnail_url ไปอัปเดตด้วย
+        body: JSON.stringify({ title: newAd.title, description: newAd.description, thumbnail_url: newAd.thumbnail_url }) 
       });
       const data = await res.json();
       
       if (data.success) {
         alert('อัปเดตข้อมูลโฆษณาสำเร็จ');
         setEditModeId(null); 
-        setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); 
-        fetchVideos(); // 🌟 รีเฟรชข้อมูลวิดีโอใหม่
+        setNewAd({ title: '', description: '', media_url: '', media_type: 'image', thumbnail_url: '' }); 
+        fetchVideos(); 
       } else {
         alert(`ผิดพลาด: ${data.message}`);
       }
@@ -222,10 +222,10 @@ const DepositPromotion = () => {
     } catch (err) { alert('Error!'); }
   };
 
-const handleAddAd = async (e) => {
+  const handleAddAd = async (e) => {
     e.preventDefault();
     if (!newAd.media_url || !newAd.title) {
-        return alert('กรุณากรอกหัวข้อและเลือกไฟล์ก่อนครับเจ้านาย!');
+        return alert('กรุณากรอกหัวข้อและเลือกไฟล์วิดีโอก่อนครับเจ้านาย!');
     }
 
     setIsSaving(true); 
@@ -236,7 +236,7 @@ const handleAddAd = async (e) => {
       
       if(!file){
            setIsSaving(false);
-           return alert('หาไฟล์ไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
+           return alert('หาไฟล์วิดีโอไม่เจอครับ ลองเลือกไฟล์ใหม่อีกครั้ง');
       }
 
       console.log("ขอ URL อัปโหลด...");
@@ -265,7 +265,8 @@ const handleAddAd = async (e) => {
         body: JSON.stringify({
             title: newAd.title,
             description: newAd.description,
-            cf_video_id: cfVideoId
+            cf_video_id: cfVideoId,
+            thumbnail_url: newAd.thumbnail_url // 🌟 ส่งรูปปกที่แปลงเป็น Base64 ไปด้วย
         })
       });
       
@@ -273,9 +274,10 @@ const handleAddAd = async (e) => {
 
       if (saveData.success) {
         alert('✅ เยี่ยม! อัปโหลดและบันทึกโฆษณาสำเร็จ 100%!');
-        setNewAd({ title: '', description: '', media_type: 'video', media_url: '' }); 
+        setNewAd({ title: '', description: '', media_type: 'video', media_url: '', thumbnail_url: '' }); 
         fileInput.value = ''; 
-        fetchVideos(); // 🌟 รีเฟรชข้อมูลวิดีโอใหม่ทันที
+        document.getElementById('ad-thumbnail-upload').value = ''; // ล้างช่องอัปปก
+        fetchVideos(); 
       } else {
         throw new Error('บันทึกลงฐานข้อมูลไม่สำเร็จ: ' + saveData.message);
       }
@@ -293,7 +295,7 @@ const handleAddAd = async (e) => {
     try {
       await fetch(`${API_URL}/api/admin/${type === 'promo' ? 'promotions' : 'ads'}/${id}`, { method: 'DELETE' });
       fetchAllData();
-      if (type === 'ad') fetchVideos(); // ถ้าระบบรองรับการลบวิดีโอ ก็ให้รีเฟรชข้อมูลวิดีโอด้วย
+      if (type === 'ad') fetchVideos(); 
     } catch (err) { console.error(err); }
   };
 
@@ -465,63 +467,93 @@ const handleAddAd = async (e) => {
             />
           </div>
           
-          <div style={{ gridColumn: 'span 2', display: 'flex', gap: '15px', alignItems: 'end', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: 'white', padding: '15px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
             
-            <div style={{ flex: 1 }}>
+            {/* 🌟 ส่วนอัปโหลดวิดีโอหลัก */}
+            <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: editModeId ? '#94a3b8' : '#8b5cf6', marginBottom: '8px' }}>
-                📁 {editModeId ? 'ไฟล์เดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความ)' : 'อัปโหลดไฟล์ (รูปภาพ หรือ วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
+                🎬 {editModeId ? 'ไฟล์วิดีโอเดิมถูกล็อคไว้ (แก้ไขได้เฉพาะข้อความและปก)' : 'อัปโหลดวิดีโอ (ไฟล์วิดีโอแนวตั้ง 9:16 แนะนำไม่เกิน 10MB)'}
               </label>
               <input 
                 id="ad-file-upload" 
                 type="file" 
-                accept="image/*,video/mp4,video/webm" 
+                accept="video/mp4,video/webm" 
                 disabled={editModeId !== null} 
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (!file) return;
                   if (file.size > 10 * 1024 * 1024) {
-                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB) \n\nเทคนิค: แนะนำให้ส่งวิดีโอผ่าน LINE เพื่อให้ระบบ LINE บีบอัดให้ก่อน แล้วค่อยโหลดมาอัปโหลดใส่ระบบครับ จะได้ไฟล์เล็กและลื่นไหล');
+                      e.target.value = '';
+                      return alert('❌ วิดีโอไฟล์ใหญ่เกินไปครับ! (สูงสุดไม่เกิน 10MB)');
                   }
                   const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setNewAd({
-                      ...newAd, 
-                      media_url: reader.result, 
-                      media_type: file.type.startsWith('video') ? 'video' : 'image'
-                    });
-                  };
+                  reader.onloadend = () => setNewAd({...newAd, media_url: reader.result, media_type: 'video'});
                   reader.readAsDataURL(file);
                 }} 
-                style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1 }} 
+                style={{ width: '100%', padding: '8px', cursor: editModeId ? 'not-allowed' : 'pointer', opacity: editModeId ? 0.5 : 1, border: '1px solid #e2e8f0', borderRadius: '6px' }} 
               />
             </div>
-            
-            {editModeId && (
-              <button 
-                type="button" 
-                onClick={() => { 
-                  setEditModeId(null); 
-                  setNewAd({ title: '', description: '', media_url: '', media_type: 'image' }); 
-                }} 
-                style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                ยกเลิก
-              </button>
-            )}
 
-            <button 
-              type="submit" 
-              disabled={!newAd.media_url && !editModeId}
-              style={{ 
-                padding: '10px 25px', 
-                backgroundColor: (newAd.media_url || editModeId) ? (editModeId ? '#0284c7' : '#8b5cf6') : '#cbd5e1', 
-                color: 'white', border: 'none', borderRadius: '8px', 
-                cursor: (newAd.media_url || editModeId) ? 'pointer' : 'not-allowed', 
-                fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', height: '42px' 
-              }}
-            >
-              {editModeId ? <><Edit size={18} /> บันทึกการแก้ไข</> : <><PlusCircle size={18} /> บันทึกเข้า DB</>}
-            </button>
+            {/* 🌟 🌟 เพิ่มส่วนอัปโหลดรูปปก (Thumbnail) ตรงนี้ 🌟 🌟 */}
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#10b981', marginBottom: '8px' }}>
+                🖼️ อัปโหลดรูปปกวิดีโอ (หน้าปะหน้า ไม่เกิน 500KB)
+              </label>
+              <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+                  <input 
+                    id="ad-thumbnail-upload" 
+                    type="file" 
+                    accept="image/jpeg,image/png,image/webp" 
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      // 🌟 ดักขนาดไฟล์ปกไม่ให้เกิน 500KB (ลดภาระฐานข้อมูล)
+                      if (file.size > 500 * 1024) {
+                          e.target.value = '';
+                          return alert('❌ รูปปกขนาดใหญ่เกินไปครับ! (สูงสุดไม่เกิน 500KB) กรุณาย่อขนาดรูปก่อนครับ');
+                      }
+                      const reader = new FileReader();
+                      reader.onloadend = () => setNewAd({...newAd, thumbnail_url: reader.result}); // แปลงเป็น Base64 เก็บไว้
+                      reader.readAsDataURL(file);
+                    }} 
+                    style={{ flex: 1, padding: '8px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px' }} 
+                  />
+                  {newAd.thumbnail_url && (
+                      <div style={{ width: '60px', height: '100px', backgroundColor: '#000', borderRadius: '6px', overflow: 'hidden' }}>
+                          <img src={newAd.thumbnail_url} alt="ปก" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                  )}
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                {editModeId && (
+                <button 
+                    type="button" 
+                    onClick={() => { 
+                    setEditModeId(null); 
+                    setNewAd({ title: '', description: '', media_url: '', media_type: 'image', thumbnail_url: '' }); 
+                    }} 
+                    style={{ padding: '10px 20px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                    ยกเลิก
+                </button>
+                )}
+
+                <button 
+                type="submit" 
+                disabled={!newAd.media_url && !editModeId}
+                style={{ 
+                    padding: '10px 25px', 
+                    backgroundColor: (newAd.media_url || editModeId) ? (editModeId ? '#0284c7' : '#8b5cf6') : '#cbd5e1', 
+                    color: 'white', border: 'none', borderRadius: '8px', 
+                    cursor: (newAd.media_url || editModeId) ? 'pointer' : 'not-allowed', 
+                    fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px'
+                }}
+                >
+                {editModeId ? <><Edit size={18} /> บันทึกการแก้ไข</> : <><PlusCircle size={18} /> บันทึกโฆษณาและปกเข้า DB</>}
+                </button>
+            </div>
 
           </div>
         </form>
@@ -532,9 +564,14 @@ const handleAddAd = async (e) => {
                 videoList.map((vid) => (
                     <div key={vid.ad_id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
                         
-                        {/* ส่วนแสดงวิดีโอ (สัดส่วน 9:16) */}
+                        {/* ส่วนแสดงวิดีโอ และโชว์รูปปกแทนถ้ายังไม่ได้กด Play */}
                         <div style={{ aspectRatio: '9/16', backgroundColor: '#000', position: 'relative' }}>
-                            <video src={vid.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
+                            <video 
+                                src={vid.media_url} 
+                                poster={vid.thumbnail_url} /* 🌟 แสดงรูปปกตรงนี้เลย */
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                muted playsInline controls 
+                            />
                             <div style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
                                 ID: {vid.ad_id}
                             </div>
@@ -560,9 +597,9 @@ const handleAddAd = async (e) => {
                             {/* ปุ่ม Action */}
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button onClick={() => handleEditClick(vid)} style={{ flex: 1, padding: '8px', backgroundColor: '#f1f5f9', color: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                    ✏️ แก้ไข
+                                    ✏️ แก้ไข (ใส่ปกใหม่)
                                 </button>
-                                <button onClick={() => alert('ฟังก์ชันลบกำลังพัฒนาครับเจ้านาย!')} style={{ flex: 1, padding: '8px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                <button onClick={() => deleteItem('ad', vid.ad_id)} style={{ flex: 1, padding: '8px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
                                     🗑️ ลบ
                                 </button>
                             </div>
