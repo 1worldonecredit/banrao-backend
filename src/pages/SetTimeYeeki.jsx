@@ -15,23 +15,19 @@ const SetTimeYeeki = () => {
   const [editForm, setEditForm] = useState({});
   const [now, setNow] = useState(new Date()); 
 
-  // 🌟 เพิ่ม Ref เพื่อจำวันล่าสุดที่เช็ค (สำหรับระบบบันทึกข้ามวัน 00:00 น.)
   const lastCheckedDateRef = React.useRef(new Date().getDate());
 
-  // 🌟 อัปเดตเวลาปัจจุบันทุก 1 วินาที + 🚀 ระบบบันทึกอัตโนมัติเวลาเที่ยงคืน (00:00 น.)
   useEffect(() => {
     const timer = setInterval(() => {
       const currentTime = new Date();
       setNow(currentTime);
 
-      // 🔴 ตรวจจับการข้ามวันใหม่ (00:00 น.) 🔴
       if (currentTime.getDate() !== lastCheckedDateRef.current) {
-        lastCheckedDateRef.current = currentTime.getDate(); // อัปเดตเป็นวันใหม่
+        lastCheckedDateRef.current = currentTime.getDate(); 
         
         const newDateStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
-        setSelectedDate(newDateStr); // เปลี่ยนปฏิทินเป็นวันใหม่โดยอัตโนมัติ
+        setSelectedDate(newDateStr); 
 
-        // สร้างตารางข้อมูล 24 รอบ สำหรับวันใหม่
         const arr = [];
         for (let i = 1; i <= 24; i++) {
           const hour = i - 1;
@@ -48,7 +44,6 @@ const SetTimeYeeki = () => {
         }
         setRounds(arr);
 
-        // 🚀 ยิง API บันทึกลงฐานข้อมูลอัตโนมัติทันที! (ไม่ต้องรอคนกด)
         fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,7 +53,6 @@ const SetTimeYeeki = () => {
         .then(data => {
           if (data.success) {
             console.log('✅ ระบบบันทึกข้อมูลรอบเวลา 00:00 น. สำเร็จ!');
-            // รีเฟรชหน้าต่าง 1 ครั้ง เพื่อให้ระบบดึง ID จริงจากฐานข้อมูลมาแสดงให้สมบูรณ์
             window.location.reload(); 
           }
         })
@@ -67,11 +61,6 @@ const SetTimeYeeki = () => {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, []);
-
-  // 🌟 ใช้ useEffect โหลดข้อมูลครั้งแรก (ดึง API หน้าบ้านตามคำสั่ง)
-  useEffect(() => {
-    fetchRounds();
   }, []);
 
   const extractTime = (val) => {
@@ -87,46 +76,12 @@ const SetTimeYeeki = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันคำนวณสถานะและเวลานับถอยหลังให้ตรงกับลูกค้า
-  const getRoundStatus = (round) => {
-    if (round.isNew) return { text: 'ยังไม่บันทึกข้อมูล', color: '#94a3b8', bgColor: '#f1f5f9' };
-    
-    if (!round.open_time || !round.close_time || !round.draw_time) 
-        return { text: 'ข้อมูลเวลาไม่ครบ', color: '#ef4444', bgColor: '#fef2f2' };
-
-    const [year, month, day] = selectedDate.split('-').map(Number);
-    
-    const [openH, openM] = round.open_time.split(':').map(Number);
-    const openDate = new Date(year, month - 1, day, openH, openM, 0);
-    
-    const [closeH, closeM] = round.close_time.split(':').map(Number);
-    const closeDate = new Date(year, month - 1, day, closeH, closeM, 0);
-    
-    const [drawH, drawM] = round.draw_time.split(':').map(Number);
-    const drawDate = new Date(year, month - 1, day, drawH, drawM, 0);
-
-    if (now > drawDate) {
-      return { text: 'หมดเวลา (ออกผลแล้ว)', color: '#ef4444', bgColor: '#fef2f2' };
-    }
-    if (now >= closeDate && now <= drawDate) {
-      return { text: 'ปิดรับแทง (รอออกผล)', color: '#d97706', bgColor: '#fffbeb' };
-    }
-    if (now >= openDate && now < closeDate) {
-      // 🌟 ระบบนับถอยหลังแบบเดียวกับหน้าบ้าน
-      const diff = closeDate - now;
-      const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
-      const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
-      const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
-      return { text: `🟢 กำลังเปิดขาย (${h}:${m}:${s})`, color: '#16a34a', bgColor: '#f0fdf4' };
-    }
-    return { text: 'รอเปิดรับแทง', color: '#475569', bgColor: '#f8fafc' };
-  };
-
-  // 🌟 ดึงข้อมูลด้วย API ของหน้าบ้าน เพื่อความชัวร์ 100%
+  // 🌟 1. ดึงข้อมูลด้วย API ของ Admin และเพิ่ม Dependency ให้ปฏิทินทำงานได้ 100%
   const fetchRounds = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/yeeki/rounds`);
+      // แก้มาใช้ API สำหรับ Admin โดยส่งวันที่จากปฏิทินไปด้วย
+      const res = await fetch(`${API_URL}/api/admin/yeeki-rounds?date=${selectedDate}`);
       const data = await res.json();
       if (data.success && data.rounds && data.rounds.length > 0) {
         const formattedRounds = data.rounds.map(r => ({
@@ -134,7 +89,7 @@ const SetTimeYeeki = () => {
           open_time: extractTime(r.open_time),
           close_time: extractTime(r.close_time),
           draw_time: extractTime(r.draw_time),
-          isNew: false // แจ้งสถานะว่าข้อมูลมาจากฐานข้อมูลจริงแล้ว
+          isNew: false 
         }));
         setRounds(formattedRounds);
       } else {
@@ -148,6 +103,11 @@ const SetTimeYeeki = () => {
       setIsLoading(false);
     }
   };
+
+  // ดึงข้อมูลใหม่ทุกครั้งที่แอดมินเปลี่ยนวันที่บนปฏิทิน
+  useEffect(() => {
+    fetchRounds();
+  }, [selectedDate]);
 
   const generateDefaultRounds = () => {
     const arr = [];
@@ -166,7 +126,6 @@ const SetTimeYeeki = () => {
     }
     setRounds(arr);
 
-    // 🚀 [ระบบอัตโนมัติ] สั่งบันทึกลงฐานข้อมูลให้อัตโนมัติทันทีที่ดึงข้อมูลแล้วพบว่าว่างเปล่า (เช่นตอนเช้าเปิดคอมมา)
     fetch(`${API_URL}/api/admin/yeeki-rounds/bulk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -237,6 +196,55 @@ const SetTimeYeeki = () => {
 
   const isTemplateMode = rounds.length > 0 && rounds[0].isNew;
 
+  // 🌟 2. อัปเกรดความฉลาดของแอดมิน: คำนวณ 12 รอบ (แบบเดียวกับหน้าลูกค้าเป๊ะๆ) ก่อน Render
+  let openCount = 0;
+  const processedRounds = rounds.map(round => {
+    if (round.isNew || !round.open_time || !round.close_time || !round.draw_time) {
+      return { ...round, displayStatus: 'new' };
+    }
+
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const [closeH, closeM] = round.close_time.split(':').map(Number);
+    const closeDate = new Date(year, month - 1, day, closeH, closeM, 0);
+    const [drawH, drawM] = round.draw_time.split(':').map(Number);
+    const drawDate = new Date(year, month - 1, day, drawH, drawM, 0);
+    
+    // ถ้าเวลาปัจจุบันเลยเวลาออกผลไปแล้ว
+    if (now > drawDate) {
+      return { ...round, displayStatus: 'ended', closeDate };
+    } 
+    // ถ้าเวลาปัจจุบันอยู่ระหว่างการ ปิดรับแทง -> รอออกผล
+    if (now >= closeDate && now <= drawDate) {
+      return { ...round, displayStatus: 'waiting', closeDate };
+    }
+    
+    // ถ้ายังไม่หมดเวลา ให้นับสิทธิ์เป็น "เปิดรับแทง" ได้ 12 รอบ!
+    if (openCount < 12) {
+      openCount++;
+      return { ...round, displayStatus: 'open', closeDate };
+    }
+
+    return { ...round, displayStatus: 'upcoming', closeDate };
+  });
+
+  const getRoundStatus = (round) => {
+    if (round.displayStatus === 'new') return { text: 'ยังไม่บันทึกข้อมูล/เวลาไม่ครบ', color: '#94a3b8', bgColor: '#f1f5f9' };
+    if (round.displayStatus === 'ended') return { text: 'หมดเวลา (ออกผลแล้ว)', color: '#ef4444', bgColor: '#fef2f2' };
+    if (round.displayStatus === 'waiting') return { text: 'ปิดรับแทง (รอออกผล)', color: '#d97706', bgColor: '#fffbeb' };
+    
+    if (round.displayStatus === 'open') {
+      const diff = round.closeDate - now;
+      if (diff <= 0) return { text: 'กำลังประมวลผล...', color: '#d97706', bgColor: '#fffbeb' };
+      
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+      const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+      const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+      return { text: `🟢 กำลังเปิดขาย (${h}:${m}:${s})`, color: '#16a34a', bgColor: '#f0fdf4' };
+    }
+    
+    return { text: 'รอเปิดรับแทง', color: '#475569', bgColor: '#f8fafc' };
+  };
+
   return (
     <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
@@ -299,7 +307,8 @@ const SetTimeYeeki = () => {
                 </tr>
               </thead>
               <tbody>
-                {rounds.map((round) => {
+                {/* 🌟 เปลี่ยนจาก rounds.map เป็น processedRounds.map เพื่อเรียกใช้ข้อมูลที่คำนวณแล้ว */}
+                {processedRounds.map((round) => {
                   const isEditing = editingId === round.round_id;
                   const statusInfo = getRoundStatus(round); 
                   
