@@ -193,27 +193,33 @@ const ManageThaiNumber = () => {
     finally { setIsProcessing(false); }
   };
 
-  // 🌟 ดึงข้อมูลรายชื่อผู้ถูกรางวัลมาแสดงใน Modal
+  // 🌟 ดึงข้อมูลรายชื่อผู้ถูกรางวัลมาแสดงใน Modal (ปรับใหม่ เปิดหน้าต่างเสมอ ไม่พึ่ง Alert)
   const fetchWinnersAndOpenModal = async (round) => {
     setViewingWinnersRound(round);
     setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/thai-lottery/winners/${round.round_id}`);
       const data = await res.json();
-      if (data.success) {
+      
+      if (data.success && data.winners) {
         setWinnersList(data.winners);
         // เลือกทุกคนเป็นค่าเริ่มต้น
         setSelectedWinnerIds(data.winners.map(w => w.order_item_id));
-        setAutoPayoutCountdown(300); // รีเซ็ตเวลา 5 นาที
-        setIsAutoPayoutPaused(false);
-        setShowWinnersModal(true);
       } else {
-        alert('ไม่สามารถดึงข้อมูลผู้ถูกรางวัลได้');
+        // ดึงไม่สำเร็จ หรือไม่มีข้อมูล ก็ให้เป็นตารางว่างๆ
+        setWinnersList([]);
+        setSelectedWinnerIds([]);
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ถูกรางวัล');
+      // กรณีเน็ตหลุด หรือ API พัง ก็ให้เปิดตารางว่างๆ ดีกว่าโชว์ Error กวนใจ
+      setWinnersList([]);
+      setSelectedWinnerIds([]);
     } finally {
+      // 🌟 บังคับเปิดหน้าต่าง (Modal) เสมอ ไม่ว่าข้อมูลจะมาหรือไม่
+      setAutoPayoutCountdown(300); 
+      setIsAutoPayoutPaused(false);
+      setShowWinnersModal(true);
       setIsLoading(false);
     }
   };
