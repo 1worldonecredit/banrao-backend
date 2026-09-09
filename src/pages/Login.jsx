@@ -28,7 +28,7 @@ export default function Login() {
       if (response.ok && data.success) {
         // บันทึกข้อมูลพนักงานลงเครื่อง
         localStorage.setItem('userData', JSON.stringify(data.user));
-        
+        localStorage.setItem('token', data.token);
         // พาไปหน้า Dashboard (ถ้า Router คุณตั้งหน้าหลักเป็น / ให้เปลี่ยนจาก /dashboard เป็น / ได้เลย)
         navigate('/dashboard'); 
       } else {
