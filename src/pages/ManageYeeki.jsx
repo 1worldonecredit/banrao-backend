@@ -622,12 +622,17 @@ return (
                       <span>ออกผล:</span><span style={{ textAlign: 'right', color: '#d97706', fontWeight: 'bold' }}>{formatTimeOnly(r.drawTime)}</span>
                   </div>
 
-                  {isCompleted && r.result_4_top && r.result_4_top !== '-' && (
+                 {isCompleted && (r.result_6_top || r.result_4_top) && (
                     <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                       <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>ผลรางวัล</div>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: '16px' }}>{r.result_4_top}</span>
-                        <span style={{ fontWeight: 'bold', color: '#1d4ed8', fontSize: '16px' }}>{r.result_2_bottom}</span>
+                        {/* 🌟 แสดงเลข 6 ตัว (สีม่วงให้ตรงกับธีมหลัก) */}
+                        <span style={{ fontWeight: 'bold', color: '#7e22ce', fontSize: '16px', letterSpacing: '1px' }}>
+                          {r.result_6_top || r.result_4_top}
+                        </span>
+                        <span style={{ fontWeight: 'bold', color: '#1d4ed8', fontSize: '16px', letterSpacing: '1px' }}>
+                          {r.result_2_bottom}
+                        </span>
                       </div>
                     </div>
                   )}
