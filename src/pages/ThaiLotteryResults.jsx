@@ -42,13 +42,28 @@ const ThaiLotteryResults = () => {
   const pendingRounds = rounds.filter(r => r.status !== 'Completed').sort((a, b) => new Date(a.draw_time) - new Date(b.draw_time));
   const targetRound = pendingRounds.length > 0 ? pendingRounds[0] : null;
 
-  // ตรวจสอบว่าถึงเวลาออกผลหรือยัง
-  const isReadyToDraw = targetRound ? currentTime >= new Date(targetRound.draw_time) : false;
+  // 🌟 ดึงเวลาปิดรับแทง และคำนวณเวลาล็อก (ปิดรับแทง + 2 ชั่วโมง)
+  const closeTime = targetRound ? new Date(targetRound.close_time) : new Date();
+  const lockTime = new Date(closeTime.getTime() + (2 * 60 * 60 * 1000)); // บวก 2 ชั่วโมง
 
-  // ฟังก์ชันนับถอยหลัง
-  const getCountdown = (targetDate) => {
-    const diff = new Date(targetDate) - currentTime;
-    if (diff <= 0) return 'ถึงเวลาประกาศผลแล้ว!';
+  // 🌟 ปลดล็อกเฉพาะช่วง: "หลังปิดรับแทง" จนถึง "ก่อนหมดเวลา 2 ชั่วโมง"
+  const isReadyToDraw = targetRound ? (currentTime >= closeTime && currentTime <= lockTime) : false;
+
+  // 🌟 ฟังก์ชันนับถอยหลัง (ฉลาดขึ้น แบ่งเป็น 3 ระยะ)
+  const getCountdownText = () => {
+    if (!targetRound) return '';
+    let targetDate;
+    
+    if (currentTime < closeTime) {
+      targetDate = closeTime; // ระยะที่ 1: รอนับถอยหลังเพื่อปลดล็อกช่องคีย์
+    } else if (currentTime >= closeTime && currentTime <= lockTime) {
+      targetDate = lockTime; // ระยะที่ 2: รอนับถอยหลังหมดเวลาคีย์ (2 ชม.)
+    } else {
+      return 'หมดเวลาคีย์ผลแล้ว'; // ระยะที่ 3: เกิน 2 ชม. ล็อกปิดตาย
+    }
+
+    const diff = targetDate - currentTime;
+    if (diff <= 0) return 'หมดเวลาคีย์ผลแล้ว';
     const d = Math.floor(diff / (1000 * 60 * 60 * 24));
     const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const m = Math.floor((diff / 1000 / 60) % 60);
