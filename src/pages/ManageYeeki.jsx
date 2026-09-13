@@ -400,8 +400,10 @@ const ManageYeeki = () => {
         });
         const data = await res.json();
         if (data.success) {
-          // 🌟 ปรับให้รับ 6 ตัว และ 2 ตัวล่าง
-          setSimulatedSuper(data.top_6 || data.suggestedSuper || ''); 
+          // 🌟 บังคับตัดเลขที่ส่งมาจากหลังบ้านให้เหลือแค่ 6 ตัวเสมอ ป้องกัน API ส่งมาผิด
+          const rawSuper = String(data.top_6 || data.suggestedSuper || '');
+          setSimulatedSuper(rawSuper.length > 6 ? rawSuper.slice(-6) : rawSuper); 
+          
           setSimulatedBottom(data.bottom_2 || data.suggestedBottom || '');
         } else alert(`❌ ไม่สามารถสุ่มเลขได้: ${data.message}`);
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); } 
