@@ -337,7 +337,7 @@ const ManageYeeki = () => {
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); }
   };
 
-  const handleSaveAutoPercent = async () => {
+ const handleSaveAutoPercent = async () => {
       if (!window.confirm(`⚠️ ยืนยันการตั้งเป้าหมายยอดจ่ายที่ ${targetPercent}% ใช่หรือไม่?`)) { setTargetPercent(settings.auto_draw_percent); return; }
       const updated = { ...settings, auto_draw_percent: targetPercent };
       setSettings(updated);
@@ -364,9 +364,11 @@ const ManageYeeki = () => {
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); }
   };
 
-  const handleAnalyzeDraw = async () => {
-      if (simulatedSuper.length !== 8) return alert('กรุณากรอกเลข Super Jackpot ให้ครบ 8 หลัก');
-      if (simulatedTop.length !== 4) return alert('กรุณากรอกเลขบน ให้ครบ 4 หลัก');
+ const handleAnalyzeDraw = async () => {
+      // 🌟 1. เปลี่ยนเงื่อนไขเช็คจาก 8 เป็น 6 หลัก
+      if (simulatedSuper.length !== 6) return alert('กรุณากรอกเลขรางวัล 6 ตัว ให้ครบ 6 หลัก');
+      
+      // 🌟 2. เอาการเช็คเลข 4 ตัวออก (เพราะระบบหลังบ้านจะหั่นจาก 6 ตัวให้อัตโนมัติ)
       if (simulatedBottom.length !== 2) return alert('กรุณากรอกเลขล่างให้ครบ 2 หลัก');
       if (!selectedRound) return alert('กรุณาเลือกรอบที่ต้องการวิเคราะห์');
   
@@ -374,7 +376,12 @@ const ManageYeeki = () => {
       try {
         const res = await fetch(`${API_URL}/api/admin/analyze-yeeki-draw`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_number: simulatedTop, bottom_number: simulatedBottom }) 
+          // 🌟 3. ส่งแค่ top_6 และ bottom_2 ไปให้หลังบ้าน
+          body: JSON.stringify({ 
+              round_id: selectedRound.round_id, 
+              top_6: simulatedSuper, 
+              bottom_2: simulatedBottom 
+          }) 
         });
         const data = await res.json();
         if (data.success) setAnalysisResult(data);
@@ -383,7 +390,7 @@ const ManageYeeki = () => {
       finally { setIsAnalyzing(false); }
   };
 
-  const handleSuggestDraw = async () => {
+ const handleSuggestDraw = async () => {
       if (!selectedRound) return alert('กรุณาเลือกรอบที่ต้องการ');
       setIsSuggesting(true);
       try {
@@ -393,24 +400,24 @@ const ManageYeeki = () => {
         });
         const data = await res.json();
         if (data.success) {
-          if (!simulatedSuper || simulatedSuper.length !== 8) {
-              setSimulatedSuper(data.super_8 || data.suggestedSuper); 
-          }
-          setSimulatedTop(data.top_4 || data.suggestedTop);
-          setSimulatedBottom(data.bottom_2 || data.suggestedBottom);
+          // 🌟 ปรับให้รับ 6 ตัว และ 2 ตัวล่าง
+          setSimulatedSuper(data.top_6 || data.suggestedSuper || ''); 
+          setSimulatedBottom(data.bottom_2 || data.suggestedBottom || '');
         } else alert(`❌ ไม่สามารถสุ่มเลขได้: ${data.message}`);
       } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ API'); } 
       finally { setIsSuggesting(false); }
   };
 
-  const handleExecuteDraw = async () => {
-      if (!window.confirm(`⚠️ ยืนยันประกาศผลยี่กี รอบที่ ${selectedRound.round_number} ใช่หรือไม่?\n\nแจ็คพอต 8 ตัว: ${simulatedSuper}\nเลขบน 4 ตัว: ${simulatedTop}\nเลขล่าง 2 ตัว: ${simulatedBottom}\n\n(ระบบจะตรวจบิลและแจกเงินรางวัลทันที)`)) return;
+const handleExecuteDraw = async () => {
+      // 🌟 เปลี่ยนข้อความแจ้งเตือนให้ตรงกับเลข 6 ตัว
+      if (!window.confirm(`⚠️ ยืนยันประกาศผลยี่กี รอบที่ ${selectedRound.round_number} ใช่หรือไม่?\n\nรางวัล 6 ตัว: ${simulatedSuper}\nเลขล่าง 2 ตัว: ${simulatedBottom}\n\n(ระบบจะตรวจบิลและแจกเงินรางวัลทันที)`)) return;
       
       setIsExecutingDraw(true);
       try {
         const res = await fetch(`${API_URL}/api/admin/execute-yeeki-draw`, { 
           method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ round_id: selectedRound.round_id, super_number: simulatedSuper, top_number: simulatedTop, bottom_number: simulatedBottom }) 
+          // 🌟 ส่งค่าแค่ top_6 กับ bottom_2 ให้หลังบ้าน (หลังบ้านจะไปหั่นเอง)
+          body: JSON.stringify({ round_id: selectedRound.round_id, top_6: simulatedSuper, bottom_2: simulatedBottom }) 
         });
         const data = await res.json();
         if (data.success) {
@@ -423,7 +430,7 @@ const ManageYeeki = () => {
       finally { setIsExecutingDraw(false); }
   };
 
-  const fetchSimulatedUsers = async (type, numberStr) => {
+const fetchSimulatedUsers = async (type, numberStr) => {
       setSimulatedUserLoading(true); setShowSimulatedUsers(true); setSimulatedUsersList([]);
       try {
         const res = await fetch(`${API_URL}/api/admin/simulate-yeeki-winners`, {
@@ -541,7 +548,6 @@ const ManageYeeki = () => {
     }
   };
 
-
 return (
     <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
       
@@ -559,7 +565,7 @@ return (
         </div>
       </div>
 
-      {/* 🌟 เลือกรอบจัดการ (แบบการ์ด 24 รอบ) */}
+      {/* 🌟 เลือกรอบจัดการ */}
       <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(219, 39, 119, 0.08)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#9d174d', fontSize: '15px' }}>เลือกรอบที่ต้องการจัดการ:</h4>
         
@@ -656,8 +662,7 @@ return (
         {selectedRound && selectedRound.status === 'Completed' ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
             {[ 
-              { label: '8 ตัว (Super Jackpot)', val: selectedRound.result_8_super || '-', color: '#7e22ce', bg: '#faf5ff', width: '250px' }, 
-              { label: '6 ตัว', val: (selectedRound.result_2_bottom && selectedRound.result_4_top && selectedRound.result_4_top !== '-') ? `${selectedRound.result_2_bottom}${selectedRound.result_4_top}` : '-', color: '#4f46e5', bg: '#eff6ff', width: '200px' },
+              { label: '6 ตัว', val: selectedRound.result_6_top || '-', color: '#4f46e5', bg: '#eff6ff', width: '250px' },
               { label: '4 ตัว', val: selectedRound.result_4_top || '-', color: '#dc2626', bg: '#fef2f2', width: '150px' }, 
               { label: '3 ตัวบน', val: selectedRound.result_3_top || (selectedRound.result_4_top ? selectedRound.result_4_top.slice(-3) : '-'), color: '#ea580c', bg: '#fff7ed', width: '120px' }, 
               { label: '2 ตัวบน', val: (selectedRound.result_4_top && selectedRound.result_4_top !== '-') ? selectedRound.result_4_top.slice(-2) : '-', color: '#f59e0b', bg: '#fffbeb', width: '120px' }, 
@@ -722,7 +727,7 @@ return (
               <h4 style={{ margin: 0, color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}><Crosshair size={26} /> ควบคุมการออกรางวัล (รอบที่ {selectedRound.round_number})</h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                  <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #fde68a' }}><Clock size={16} /> เหลือเวลาออกผล: {getCountdown(selectedRound.drawTime)}</span>
-                 <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>แยกระบบสุ่ม 3 ชุดอิสระ: ชุด 8 ตัว (Super), ชุด 4 ตัว (บน), ชุด 2 ตัว (ล่าง)</p>
+                 <p style={{ margin: 0, color: '#d97706', fontSize: '13px' }}>แยกระบบสุ่มอิสระ: ชุด 6 ตัว (รางวัลบน), ชุด 2 ตัว (ล่าง)</p>
               </div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: settings.is_auto_draw ? '#10b981' : '#e2e8f0', color: settings.is_auto_draw ? 'white' : '#475569', padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', transition: '0.3s', boxShadow: settings.is_auto_draw ? '0 4px 10px rgba(16, 185, 129, 0.3)' : 'none' }}>
@@ -743,13 +748,13 @@ return (
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '25px', backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ flex: '1 1 250px' }}>
-              <span style={{ fontWeight: 'bold', color: '#7e22ce', display: 'block', marginBottom: '8px' }}>🏆 เลข 8 หลัก (Super Jackpot):</span>
-              <input type="tel" placeholder="XXXXXXXX" maxLength="8" value={simulatedSuper} onChange={(e) => setSimulatedSuper(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #c084fc', outline: 'none', letterSpacing: '4px', color: '#6b21a8', textAlign: 'center', boxSizing: 'border-box' }} />
+              <span style={{ fontWeight: 'bold', color: '#7e22ce', display: 'block', marginBottom: '8px' }}>🏆 เลข 6 หลัก (รางวัล 6 ตัว):</span>
+              <input type="tel" placeholder="XXXXXX" maxLength="6" value={simulatedSuper} onChange={(e) => setSimulatedSuper(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #c084fc', outline: 'none', letterSpacing: '4px', color: '#6b21a8', textAlign: 'center', boxSizing: 'border-box' }} />
             </div>
             
             <div style={{ flex: '1 1 150px' }}>
-              <span style={{ fontWeight: 'bold', color: '#b91c1c', display: 'block', marginBottom: '8px' }}>🔥 เลข 4 หลัก (รางวัลบน):</span>
-              <input type="tel" placeholder="XXXX" maxLength="4" value={simulatedTop} onChange={(e) => setSimulatedTop(e.target.value.replace(/\D/g, ''))} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px solid #fca5a5', outline: 'none', letterSpacing: '6px', color: '#991b1b', textAlign: 'center', boxSizing: 'border-box' }} />
+              <span style={{ fontWeight: 'bold', color: '#b91c1c', display: 'block', marginBottom: '8px' }}>🔥 เลข 4 หลัก (อัตโนมัติ):</span>
+              <input type="tel" readOnly placeholder="XXXX" value={simulatedSuper.length >= 4 ? simulatedSuper.slice(-4) : ''} style={{ width: '100%', padding: '12px', fontSize: '24px', fontWeight: '900', borderRadius: '8px', border: '2px dashed #fca5a5', backgroundColor: '#fef2f2', outline: 'none', letterSpacing: '6px', color: '#991b1b', textAlign: 'center', boxSizing: 'border-box', cursor: 'not-allowed' }} />
             </div>
             
             <div style={{ flex: '1 1 120px' }}>
@@ -760,13 +765,13 @@ return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '20px', width: '100%' }}>
               <button 
                 onClick={handleAnalyzeDraw} 
-                disabled={isAnalyzing || simulatedSuper.length !== 8 || simulatedTop.length !== 4 || simulatedBottom.length !== 2} 
-                style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}
+                disabled={isAnalyzing || simulatedSuper.length !== 6 || simulatedBottom.length !== 2} 
+                style={{ padding: '15px 40px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '30px', cursor: (simulatedSuper.length === 6 && simulatedBottom.length === 2) ? 'pointer' : 'not-allowed', fontWeight: '900', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(217, 119, 6, 0.3)', width: '100%', maxWidth: '300px', justifyContent: 'center' }}
               >
                 {isAnalyzing ? 'กำลังประมวลผล...' : '🔍 กดเช็คยอดจ่ายทันที'}
               </button>
 
-              {(simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) && (
+              {(simulatedSuper.length === 6 && simulatedBottom.length === 2) && (
                 <div style={{ width: '100%', maxWidth: '500px', textAlign: 'center', padding: '20px', backgroundColor: '#ecfdf5', borderRadius: '12px', border: '1px dashed #34d399' }}>
                   <h4 style={{ color: '#047857', margin: '0 0 15px 0' }}>✅ ได้เลขรางวัลครบถ้วน พร้อมจ่ายเงินแล้ว!</h4>
                   <button onClick={handleExecuteDraw} disabled={isExecutingDraw} style={{ padding: '15px 40px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '50px', cursor: isExecutingDraw ? 'not-allowed' : 'pointer', fontWeight: '900', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)', opacity: isExecutingDraw ? 0.7 : 1, transition: 'all 0.3s', width: '100%' }}>
@@ -781,7 +786,7 @@ return (
           {analysisResult && (
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <h5 style={{ margin: '0 0 15px 0', color: '#1e293b', fontSize: '18px', textAlign: 'center' }}>
-                จำลองผลออกรางวัล ซูเปอร์: <span style={{ color: '#7e22ce' }}>{simulatedSuper}</span> | บน: <span style={{ color: '#dc2626' }}>{simulatedTop}</span> | ล่าง: <span style={{ color: '#1d4ed8' }}>{simulatedBottom}</span>
+                จำลองผลออกรางวัล 6 ตัว: <span style={{ color: '#7e22ce' }}>{simulatedSuper}</span> | ล่าง: <span style={{ color: '#1d4ed8' }}>{simulatedBottom}</span>
               </h5>
               
               <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
@@ -792,19 +797,21 @@ return (
                     </tr>
                   </thead>
                   <tbody>
-                    {['8 ตัว (Super)', '6 ตัว', '4 ตัวท้าย', '3 ตัวบน', '3 ตัวโต๊ด', '2 ตัวบน', '2 ตัวล่าง', 'วิ่งบน', 'วิ่งล่าง'].map((type) => {
+                    {['6 ตัว', '4 ตัวท้าย', '3 ตัวบน', '3 ตัวโต๊ด', '2 ตัวบน', '2 ตัวล่าง', 'วิ่งบน', 'วิ่งล่าง'].map((type) => {
                       const data = analysisResult.analysis?.find(a => a.lottery_type === type);
                       let numSlice = '-';
                       
-                      if (simulatedSuper.length === 8 && simulatedTop.length === 4 && simulatedBottom.length === 2) {
-                          if (type === '8 ตัว (Super)') numSlice = simulatedSuper;
-                          if (type === '6 ตัว') numSlice = `${simulatedBottom}${simulatedTop}`;
-                          if (type === '4 ตัวท้าย') numSlice = simulatedTop;
-                          if (type === '3 ตัวบน') numSlice = simulatedTop.slice(-3);
-                          if (type === '3 ตัวโต๊ด') numSlice = `สลับ (${simulatedTop.slice(-3)})`;
-                          if (type === '2 ตัวบน') numSlice = simulatedTop.slice(-2);
+                      if (simulatedSuper.length === 6 && simulatedBottom.length === 2) {
+                          const top4 = simulatedSuper.slice(-4);
+                          const top3 = simulatedSuper.slice(-3);
+                          
+                          if (type === '6 ตัว') numSlice = simulatedSuper;
+                          if (type === '4 ตัวท้าย') numSlice = top4;
+                          if (type === '3 ตัวบน') numSlice = top3;
+                          if (type === '3 ตัวโต๊ด') numSlice = `สลับ (${top3})`;
+                          if (type === '2 ตัวบน') numSlice = simulatedSuper.slice(-2);
                           if (type === '2 ตัวล่าง') numSlice = simulatedBottom;
-                          if (type === 'วิ่งบน') numSlice = `มีใน (${simulatedTop.slice(-3)})`;
+                          if (type === 'วิ่งบน') numSlice = `มีใน (${top3})`;
                           if (type === 'วิ่งล่าง') numSlice = `มีใน (${simulatedBottom})`;
                       }
 
@@ -812,7 +819,7 @@ return (
 
                       return (
                         <tr key={type} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: hasWinners ? '#fef2f2' : 'white' }}>
-                          <td style={{ padding: '10px', fontWeight: '900', color: type === '8 ตัว (Super)' || type === '6 ตัว' ? '#7e22ce' : '#334155' }}>{type}</td>
+                          <td style={{ padding: '10px', fontWeight: '900', color: type === '6 ตัว' ? '#7e22ce' : '#334155' }}>{type}</td>
                           <td style={{ padding: '10px', color: '#dc2626', fontWeight: 'bold', fontSize: '14px' }}>{numSlice}</td>
                           <td style={{ padding: '10px', fontWeight: '900', fontSize: '15px', color: hasWinners ? '#16a34a' : '#94a3b8' }}>{data ? data.winner_count : 0} คน</td>
                           <td style={{ padding: '10px', fontWeight: '900', fontSize: '15px', color: hasWinners ? '#b91c1c' : '#94a3b8' }}>{formatCurrency(data ? data.total_payout_thb : 0)}</td>
@@ -866,7 +873,7 @@ return (
         </div>
       )}
 
-      {/* 🌟 Popup แสดงรายชื่อ และ ยอดขายเมื่อคลิกการ์ด (อัปเดตตามคำสั่งล่าสุด) */}
+      {/* 🌟 Popup แสดงรายชื่อ และ ยอดขายเมื่อคลิกการ์ด */}
       {showWinnersModal && selectedRound && selectedRound.status === 'Completed' && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
@@ -886,11 +893,11 @@ return (
               </div>
             </div>
 
-            {/* ส่วนแสดงเลขที่ออก (ยกเว้น 8 ตัว) และ ยอดขาย/ยอดจ่าย */}
+            {/* ส่วนแสดงเลขที่ออก และ ยอดขาย/ยอดจ่าย */}
             <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '15px' }}>
                  {[
-                   { label: '6 ตัว', val: (selectedRound.result_2_bottom && selectedRound.result_4_top && selectedRound.result_4_top !== '-') ? `${selectedRound.result_2_bottom}${selectedRound.result_4_top}` : '-', color: '#4f46e5', bg: '#eff6ff' },
+                   { label: '6 ตัว', val: selectedRound.result_6_top || '-', color: '#4f46e5', bg: '#eff6ff' },
                    { label: '4 ตัวท้าย', val: selectedRound.result_4_top || '-', color: '#dc2626', bg: '#fef2f2' },
                    { label: '3 ตัวบน', val: selectedRound.result_3_top || (selectedRound.result_4_top ? selectedRound.result_4_top.slice(-3) : '-'), color: '#ea580c', bg: '#fff7ed' },
                    { label: '2 ตัวบน', val: (selectedRound.result_4_top && selectedRound.result_4_top !== '-') ? selectedRound.result_4_top.slice(-2) : '-', color: '#f59e0b', bg: '#fffbeb' },
@@ -935,7 +942,6 @@ return (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
               {[
                 { id: 'all', label: 'ทั้งหมด' },
-                { id: '8 ตัว (Super)', label: '8 ตัว (Super)' },
                 { id: '6 ตัว', label: '6 ตัว' },
                 { id: '4 ตัวท้าย', label: '4 ตัวท้าย' },
                 { id: '3 ตัวบน', label: '3 ตัวบน' },
@@ -1024,7 +1030,6 @@ return (
           </button>
         </div>
 
-        {/* 🌟 ป้องกันจอขาว: เช็คชัวร์ๆ ว่า searchedBuyers เป็น Array (รายการ) แน่นอน ถึงจะโชว์ตาราง */}
         {Array.isArray(searchedBuyers) && (
           <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', whiteSpace: 'nowrap', fontSize: '13px' }}>
@@ -1046,8 +1051,6 @@ return (
                     <td style={{ padding: '12px', fontWeight: 'bold' }}>{w.username}</td>
                     <td style={{ padding: '12px' }}>{w.lottery_type}</td>
                     <td style={{ padding: '12px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>{w.selected_number}</td>
-                    
-                    {/* 🌟 ป้องกันจอขาว: ครอบ Number(... || 0) ป้องกันตัวเลขเป็น null */}
                     <td style={{ padding: '12px' }}>{Number(w.price || 0).toLocaleString()} {w.currency_code}</td>
                     <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold' }}>+ {Number(w.estimated_prize || 0).toLocaleString()} {w.currency_code}</td>
                     <td style={{ padding: '12px', color: '#0ea5e9', fontWeight: 'bold' }}>
@@ -1068,5 +1071,4 @@ return (
     </div>
   );
 };
-
 export default ManageYeeki;
