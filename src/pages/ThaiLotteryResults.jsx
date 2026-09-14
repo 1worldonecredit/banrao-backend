@@ -168,7 +168,7 @@ const ThaiLotteryResults = () => {
                     {isReadyToDraw ? 'เปิดระบบกรอกผลรางวัล' : 'รอเวลาออกผล (ระบบล็อก)'}
                   </div>
                   <strong style={{ fontSize: '24px', color: isReadyToDraw ? '#15803d' : '#b45309', letterSpacing: '1px' }}>
-                    {getCountdown(targetRound.draw_time)}
+                    {getCountdownText()}
                   </strong>
                 </div>
               </div>
