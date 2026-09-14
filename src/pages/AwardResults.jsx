@@ -131,26 +131,42 @@ const AwardResults = () => {
     .filter(w => w.currency_code === 'LAK' || w.currency_code === '₭')
     .reduce((sum, w) => sum + Number(w.prize_amount), 0);
 
-  const handleTransfer = async () => {
+const handleTransfer = async () => {
     if (selectedWinners.length === 0) return alert("กรุณาเลือกรายการที่ต้องการโอนเงิน");
     if (!adminPassword) return alert("กรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน");
-    
+
     let confirmMsg = `ยืนยันการโอนเงินให้ลูกค้าที่เลือก ${selectedWinners.length} รายการ ใช่หรือไม่?\n\n`;
-    if (totalTransferTHB > 0) confirmMsg += `🇹🇭 ยอดเงินบาท: ${formatCurrency(totalTransferTHB)} THB\n`;
-    if (totalTransferLAK > 0) confirmMsg += `🇱🇦 ยอดเงินกีบ: ${formatCurrency(totalTransferLAK)} LAK\n`;
-    
+    if (totalTransferTHB > 0) confirmMsg += `TH ยอดเงินบาท: ${formatCurrency(totalTransferTHB)} THB\n`;
+    if (totalTransferLAK > 0) confirmMsg += `LA ยอดเงินกีบ: ${formatCurrency(totalTransferLAK)} LAK\n`;
+
     if (!window.confirm(confirmMsg)) return;
 
     setIsProcessing(true);
     try {
-      setTimeout(() => {
+      // 🌟 ยิง API ไปสั่ง Backend ให้หักเงินและอัปเดตกระเป๋า
+      const res = await fetch(`${API_URL}/api/admin/viet-lottery/process-payouts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_item_ids: selectedWinners // ส่ง ID ของบิล (item_id) ไปให้ Backend ประมวลผล
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
         alert("✅ โอนเงินรางวัลให้ลูกค้าเรียบร้อยแล้ว!");
         setAdminPassword('');
         setSelectedWinners([]);
-        setIsProcessing(false);
-      }, 1500);
+        // เรียกฟังก์ชันรีเฟรชข้อมูลหน้าเว็บใหม่ (เช่น fetchWinners()) 
+        window.location.reload(); 
+      } else {
+        alert("❌ โอนเงินไม่สำเร็จ: " + data.message);
+      }
     } catch (err) {
+      console.error(err);
       alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
       setIsProcessing(false);
     }
   };
