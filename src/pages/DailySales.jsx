@@ -18,40 +18,36 @@ const DailySales = () => {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [dailyResult, setDailyResult] = useState({ result_6: null, result_2: null });
   
+  // 🌟 State สำหรับเก็บยอดขายที่แท้จริงจาก API draw-history
+  const [actualSales, setActualSales] = useState({ thb: 0, lak: 0 });
+  
   const [expandedRows, setExpandedRows] = useState({});
   const [numberStats, setNumberStats] = useState([]);
   const [activeStatTab, setActiveStatTab] = useState('all');
   const [topLimit, setTopLimit] = useState(10);
 
-  // 🌟 ดึงค่าเวลาออกรางวัลจาก Admin (ตั้งค่าเริ่มต้นไว้ที่ 17:00 เผื่อ API โหลดไม่ทัน)
   const [drawTimeSetting, setDrawTimeSetting] = useState({ hour: 17, minute: 0 });
   const [now, setNow] = useState(new Date());
 
-  const TARGET_PERCENT = 60; 
-  const EXCHANGE_RATE = 600; 
+  // 🌟 ปรับให้ตรงกับการตั้งค่าของคุณวิทยา (สามารถผูก API ดึงจาก Database ได้ในอนาคต)
+  const TARGET_PERCENT = 100; // อิงจากรูป (เป้า 100%)
+  const EXCHANGE_RATE = 620;  // อิงจากรูป (1 THB = 620 LAK)
 
-  // ==========================================
-  // 1. ระบบดึงการตั้งค่าเวลา & สร้างวันที่รายเดือน
-  // ==========================================
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 🌟 ฟังก์ชันดึงเวลาที่ Admin ตั้งค่าไว้ในหน้า OverseeThePrize
   useEffect(() => {
     const fetchTimeSettings = async () => {
       try {
-        // หากคุณวิทยามี API ดึงเวลาตั้งค่า ให้ใส่ตรงนี้ครับ (ตัวอย่างใช้ /api/admin/time-settings)
         const res = await fetch(`${API_URL}/api/admin/time-settings`);
         const data = await res.json();
         if (data.success && data.draw_time) {
           const [h, m] = data.draw_time.split(':');
           setDrawTimeSetting({ hour: parseInt(h), minute: parseInt(m) });
         }
-      } catch (err) {
-        console.error("ใช้เวลาออกรางวัลเริ่มต้น (17:00)", err);
-      }
+      } catch (err) {}
     };
     fetchTimeSettings();
   }, []);
@@ -96,24 +92,21 @@ const DailySales = () => {
               });
             }
             newSummary[d] = {
-              salesTHB: data.total_sales_thb || 0,
-              salesLAK: data.total_sales_lak || 0,
+              salesTHB: data.total_sales_thb || 0, // 🌟 ดึงจาก API ของคุณวิทยาโดยตรง
+              salesLAK: data.total_sales_lak || 0, // 🌟 ดึงจาก API ของคุณวิทยาโดยตรง
               payoutTHB: pTHB,
               payoutLAK: pLAK,
               result_6: data.results?.prize_6 || null,
               result_2: data.results?.prize_2 || null
             };
           }
-        } catch(e) { console.error("Fetch Summary Error:", e); }
+        } catch(e) {}
       }));
       setMonthSummary(prev => ({ ...prev, ...newSummary }));
     }
     setIsLoadingCards(false);
   };
 
-  // ==========================================
-  // 2. ระบบดึงข้อมูลเจาะลึก (เมื่อคลิกการ์ด)
-  // ==========================================
   useEffect(() => {
     if (selectedDate) {
       fetchDailyDetail();
@@ -139,6 +132,11 @@ const DailySales = () => {
           result_6: histDataObj.results?.prize_6 || null, 
           result_2: histDataObj.results?.prize_2 || null 
         });
+        // 🌟 เซ็ตยอดขายที่แท้จริงจาก Draw History (ไม่ว่าบิลจะเปลี่ยนสถานะเป็นอะไร ยอดขายรวมก็จะไม่หาย)
+        setActualSales({
+          thb: Number(histDataObj.total_sales_thb) || 0,
+          lak: Number(histDataObj.total_sales_lak) || 0
+        });
       }
     } catch (error) {
       console.error('Error fetching daily detail:', error);
@@ -147,11 +145,12 @@ const DailySales = () => {
     }
   };
 
-  let detailSalesTHB = 0, detailSalesLAK = 0, detailPayoutTHB = 0, detailPayoutLAK = 0;
-  salesData.forEach(o => { o.currency_code === 'LAK' ? detailSalesLAK += Number(o.total_amount) || 0 : detailSalesTHB += Number(o.total_amount) || 0; });
+  // 🌟 คำนวณยอดจ่ายรางวัล
+  let detailPayoutTHB = 0, detailPayoutLAK = 0;
   winnersList.forEach(w => { w.currency_code === 'LAK' ? detailPayoutLAK += Number(w.prize_amount) || 0 : detailPayoutTHB += Number(w.prize_amount) || 0; });
 
-  const totalSalesConverted = detailSalesTHB + (detailSalesLAK / EXCHANGE_RATE);
+  // 🌟 คำนวณกำไร/ขาดทุนสุทธิ โดยอิงจาก ยอดขายจริง (Actual Sales)
+  const totalSalesConverted = actualSales.thb + (actualSales.lak / EXCHANGE_RATE);
   const totalPayoutConverted = detailPayoutTHB + (detailPayoutLAK / EXCHANGE_RATE);
   const totalProfitConverted = totalSalesConverted - totalPayoutConverted;
   const actualPayoutPercent = totalSalesConverted > 0 ? (totalPayoutConverted / totalSalesConverted) * 100 : 0;
@@ -171,7 +170,7 @@ const DailySales = () => {
       order.items.forEach(item => {
         const key = `${item.lottery_type}-${item.selected_number}`;
         const betAmount = Number(item.price) || 0;
-        let multiplier = item.lottery_type === '2' ? 90 : item.lottery_type === '3' ? 900 : item.lottery_type === '4' ? 7000 : item.lottery_type === '6' ? 400000 : item.lottery_type === '8' ? 1000000 : 0;
+        let multiplier = item.lottery_type === '2' ? 120 : item.lottery_type === '3' ? 1500 : item.lottery_type === '4' ? 10000 : item.lottery_type === '6' ? 100000 : item.lottery_type === '8' ? 1000000 : 0; // 🌟 ปรับเรทคูณตามรูปภาพ
         const payoutAmount = betAmount * multiplier;
 
         if (!statsMap[key]) {
@@ -206,9 +205,8 @@ const DailySales = () => {
   const filteredStats = numberStats.filter(stat => activeStatTab === 'all' || stat.type === activeStatTab).slice(0, topLimit === 'all' ? numberStats.length : Number(topLimit));
   const toggleRow = (orderId) => setExpandedRows(prev => ({ ...prev, [orderId]: !prev[orderId] }));
 
-  // Helper Formats
   const getStatusBadge = (status) => {
-    if (['ถูกรางวัล', 'ถูก', 'Paid'].includes(status)) return <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><CheckCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ถูกรางวัล</span>;
+    if (['ถูกรางวัล', 'ถูก', 'Paid', 'ชนะ'].includes(status)) return <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><CheckCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ถูกรางวัล</span>;
     if (['ไม่ถูกรางวัล', 'แพ้', 'Lose'].includes(status)) return <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><XCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ไม่ถูกรางวัล</span>;
     return <span style={{ backgroundColor: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><Clock size={14} style={{display:'inline', verticalAlign:'middle'}}/> รอผลตรวจ</span>;
   };
@@ -221,7 +219,6 @@ const DailySales = () => {
     return `${d.getDate()} ${fullMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
   };
 
-  // 🌟 ฟังก์ชันคำนวณเวลานับถอยหลังอิงจาก Admin Setting
   const getDrawCountdown = (targetDateStr) => {
     if (!targetDateStr) return null;
     const drawTime = new Date(targetDateStr);
@@ -231,7 +228,7 @@ const DailySales = () => {
     const isToday = now.toISOString().split('T')[0] === targetDateStr;
 
     if (diff <= 0) {
-      if (isToday) return <span style={{ color: '#0284c7', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><RefreshCw size={16} style={{ animation: 'spin 2s linear infinite' }}/> ⏳ ระบบกำลังสุ่มออกรางวัลอัตโนมัติ...</span>;
+      if (isToday) return <span style={{ color: '#0284c7', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><RefreshCw size={16} style={{ animation: 'spin 2s linear infinite' }}/> ⏳ กำลังประมวลผลออกรางวัลอัตโนมัติ...</span>;
       return <span style={{ color: '#64748b' }}>ออกผลรางวัลแล้ว</span>;
     }
 
@@ -239,14 +236,11 @@ const DailySales = () => {
       const h = Math.floor(diff / (1000 * 60 * 60));
       const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((diff % (1000 * 60)) / 1000);
-      return <span style={{ color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={16}/> นับถอยหลังออกผล: {h} ชม. {m} นาที {s} วิ</span>;
+      return <span style={{ color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={16}/> ระบบจะออกรางวัลในอีก: {h} ชม. {m} นาที {s} วิ</span>;
     }
     return null;
   };
 
-  // ==========================================
-  // VIEW 1: แสดงรายการงวดทั้งหมดของเดือน (แบบการ์ด)
-  // ==========================================
   if (!selectedDate) {
     const todayStr = new Date().toISOString().split('T')[0];
     return (
@@ -318,9 +312,6 @@ const DailySales = () => {
     );
   }
 
-  // ==========================================
-  // VIEW 2: แสดงรายละเอียดเมื่อคลิกเข้ามาดูในวันที่นั้นๆ
-  // ==========================================
   const isTodayDetail = selectedDate === new Date().toISOString().split('T')[0];
   
   return (
@@ -352,10 +343,10 @@ const DailySales = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>วันที่:</span> <strong>{formatThaiDate(selectedDate)}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>สถานะระบบ:</span> 
-                {isTodayDetail ? (
+                {isTodayDetail && !dailyResult.result_6 ? (
                    <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>เปิดรับแทง</span>
                 ) : (
-                   <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>ปิดรับแทงแล้ว</span>
+                   <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>ออกผลแล้ว (ปิดรับแทง)</span>
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px', paddingTop: '10px', borderTop: '1px dashed #bae6fd' }}>
@@ -370,11 +361,11 @@ const DailySales = () => {
           <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ flex: 1, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#166534', fontWeight: 'bold' }}>ยอดขาย (THB)</span>
-              <span style={{ color: '#15803d', fontSize: '20px', fontWeight: 'bold' }}>{formatTHB(detailSalesTHB)} ฿</span>
+              <span style={{ color: '#15803d', fontSize: '20px', fontWeight: 'bold' }}>{formatTHB(actualSales.thb)} ฿</span>
             </div>
             <div style={{ flex: 1, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#166534', fontWeight: 'bold' }}>ยอดขาย (LAK)</span>
-              <span style={{ color: '#15803d', fontSize: '20px', fontWeight: 'bold' }}>{formatLAK(detailSalesLAK)} ₭</span>
+              <span style={{ color: '#15803d', fontSize: '20px', fontWeight: 'bold' }}>{formatLAK(actualSales.lak)} ₭</span>
             </div>
           </div>
         </div>
@@ -576,7 +567,7 @@ const DailySales = () => {
                                     </div>
                                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                       <span>{order.currency_code === 'THB' ? formatTHB(item.price) : formatLAK(item.price)} {order.currency_code}</span>
-                                      {['ถูกรางวัล', 'Paid', 'Win'].includes(item.item_status) && <span style={{ color: '#16a34a', fontWeight: 'bold' }}>ถูกรางวัล!</span>}
+                                      {['ถูกรางวัล', 'Paid', 'Win', 'ชนะ'].includes(item.item_status) && <span style={{ color: '#16a34a', fontWeight: 'bold' }}>ถูกรางวัล!</span>}
                                     </div>
                                   </div>
                                 </div>
