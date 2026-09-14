@@ -27,7 +27,6 @@ const DailySales = () => {
   const [drawTimeSetting, setDrawTimeSetting] = useState({ hour: 17, minute: 0 });
   const [now, setNow] = useState(new Date());
 
-  // 🌟 State สำหรับระบบโอนเงิน (Manual Payout)
   const [selectedWinners, setSelectedWinners] = useState([]);
   const [adminPassword, setAdminPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -109,7 +108,7 @@ const DailySales = () => {
     if (selectedDate) {
       fetchDailyDetail();
       setExpandedRows({});
-      setSelectedWinners([]); // ล้างค่าคนที่เลือกเมื่อเปลี่ยนวัน
+      setSelectedWinners([]); 
       setAdminPassword('');
       const interval = setInterval(() => fetchDailyDetail(true), 60000);
       return () => clearInterval(interval);
@@ -185,7 +184,6 @@ const DailySales = () => {
   const filteredStats = numberStats.filter(stat => activeStatTab === 'all' || stat.type === activeStatTab).slice(0, topLimit === 'all' ? numberStats.length : Number(topLimit));
   const toggleRow = (orderId) => setExpandedRows(prev => ({ ...prev, [orderId]: !prev[orderId] }));
 
-  // 🌟 ฟังก์ชันจัดการ Checkbox
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const unpaids = winnersList.filter(w => !['Paid', 'โอนแล้ว'].includes(w.status)).map(w => w.order_item_id);
@@ -199,12 +197,11 @@ const DailySales = () => {
     setSelectedWinners(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
   };
 
-  // 🌟 คำนวณยอดรวมที่ต้องโอน (จาก Checkbox ที่เลือก)
   const selectedWinnersData = winnersList.filter(w => selectedWinners.includes(w.order_item_id));
   const totalTransferTHB = selectedWinnersData.filter(w => w.currency_code === 'THB').reduce((sum, w) => sum + Number(w.prize_amount), 0);
   const totalTransferLAK = selectedWinnersData.filter(w => w.currency_code === 'LAK' || w.currency_code === '₭').reduce((sum, w) => sum + Number(w.prize_amount), 0);
 
-  // 🌟 ฟังก์ชันโอนเงิน
+  // 🌟 ฟังก์ชันโอนเงินที่มีการส่งรหัสผ่าน
   const handleTransfer = async () => {
     if (selectedWinners.length === 0) return alert("กรุณาเลือกรายการที่ต้องการโอนเงิน");
     if (!adminPassword) return alert("กรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน");
@@ -220,7 +217,10 @@ const DailySales = () => {
       const res = await fetch(`${API_URL}/api/admin/viet-lottery/process-payouts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_item_ids: selectedWinners })
+        body: JSON.stringify({ 
+          order_item_ids: selectedWinners,
+          admin_password: adminPassword // ส่งรหัสผ่านไปเช็คที่ Backend
+        })
       });
       const data = await res.json();
 
@@ -228,7 +228,7 @@ const DailySales = () => {
         alert("✅ โอนเงินรางวัลให้ลูกค้าเรียบร้อยแล้ว!");
         setAdminPassword('');
         setSelectedWinners([]);
-        fetchDailyDetail(true); // รีเฟรชข้อมูลใหม่
+        fetchDailyDetail(true); 
       } else {
         alert("❌ โอนเงินไม่สำเร็จ: " + data.message);
       }
@@ -420,13 +420,7 @@ const DailySales = () => {
                 <thead>
                   <tr style={{ backgroundColor: '#f0fdf4', color: '#166534', borderBottom: '2px solid #bbf7d0' }}>
                     <th style={{ padding: '12px', width: '40px' }}>
-                      <input 
-                        type="checkbox" 
-                        onChange={handleSelectAll} 
-                        checked={selectedWinners.length > 0 && selectedWinners.length === unpaidsCount}
-                        disabled={unpaidsCount === 0}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                      />
+                      <input type="checkbox" onChange={handleSelectAll} checked={selectedWinners.length > 0 && selectedWinners.length === unpaidsCount} disabled={unpaidsCount === 0} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
                     </th>
                     <th style={{ padding: '12px' }}>ผู้ซื้อ (Username)</th>
                     <th style={{ padding: '12px' }}>เลขที่ถูก</th>
@@ -441,13 +435,7 @@ const DailySales = () => {
                     return (
                       <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: isPaid ? '#f8fafc' : 'white' }}>
                         <td style={{ padding: '12px' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedWinners.includes(winner.order_item_id)}
-                            onChange={() => handleSelectWinner(winner.order_item_id)}
-                            disabled={isPaid}
-                            style={{ width: '16px', height: '16px', cursor: isPaid ? 'not-allowed' : 'pointer' }}
-                          />
+                          <input type="checkbox" checked={selectedWinners.includes(winner.order_item_id)} onChange={() => handleSelectWinner(winner.order_item_id)} disabled={isPaid} style={{ width: '16px', height: '16px', cursor: isPaid ? 'not-allowed' : 'pointer' }} />
                         </td>
                         <td style={{ padding: '12px', fontWeight: 'bold', opacity: isPaid ? 0.6 : 1 }}>{winner.username}</td>
                         <td style={{ padding: '12px', opacity: isPaid ? 0.6 : 1 }}>
@@ -467,9 +455,7 @@ const DailySales = () => {
             {/* 🌟 กล่องยืนยันการโอนเงิน (แสดงเฉพาะตอนที่มีคนยังไม่จ่ายเงิน) */}
             {unpaidsCount > 0 && (
               <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '20px' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#b45309', fontWeight: 'bold' }}>
-                  ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):
-                </p>
+                <p style={{ margin: '0 0 10px 0', color: '#b45309', fontWeight: 'bold' }}>ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):</p>
                 <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
                   {totalTransferTHB > 0 && <h3 style={{ margin: 0, color: '#d97706', fontSize: '24px' }}>{formatTHB(totalTransferTHB)} THB</h3>}
                   {totalTransferLAK > 0 && <h3 style={{ margin: 0, color: '#d97706', fontSize: '24px' }}>{formatLAK(totalTransferLAK)} LAK</h3>}
@@ -479,24 +465,9 @@ const DailySales = () => {
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', flex: '1 1 200px', maxWidth: '300px' }}>
                     <AlertOctagon size={16} color="#9ca3af" style={{ marginRight: '8px' }}/>
-                    <input 
-                      type="password" 
-                      placeholder="ใส่รหัสผ่าน Admin เพื่อยืนยัน" 
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
-                    />
+                    <input type="password" placeholder="ใส่รหัสผ่าน Admin เพื่อยืนยัน" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }} />
                   </div>
-                  <button 
-                    onClick={handleTransfer}
-                    disabled={isProcessing || selectedWinners.length === 0}
-                    style={{ 
-                      backgroundColor: selectedWinners.length > 0 ? '#10b981' : '#9ca3af', 
-                      color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', 
-                      cursor: selectedWinners.length > 0 && !isProcessing ? 'pointer' : 'not-allowed', 
-                      fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' 
-                    }}
-                  >
+                  <button onClick={handleTransfer} disabled={isProcessing || selectedWinners.length === 0} style={{ backgroundColor: selectedWinners.length > 0 ? '#10b981' : '#9ca3af', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: selectedWinners.length > 0 && !isProcessing ? 'pointer' : 'not-allowed', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
                     {isProcessing ? <RefreshCw size={18} style={{ animation: 'spin 2s linear infinite' }} /> : <Award size={18} />}
                     {isProcessing ? 'กำลังโอนเงิน...' : 'โอนเงินรางวัล'}
                   </button>
