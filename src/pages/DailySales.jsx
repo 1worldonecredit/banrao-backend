@@ -17,8 +17,6 @@ const DailySales = () => {
   const [winnersList, setWinnersList] = useState([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [dailyResult, setDailyResult] = useState({ result_6: null, result_2: null });
-  
-  // 🌟 State สำหรับเก็บยอดขายที่แท้จริงจาก API draw-history
   const [actualSales, setActualSales] = useState({ thb: 0, lak: 0 });
   
   const [expandedRows, setExpandedRows] = useState({});
@@ -29,9 +27,13 @@ const DailySales = () => {
   const [drawTimeSetting, setDrawTimeSetting] = useState({ hour: 17, minute: 0 });
   const [now, setNow] = useState(new Date());
 
-  // 🌟 ปรับให้ตรงกับการตั้งค่าของคุณวิทยา (สามารถผูก API ดึงจาก Database ได้ในอนาคต)
-  const TARGET_PERCENT = 100; // อิงจากรูป (เป้า 100%)
-  const EXCHANGE_RATE = 620;  // อิงจากรูป (1 THB = 620 LAK)
+  // 🌟 State สำหรับระบบโอนเงิน (Manual Payout)
+  const [selectedWinners, setSelectedWinners] = useState([]);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const TARGET_PERCENT = 100; 
+  const EXCHANGE_RATE = 620;  
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -66,7 +68,6 @@ const DailySales = () => {
       }
       return dates;
     };
-
     const dates = generateDates();
     setMonthDates(dates);
     setMonthSummary({}); 
@@ -76,7 +77,6 @@ const DailySales = () => {
   const fetchMonthSummaryData = async (dates) => {
     setIsLoadingCards(true);
     const newSummary = {};
-    
     for (let i = 0; i < dates.length; i += 5) {
       const chunk = dates.slice(i, i + 5);
       await Promise.all(chunk.map(async (d) => {
@@ -92,12 +92,10 @@ const DailySales = () => {
               });
             }
             newSummary[d] = {
-              salesTHB: data.total_sales_thb || 0, // 🌟 ดึงจาก API ของคุณวิทยาโดยตรง
-              salesLAK: data.total_sales_lak || 0, // 🌟 ดึงจาก API ของคุณวิทยาโดยตรง
-              payoutTHB: pTHB,
-              payoutLAK: pLAK,
-              result_6: data.results?.prize_6 || null,
-              result_2: data.results?.prize_2 || null
+              salesTHB: data.total_sales_thb || 0,
+              salesLAK: data.total_sales_lak || 0,
+              payoutTHB: pTHB, payoutLAK: pLAK,
+              result_6: data.results?.prize_6 || null, result_2: data.results?.prize_2 || null
             };
           }
         } catch(e) {}
@@ -111,6 +109,8 @@ const DailySales = () => {
     if (selectedDate) {
       fetchDailyDetail();
       setExpandedRows({});
+      setSelectedWinners([]); // ล้างค่าคนที่เลือกเมื่อเปลี่ยนวัน
+      setAdminPassword('');
       const interval = setInterval(() => fetchDailyDetail(true), 60000);
       return () => clearInterval(interval);
     }
@@ -128,15 +128,8 @@ const DailySales = () => {
       if (salesDataObj.success) setSalesData(salesDataObj.salesDetails || []); 
       if (histDataObj.success) {
         setWinnersList(histDataObj.winners || []); 
-        setDailyResult({ 
-          result_6: histDataObj.results?.prize_6 || null, 
-          result_2: histDataObj.results?.prize_2 || null 
-        });
-        // 🌟 เซ็ตยอดขายที่แท้จริงจาก Draw History (ไม่ว่าบิลจะเปลี่ยนสถานะเป็นอะไร ยอดขายรวมก็จะไม่หาย)
-        setActualSales({
-          thb: Number(histDataObj.total_sales_thb) || 0,
-          lak: Number(histDataObj.total_sales_lak) || 0
-        });
+        setDailyResult({ result_6: histDataObj.results?.prize_6 || null, result_2: histDataObj.results?.prize_2 || null });
+        setActualSales({ thb: Number(histDataObj.total_sales_thb) || 0, lak: Number(histDataObj.total_sales_lak) || 0 });
       }
     } catch (error) {
       console.error('Error fetching daily detail:', error);
@@ -145,11 +138,9 @@ const DailySales = () => {
     }
   };
 
-  // 🌟 คำนวณยอดจ่ายรางวัล
   let detailPayoutTHB = 0, detailPayoutLAK = 0;
   winnersList.forEach(w => { w.currency_code === 'LAK' ? detailPayoutLAK += Number(w.prize_amount) || 0 : detailPayoutTHB += Number(w.prize_amount) || 0; });
 
-  // 🌟 คำนวณกำไร/ขาดทุนสุทธิ โดยอิงจาก ยอดขายจริง (Actual Sales)
   const totalSalesConverted = actualSales.thb + (actualSales.lak / EXCHANGE_RATE);
   const totalPayoutConverted = detailPayoutTHB + (detailPayoutLAK / EXCHANGE_RATE);
   const totalProfitConverted = totalSalesConverted - totalPayoutConverted;
@@ -158,8 +149,7 @@ const DailySales = () => {
 
   useEffect(() => {
     if (!salesData || salesData.length === 0) {
-      setNumberStats([]);
-      return;
+      setNumberStats([]); return;
     }
     const statsMap = {};
     let totalDailySalesCombined = 1; 
@@ -170,46 +160,93 @@ const DailySales = () => {
       order.items.forEach(item => {
         const key = `${item.lottery_type}-${item.selected_number}`;
         const betAmount = Number(item.price) || 0;
-        let multiplier = item.lottery_type === '2' ? 120 : item.lottery_type === '3' ? 1500 : item.lottery_type === '4' ? 10000 : item.lottery_type === '6' ? 100000 : item.lottery_type === '8' ? 1000000 : 0; // 🌟 ปรับเรทคูณตามรูปภาพ
+        let multiplier = item.lottery_type === '2' ? 120 : item.lottery_type === '3' ? 1500 : item.lottery_type === '4' ? 10000 : item.lottery_type === '6' ? 100000 : item.lottery_type === '8' ? 1000000 : 0;
         const payoutAmount = betAmount * multiplier;
 
         if (!statsMap[key]) {
           statsMap[key] = { number: item.selected_number, type: item.lottery_type, betTHB: 0, betLAK: 0, payoutTHB: 0, payoutLAK: 0, combinedValue: 0, combinedPayoutValue: 0 };
         }
         if (isLAK) {
-          statsMap[key].betLAK += betAmount;
-          statsMap[key].payoutLAK += payoutAmount;
-          statsMap[key].combinedValue += (betAmount / EXCHANGE_RATE);
-          statsMap[key].combinedPayoutValue += (payoutAmount / EXCHANGE_RATE);
+          statsMap[key].betLAK += betAmount; statsMap[key].payoutLAK += payoutAmount;
+          statsMap[key].combinedValue += (betAmount / EXCHANGE_RATE); statsMap[key].combinedPayoutValue += (payoutAmount / EXCHANGE_RATE);
           totalDailySalesCombined += (betAmount / EXCHANGE_RATE);
         } else {
-          statsMap[key].betTHB += betAmount;
-          statsMap[key].payoutTHB += payoutAmount;
-          statsMap[key].combinedValue += betAmount;
-          statsMap[key].combinedPayoutValue += payoutAmount;
+          statsMap[key].betTHB += betAmount; statsMap[key].payoutTHB += payoutAmount;
+          statsMap[key].combinedValue += betAmount; statsMap[key].combinedPayoutValue += payoutAmount;
           totalDailySalesCombined += betAmount;
         }
       });
     });
 
-    const statsArray = Object.values(statsMap)
-      .map(stat => ({
-        ...stat,
-        salesPercent: (stat.combinedValue / totalDailySalesCombined) * 100,
-        riskPercent: (stat.combinedPayoutValue / totalDailySalesCombined) * 100
-      }))
-      .sort((a, b) => b.combinedValue - a.combinedValue);
+    const statsArray = Object.values(statsMap).map(stat => ({ ...stat, salesPercent: (stat.combinedValue / totalDailySalesCombined) * 100, riskPercent: (stat.combinedPayoutValue / totalDailySalesCombined) * 100 })).sort((a, b) => b.combinedValue - a.combinedValue);
     setNumberStats(statsArray);
   }, [salesData]);
 
   const filteredStats = numberStats.filter(stat => activeStatTab === 'all' || stat.type === activeStatTab).slice(0, topLimit === 'all' ? numberStats.length : Number(topLimit));
   const toggleRow = (orderId) => setExpandedRows(prev => ({ ...prev, [orderId]: !prev[orderId] }));
 
+  // 🌟 ฟังก์ชันจัดการ Checkbox
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const unpaids = winnersList.filter(w => !['Paid', 'โอนแล้ว'].includes(w.status)).map(w => w.order_item_id);
+      setSelectedWinners(unpaids);
+    } else {
+      setSelectedWinners([]);
+    }
+  };
+
+  const handleSelectWinner = (itemId) => {
+    setSelectedWinners(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+  };
+
+  // 🌟 คำนวณยอดรวมที่ต้องโอน (จาก Checkbox ที่เลือก)
+  const selectedWinnersData = winnersList.filter(w => selectedWinners.includes(w.order_item_id));
+  const totalTransferTHB = selectedWinnersData.filter(w => w.currency_code === 'THB').reduce((sum, w) => sum + Number(w.prize_amount), 0);
+  const totalTransferLAK = selectedWinnersData.filter(w => w.currency_code === 'LAK' || w.currency_code === '₭').reduce((sum, w) => sum + Number(w.prize_amount), 0);
+
+  // 🌟 ฟังก์ชันโอนเงิน
+  const handleTransfer = async () => {
+    if (selectedWinners.length === 0) return alert("กรุณาเลือกรายการที่ต้องการโอนเงิน");
+    if (!adminPassword) return alert("กรุณาใส่รหัสผ่านผู้ดูแลระบบเพื่อยืนยัน");
+
+    let confirmMsg = `ยืนยันการโอนเงินให้ลูกค้าที่เลือก ${selectedWinners.length} รายการ ใช่หรือไม่?\n\n`;
+    if (totalTransferTHB > 0) confirmMsg += `ยอดเงินบาท: ${formatTHB(totalTransferTHB)} THB\n`;
+    if (totalTransferLAK > 0) confirmMsg += `ยอดเงินกีบ: ${formatLAK(totalTransferLAK)} LAK\n`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsProcessing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/viet-lottery/process-payouts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_item_ids: selectedWinners })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert("✅ โอนเงินรางวัลให้ลูกค้าเรียบร้อยแล้ว!");
+        setAdminPassword('');
+        setSelectedWinners([]);
+        fetchDailyDetail(true); // รีเฟรชข้อมูลใหม่
+      } else {
+        alert("❌ โอนเงินไม่สำเร็จ: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
-    if (['ถูกรางวัล', 'ถูก', 'Paid', 'ชนะ'].includes(status)) return <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><CheckCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ถูกรางวัล</span>;
+    if (['ถูกรางวัล', 'ถูก', 'ชนะ'].includes(status)) return <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>รอโอนเงิน</span>;
+    if (['Paid', 'โอนแล้ว'].includes(status)) return <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><CheckCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> โอนแล้ว</span>;
     if (['ไม่ถูกรางวัล', 'แพ้', 'Lose'].includes(status)) return <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><XCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ไม่ถูกรางวัล</span>;
     return <span style={{ backgroundColor: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><Clock size={14} style={{display:'inline', verticalAlign:'middle'}}/> รอผลตรวจ</span>;
   };
+
   const formatTHB = (val) => val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const formatLAK = (val) => val.toLocaleString('en-US', { maximumFractionDigits: 0 });
   const formatThaiDate = (dateStr) => {
@@ -247,9 +284,7 @@ const DailySales = () => {
       <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
-            <h2 style={{ margin: 0, color: '#1e293b', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CalendarDays size={24} color="#0284c7" /> รายงานขาย หวยเวียดนาม (รายเดือน)
-            </h2>
+            <h2 style={{ margin: 0, color: '#1e293b', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><CalendarDays size={24} color="#0284c7" /> รายงานขาย หวยเวียดนาม (รายเดือน)</h2>
             <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '13px' }}>เลือกเดือนและปี เพื่อดูยอดขายและผลรางวัล (วันล่าสุดอยู่บนสุด)</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -269,27 +304,17 @@ const DailySales = () => {
             return (
               <div key={date} onClick={() => setSelectedDate(date)} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', position: 'relative' }} onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'} onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'}>
                 {isToday && <div style={{ position: 'absolute', top: '12px', right: '15px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>เปิดรับแทง</div>}
-                
                 <div style={{ padding: '15px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isToday ? '#f0fdf4' : '#fafafa' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: isToday ? '#10b981' : '#0ea5e9' }}></div>
                     <strong style={{ color: '#334155', fontSize: '15px' }}>งวด: {formatThaiDate(date)}</strong>
                   </div>
                 </div>
-
                 <div style={{ padding: '10px 15px', backgroundColor: '#fffbeb', borderBottom: '1px dashed #fcd34d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัล:</span> 
-                  <strong style={{ color: '#d97706', fontSize: '15px', letterSpacing: '1px' }}>
-                    {data?.result_6 ? `${data.result_6} / ${data.result_2 || 'XX'}` : 'ยังไม่ออกรางวัล'}
-                  </strong>
+                  <strong style={{ color: '#d97706', fontSize: '15px', letterSpacing: '1px' }}>{data?.result_6 ? `${data.result_6} / ${data.result_2 || 'XX'}` : 'ยังไม่ออกรางวัล'}</strong>
                 </div>
-
-                {isToday && !data?.result_6 && (
-                  <div style={{ padding: '8px 15px', backgroundColor: '#f0f9ff', borderBottom: '1px solid #e0f2fe', textAlign: 'center' }}>
-                    {getDrawCountdown(date)}
-                  </div>
-                )}
-
+                {isToday && !data?.result_6 && (<div style={{ padding: '8px 15px', backgroundColor: '#f0f9ff', borderBottom: '1px solid #e0f2fe', textAlign: 'center' }}>{getDrawCountdown(date)}</div>)}
                 <div style={{ padding: '20px 15px', fontSize: '14px', color: '#64748b', minHeight: '120px' }}>
                   {!data ? (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#94a3b8' }}><RefreshCw size={18} style={{ animation: 'spin 2s linear infinite', marginRight: '8px' }}/> กำลังโหลดยอดขาย...</div>
@@ -303,7 +328,7 @@ const DailySales = () => {
                     </>
                   )}
                 </div>
-                <div style={{ padding: '12px 15px', backgroundColor: '#f0f9ff', borderTop: '1px solid #e0f2fe', color: '#0284c7', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>คลิกดูรายละเอียด กำไร & บิล</div>
+                <div style={{ padding: '12px 15px', backgroundColor: '#f0f9ff', borderTop: '1px solid #e0f2fe', color: '#0284c7', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>คลิกดูรายละเอียด กำไร & โอนเงิน</div>
               </div>
             );
           })}
@@ -313,6 +338,7 @@ const DailySales = () => {
   }
 
   const isTodayDetail = selectedDate === new Date().toISOString().split('T')[0];
+  const unpaidsCount = winnersList.filter(w => !['Paid', 'โอนแล้ว'].includes(w.status)).length;
   
   return (
     <div>
@@ -334,9 +360,7 @@ const DailySales = () => {
             <h4 style={{ margin: '0 0 15px 0', color: '#0369a1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               ข้อมูลประจำงวด
               {isTodayDetail && !dailyResult.result_6 && (
-                 <div style={{ fontSize: '12px', padding: '4px 8px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                   {getDrawCountdown(selectedDate)}
-                 </div>
+                 <div style={{ fontSize: '12px', padding: '4px 8px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #bae6fd' }}>{getDrawCountdown(selectedDate)}</div>
               )}
             </h4>
             <div style={{ fontSize: '15px', color: '#0c4a6e', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -351,13 +375,10 @@ const DailySales = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px', paddingTop: '10px', borderTop: '1px dashed #bae6fd' }}>
                 <span>ผลรางวัลที่ออก:</span> 
-                <strong style={{ color: '#b45309', fontSize: '18px', letterSpacing: '1px' }}>
-                  {dailyResult.result_6 ? `${dailyResult.result_6} / ${dailyResult.result_2 || 'XX'}` : 'รอผลรางวัล'}
-                </strong>
+                <strong style={{ color: '#b45309', fontSize: '18px', letterSpacing: '1px' }}>{dailyResult.result_6 ? `${dailyResult.result_6} / ${dailyResult.result_2 || 'XX'}` : 'รอผลรางวัล'}</strong>
               </div>
             </div>
           </div>
-          
           <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ flex: 1, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#166534', fontWeight: 'bold' }}>ยอดขาย (THB)</span>
@@ -370,84 +391,118 @@ const DailySales = () => {
           </div>
         </div>
 
-        {/* สรุปกำไร/ขาดทุน */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
           <div style={{ flex: '1 1 250px' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={20} color="#0ea5e9"/> สรุปยอดเงินรวม (ประเมินเป็น THB)</h4>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: '#64748b' }}>ยอดขายรวมทั้งหมด:</span>
-              <strong style={{ color: '#0ea5e9', fontSize: '16px' }}>฿ {formatTHB(totalSalesConverted)}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: '#64748b' }}>ยอดจ่ายรางวัลทั้งหมด:</span>
-              <strong style={{ color: '#ef4444', fontSize: '16px' }}>฿ {formatTHB(totalPayoutConverted)}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
-              <span style={{ color: '#0f172a', fontWeight: 'bold' }}>กำไรสุทธิ:</span>
-              <strong style={{ color: totalProfitConverted >= 0 ? '#10b981' : '#ef4444', fontSize: '18px' }}>
-                {totalProfitConverted >= 0 ? '+' : ''}{formatTHB(totalProfitConverted)} ฿
-              </strong>
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}><span style={{ color: '#64748b' }}>ยอดขายรวมทั้งหมด:</span><strong style={{ color: '#0ea5e9', fontSize: '16px' }}>฿ {formatTHB(totalSalesConverted)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}><span style={{ color: '#64748b' }}>ยอดจ่ายรางวัลทั้งหมด:</span><strong style={{ color: '#ef4444', fontSize: '16px' }}>฿ {formatTHB(totalPayoutConverted)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}><span style={{ color: '#0f172a', fontWeight: 'bold' }}>กำไรสุทธิ:</span><strong style={{ color: totalProfitConverted >= 0 ? '#10b981' : '#ef4444', fontSize: '18px' }}>{totalProfitConverted >= 0 ? '+' : ''}{formatTHB(totalProfitConverted)} ฿</strong></div>
           </div>
-
           <div style={{ flex: '1 1 350px', backgroundColor: percentDiff <= 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${percentDiff <= 0 ? '#bbf7d0' : '#fecaca'}`, padding: '20px', borderRadius: '12px' }}>
-             <h4 style={{ margin: '0 0 15px 0', color: percentDiff <= 0 ? '#166534' : '#991b1b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Percent size={20} /> วิเคราะห์ความเสี่ยงการจ่ายเงิน
-            </h4>
+             <h4 style={{ margin: '0 0 15px 0', color: percentDiff <= 0 ? '#166534' : '#991b1b', display: 'flex', alignItems: 'center', gap: '8px' }}><Percent size={20} /> วิเคราะห์ความเสี่ยงการจ่ายเงิน</h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-              <div style={{ flex: 1, backgroundColor: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px' }}>เป้าหมาย (ตั้งไว้ที่)</div>
-                <strong style={{ color: '#334155', fontSize: '18px' }}>{TARGET_PERCENT}%</strong>
-              </div>
-              <div style={{ flex: 1, backgroundColor: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px' }}>จ่ายรางวัลจริง (ตอนนี้)</div>
-                <strong style={{ color: percentDiff <= 0 ? '#10b981' : '#ef4444', fontSize: '18px' }}>{actualPayoutPercent.toFixed(1)}%</strong>
-              </div>
+              <div style={{ flex: 1, backgroundColor: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}><div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px' }}>เป้าหมาย (ตั้งไว้ที่)</div><strong style={{ color: '#334155', fontSize: '18px' }}>{TARGET_PERCENT}%</strong></div>
+              <div style={{ flex: 1, backgroundColor: 'white', padding: '10px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}><div style={{ fontSize: '12px', color: '#64748b', marginBottom: '5px' }}>จ่ายรางวัลจริง (ตอนนี้)</div><strong style={{ color: percentDiff <= 0 ? '#10b981' : '#ef4444', fontSize: '18px' }}>{actualPayoutPercent.toFixed(1)}%</strong></div>
             </div>
-            <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: percentDiff <= 0 ? '#15803d' : '#b91c1c' }}>
-              {percentDiff <= 0 ? (
-                <span>✅ ต่ำกว่าเป้าหมายที่ตั้งไว้ {Math.abs(percentDiff).toFixed(1)}% (ระบบมีกำไร)</span>
-              ) : (
-                <span>⚠️ เกินเป้าหมายที่ตั้งไว้ {Math.abs(percentDiff).toFixed(1)}% (ขาดทุน/ความเสี่ยงสูง)</span>
-              )}
-            </div>
+            <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: percentDiff <= 0 ? '#15803d' : '#b91c1c' }}>{percentDiff <= 0 ? <span>✅ ต่ำกว่าเป้าหมายที่ตั้งไว้ {Math.abs(percentDiff).toFixed(1)}% (ระบบมีกำไร)</span> : <span>⚠️ เกินเป้าหมายที่ตั้งไว้ {Math.abs(percentDiff).toFixed(1)}% (ขาดทุน/ความเสี่ยงสูง)</span>}</div>
           </div>
         </div>
 
-        {/* รายชื่อผู้ถูกรางวัล */}
+        {/* 🌟 รายชื่อผู้ถูกรางวัล และ ระบบโอนเงิน (Manual Payout) */}
         {winnersList.length > 0 ? (
           <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-              <Gift size={22} /> รายชื่อผู้ถูกรางวัล (ยอดโอนเงินให้ลูกค้า)
+              <Gift size={22} /> รายชื่อผู้ถูกรางวัล ประจำวันที่ {formatThaiDate(selectedDate)}
             </h4>
-            <div style={{ overflowX: 'auto' }}>
+            
+            <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', minWidth: '700px' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f0fdf4', color: '#166534' }}>
-                    <th style={{ padding: '12px', borderBottom: '2px solid #bbf7d0' }}>ผู้ซื้อ (Username)</th>
-                    <th style={{ padding: '12px', borderBottom: '2px solid #bbf7d0' }}>เลขที่ถูก</th>
-                    <th style={{ padding: '12px', borderBottom: '2px solid #bbf7d0' }}>ยอดซื้อ</th>
-                    <th style={{ padding: '12px', borderBottom: '2px solid #bbf7d0' }}>เงินรางวัลที่ได้</th>
+                  <tr style={{ backgroundColor: '#f0fdf4', color: '#166534', borderBottom: '2px solid #bbf7d0' }}>
+                    <th style={{ padding: '12px', width: '40px' }}>
+                      <input 
+                        type="checkbox" 
+                        onChange={handleSelectAll} 
+                        checked={selectedWinners.length > 0 && selectedWinners.length === unpaidsCount}
+                        disabled={unpaidsCount === 0}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                    </th>
+                    <th style={{ padding: '12px' }}>ผู้ซื้อ (Username)</th>
+                    <th style={{ padding: '12px' }}>เลขที่ถูก</th>
+                    <th style={{ padding: '12px' }}>ยอดซื้อ</th>
+                    <th style={{ padding: '12px' }}>ต้องโอนจ่าย</th>
+                    <th style={{ padding: '12px' }}>สถานะ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {winnersList.map((winner, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{winner.username}</td>
-                      <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {winner.animal_image && <img src={winner.animal_image} alt={winner.animal_name} style={{ width: '30px', height: '30px', borderRadius: '6px', objectFit: 'cover' }} />}
-                        <div>
+                  {winnersList.map((winner, idx) => {
+                    const isPaid = ['Paid', 'โอนแล้ว'].includes(winner.status);
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: isPaid ? '#f8fafc' : 'white' }}>
+                        <td style={{ padding: '12px' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedWinners.includes(winner.order_item_id)}
+                            onChange={() => handleSelectWinner(winner.order_item_id)}
+                            disabled={isPaid}
+                            style={{ width: '16px', height: '16px', cursor: isPaid ? 'not-allowed' : 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', opacity: isPaid ? 0.6 : 1 }}>{winner.username}</td>
+                        <td style={{ padding: '12px', opacity: isPaid ? 0.6 : 1 }}>
                           <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '16px' }}>{winner.selected_number}</span> 
-                          <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '6px' }}>({winner.lottery_type} ตัว) {winner.animal_name}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px' }}>{winner.currency_code === 'THB' ? formatTHB(winner.price) : formatLAK(winner.price)} {winner.currency_code}</td>
-                      <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', fontSize: '16px' }}>+ {winner.currency_code === 'THB' ? formatTHB(winner.prize_amount) : formatLAK(winner.prize_amount)} {winner.currency_code}</td>
-                    </tr>
-                  ))}
+                          <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '6px' }}>({winner.lottery_type} ตัว)</span>
+                        </td>
+                        <td style={{ padding: '12px', opacity: isPaid ? 0.6 : 1 }}>{winner.currency_code === 'THB' ? formatTHB(winner.price) : formatLAK(winner.price)} {winner.currency_code}</td>
+                        <td style={{ padding: '12px', color: '#16a34a', fontWeight: 'bold', opacity: isPaid ? 0.6 : 1 }}>+ {winner.currency_code === 'THB' ? formatTHB(winner.prize_amount) : formatLAK(winner.prize_amount)} {winner.currency_code}</td>
+                        <td style={{ padding: '12px' }}>{getStatusBadge(winner.status)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* 🌟 กล่องยืนยันการโอนเงิน (แสดงเฉพาะตอนที่มีคนยังไม่จ่ายเงิน) */}
+            {unpaidsCount > 0 && (
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '20px' }}>
+                <p style={{ margin: '0 0 10px 0', color: '#b45309', fontWeight: 'bold' }}>
+                  ยอดรวมที่ต้องโอนให้ลูกค้าที่เลือก ({selectedWinners.length} รายการ):
+                </p>
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
+                  {totalTransferTHB > 0 && <h3 style={{ margin: 0, color: '#d97706', fontSize: '24px' }}>{formatTHB(totalTransferTHB)} THB</h3>}
+                  {totalTransferLAK > 0 && <h3 style={{ margin: 0, color: '#d97706', fontSize: '24px' }}>{formatLAK(totalTransferLAK)} LAK</h3>}
+                  {totalTransferTHB === 0 && totalTransferLAK === 0 && <h3 style={{ margin: 0, color: '#d97706', fontSize: '24px' }}>0.00</h3>}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', flex: '1 1 200px', maxWidth: '300px' }}>
+                    <AlertOctagon size={16} color="#9ca3af" style={{ marginRight: '8px' }}/>
+                    <input 
+                      type="password" 
+                      placeholder="ใส่รหัสผ่าน Admin เพื่อยืนยัน" 
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
+                    />
+                  </div>
+                  <button 
+                    onClick={handleTransfer}
+                    disabled={isProcessing || selectedWinners.length === 0}
+                    style={{ 
+                      backgroundColor: selectedWinners.length > 0 ? '#10b981' : '#9ca3af', 
+                      color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', 
+                      cursor: selectedWinners.length > 0 && !isProcessing ? 'pointer' : 'not-allowed', 
+                      fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' 
+                    }}
+                  >
+                    {isProcessing ? <RefreshCw size={18} style={{ animation: 'spin 2s linear infinite' }} /> : <Award size={18} />}
+                    {isProcessing ? 'กำลังโอนเงิน...' : 'โอนเงินรางวัล'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px', textAlign: 'center', color: '#94a3b8' }}>
@@ -455,7 +510,6 @@ const DailySales = () => {
           </div>
         )}
 
-        {/* สถิติความเสี่ยงเลขขายดี */}
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
             <h4 style={{ margin: 0, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}><TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง</h4>
@@ -520,7 +574,6 @@ const DailySales = () => {
           )}
         </div>
 
-        {/* ตารางบิลทั้งหมด */}
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           <h4 style={{ margin: '0 0 20px 0', color: '#334155', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}><BarChart2 size={22} color="#64748b" /> รายการสั่งซื้อทั้งหมด ({formatThaiDate(selectedDate)})</h4>
           
