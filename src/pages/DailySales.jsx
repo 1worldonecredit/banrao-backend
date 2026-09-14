@@ -4,7 +4,6 @@ import { Calendar, DollarSign, Award, Clock, CheckCircle, XCircle, Gift, Chevron
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 const DailySales = () => {
-  // 🌟 State สำหรับหน้ารวม (Card View)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -13,7 +12,6 @@ const DailySales = () => {
   const [monthSummary, setMonthSummary] = useState({});
   const [isLoadingCards, setIsLoadingCards] = useState(false);
 
-  // 🌟 State สำหรับหน้าเจาะลึก (Detail View)
   const [selectedDate, setSelectedDate] = useState(null);
   const [salesData, setSalesData] = useState([]);
   const [winnersList, setWinnersList] = useState([]);
@@ -25,9 +23,8 @@ const DailySales = () => {
   const [activeStatTab, setActiveStatTab] = useState('all');
   const [topLimit, setTopLimit] = useState(10);
 
-  // 🌟 ตั้งค่าเป้าหมายการจ่ายเงิน (กำไร) และเรทเงิน
-  const TARGET_PERCENT = 60; // เป้าหมายคือจ่ายไม่เกิน 60% ของยอดขาย
-  const EXCHANGE_RATE = 600; // เรทเงินลาว 1 THB = 600 LAK สำหรับการคำนวณกำไรรวม
+  const TARGET_PERCENT = 60; 
+  const EXCHANGE_RATE = 600; 
 
   // ==========================================
   // 1. ระบบสร้างวันที่และการ์ดรายเดือน
@@ -39,10 +36,9 @@ const DailySales = () => {
       const dates = [];
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // สร้างวันที่ย้อนหลัง (วันปัจจุบันอยู่บนสุด)
       for (let i = lastDay; i >= 1; i--) {
         const dStr = `${year}-${month}-${i.toString().padStart(2, '0')}`;
-        if (dStr > todayStr) continue; // ซ่อนวันที่ล่วงหน้า
+        if (dStr > todayStr) continue; 
         dates.push(dStr);
       }
       return dates;
@@ -58,27 +54,28 @@ const DailySales = () => {
     setIsLoadingCards(true);
     const newSummary = {};
     
-    // โหลดข้อมูลทีละ 5 วันเพื่อป้องกัน Server โหลดหนัก
     for (let i = 0; i < dates.length; i += 5) {
       const chunk = dates.slice(i, i + 5);
       await Promise.all(chunk.map(async (d) => {
         try {
-          const res = await fetch(`${API_URL}/api/admin/daily-sales?date=${d}`);
+          // 🌟 วิ่งไปดึง API draw-history ตามโครงสร้างของคุณวิทยา
+          const res = await fetch(`${API_URL}/api/admin/draw-history?date=${d}`);
           const data = await res.json();
           if (data.success) {
-            let sTHB = 0, sLAK = 0, pTHB = 0, pLAK = 0;
-            data.salesDetails.forEach(o => {
-              if (o.currency_code === 'LAK') sLAK += Number(o.total_amount);
-              else sTHB += Number(o.total_amount);
-            });
-            data.winners.forEach(w => {
-              if (w.currency_code === 'LAK') pLAK += Number(w.prize_amount);
-              else pTHB += Number(w.prize_amount);
-            });
+            let pTHB = 0, pLAK = 0;
+            if (data.winners) {
+              data.winners.forEach(w => {
+                if (w.currency_code === 'LAK' || w.currency_code === '₭') pLAK += Number(w.prize_amount) || 0;
+                else pTHB += Number(w.prize_amount) || 0;
+              });
+            }
             newSummary[d] = {
-              salesTHB: sTHB, salesLAK: sLAK, payoutTHB: pTHB, payoutLAK: pLAK,
-              result_6: data.summary?.result_6 || null,
-              result_2: data.summary?.result_2 || null
+              salesTHB: data.total_sales_thb || 0,
+              salesLAK: data.total_sales_lak || 0,
+              payoutTHB: pTHB,
+              payoutLAK: pLAK,
+              result_6: data.results?.prize_6 || null,
+              result_2: data.results?.prize_2 || null
             };
           }
         } catch(e) { console.error("Fetch Summary Error:", e); }
@@ -103,12 +100,21 @@ const DailySales = () => {
   const fetchDailyDetail = async (isSilent = false) => {
     if (!isSilent) setIsLoadingDetail(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/daily-sales?date=${selectedDate}`);
-      const data = await res.json();
-      if (data.success) {
-        setSalesData(data.salesDetails); 
-        setWinnersList(data.winners); 
-        setDailyResult({ result_6: data.summary?.result_6, result_2: data.summary?.result_2 });
+      // 🌟 ดึงข้อมูลบิลทั้งหมดจาก daily-sales
+      const salesRes = await fetch(`${API_URL}/api/admin/daily-sales?date=${selectedDate}`);
+      const salesDataObj = await salesRes.json();
+      
+      // 🌟 ดึงผลรางวัลและคนถูกรางวัลจาก draw-history
+      const histRes = await fetch(`${API_URL}/api/admin/draw-history?date=${selectedDate}`);
+      const histDataObj = await histRes.json();
+
+      if (salesDataObj.success) setSalesData(salesDataObj.salesDetails || []); 
+      if (histDataObj.success) {
+        setWinnersList(histDataObj.winners || []); 
+        setDailyResult({ 
+          result_6: histDataObj.results?.prize_6 || null, 
+          result_2: histDataObj.results?.prize_2 || null 
+        });
       }
     } catch (error) {
       console.error('Error fetching daily detail:', error);
@@ -117,19 +123,16 @@ const DailySales = () => {
     }
   };
 
-  // 🌟 คำนวณยอดรวมในหน้าเจาะลึก
   let detailSalesTHB = 0, detailSalesLAK = 0, detailPayoutTHB = 0, detailPayoutLAK = 0;
   salesData.forEach(o => { o.currency_code === 'LAK' ? detailSalesLAK += Number(o.total_amount) || 0 : detailSalesTHB += Number(o.total_amount) || 0; });
   winnersList.forEach(w => { w.currency_code === 'LAK' ? detailPayoutLAK += Number(w.prize_amount) || 0 : detailPayoutTHB += Number(w.prize_amount) || 0; });
 
-  // 🌟 คำนวณกำไร/ขาดทุน และ % ความเสี่ยง (ประเมินเป็น THB)
   const totalSalesConverted = detailSalesTHB + (detailSalesLAK / EXCHANGE_RATE);
   const totalPayoutConverted = detailPayoutTHB + (detailPayoutLAK / EXCHANGE_RATE);
   const totalProfitConverted = totalSalesConverted - totalPayoutConverted;
   const actualPayoutPercent = totalSalesConverted > 0 ? (totalPayoutConverted / totalSalesConverted) * 100 : 0;
-  const percentDiff = actualPayoutPercent - TARGET_PERCENT; // ค่าบวก=จ่ายเกินเป้า, ค่าลบ=จ่ายต่ำกว่าเป้า (กำไรดี)
+  const percentDiff = actualPayoutPercent - TARGET_PERCENT; 
 
-  // คำนวณสถิติความเสี่ยงเลขขายดี
   useEffect(() => {
     if (!salesData || salesData.length === 0) {
       setNumberStats([]);
@@ -179,7 +182,6 @@ const DailySales = () => {
   const filteredStats = numberStats.filter(stat => activeStatTab === 'all' || stat.type === activeStatTab).slice(0, topLimit === 'all' ? numberStats.length : Number(topLimit));
   const toggleRow = (orderId) => setExpandedRows(prev => ({ ...prev, [orderId]: !prev[orderId] }));
 
-  // Helper Formats
   const getStatusBadge = (status) => {
     if (['ถูกรางวัล', 'ถูก', 'Paid'].includes(status)) return <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><CheckCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ถูกรางวัล</span>;
     if (['ไม่ถูกรางวัล', 'แพ้', 'Lose'].includes(status)) return <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}><XCircle size={14} style={{display:'inline', verticalAlign:'middle'}}/> ไม่ถูกรางวัล</span>;
@@ -194,9 +196,6 @@ const DailySales = () => {
     return `${d.getDate()} ${fullMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
   };
 
-  // ==========================================
-  // VIEW 1: แสดงรายการงวดทั้งหมดของเดือน (แบบการ์ด)
-  // ==========================================
   if (!selectedDate) {
     const todayStr = new Date().toISOString().split('T')[0];
     return (
@@ -233,7 +232,6 @@ const DailySales = () => {
                   </div>
                 </div>
 
-                {/* 🌟 แสดงเลขที่ออกบนการ์ดเลย */}
                 <div style={{ padding: '10px 15px', backgroundColor: '#fffbeb', borderBottom: '1px dashed #fcd34d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัล:</span> 
                   <strong style={{ color: '#d97706', fontSize: '15px', letterSpacing: '1px' }}>
@@ -263,9 +261,6 @@ const DailySales = () => {
     );
   }
 
-  // ==========================================
-  // VIEW 2: แสดงรายละเอียดเมื่อคลิกเข้ามาดูในวันที่นั้นๆ
-  // ==========================================
   const isTodayDetail = selectedDate === new Date().toISOString().split('T')[0];
   
   return (
@@ -283,7 +278,6 @@ const DailySales = () => {
 
       <div style={{ backgroundColor: '#f8fafc', padding: '20px', border: '1px solid #e2e8f0', borderTop: 'none', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
         
-        {/* กล่องข้อมูลพื้นฐานงวด */}
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '25px' }}>
           <div style={{ flex: '1 1 300px', backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #e0f2fe' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#0369a1' }}>ข้อมูลประจำงวด</h4>
@@ -318,8 +312,8 @@ const DailySales = () => {
           </div>
         </div>
 
-        {/* 🌟 สรุปกำไร/ขาดทุน และ เทียบเปอร์เซ็นต์แบบเรียลไทม์ */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          
           <div style={{ flex: '1 1 250px' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={20} color="#0ea5e9"/> สรุปยอดเงินรวม (ประเมินเป็น THB)</h4>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -362,7 +356,6 @@ const DailySales = () => {
           </div>
         </div>
 
-        {/* 🌟 รายชื่อผู้ถูกรางวัล (อัปเดตทุกวัน) */}
         {winnersList.length > 0 ? (
           <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
@@ -403,7 +396,6 @@ const DailySales = () => {
           </div>
         )}
 
-        {/* 🌟 สถิติความเสี่ยงเลขขายดี */}
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
             <h4 style={{ margin: 0, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}><TrendingUp size={22} /> สถิติเลขขายดี และ การประเมินความเสี่ยง</h4>
@@ -468,7 +460,6 @@ const DailySales = () => {
           )}
         </div>
 
-        {/* 🌟 ตารางบิลแทงหวยทั้งหมด */}
         <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           <h4 style={{ margin: '0 0 20px 0', color: '#334155', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}><BarChart2 size={22} color="#64748b" /> รายการสั่งซื้อทั้งหมด ({formatThaiDate(selectedDate)})</h4>
           
