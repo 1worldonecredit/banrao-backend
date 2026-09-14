@@ -55,10 +55,29 @@ const SaleReportDetails = () => {
     setTickets([]);
   };
 
+  // 🌟 ฟังก์ชัน: แปลงเวลาเป็นรูปแบบไทย (เช่น 14 ก.ย. 69 | 15:00 น.)
   const formatTime = (dateStr) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} น.`;
+    const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const day = d.getDate();
+    const month = thaiMonths[d.getMonth()];
+    const year = (d.getFullYear() + 543).toString().slice(-2); // เอาแค่ 2 ตัวท้าย เช่น 69
+    const h = d.getHours().toString().padStart(2, '0');
+    const m = d.getMinutes().toString().padStart(2, '0');
+    return `${day} ${month} ${year} (${h}:${m} น.)`;
+  };
+
+  // 🌟 ฟังก์ชัน: แปลงชื่องวดที่เป็นตัวเลข 20260914 ให้เป็น "14 กันยายน 2569"
+  const formatRoundTitle = (round) => {
+    const name = round.round_name || round.round_number;
+    // ถ้าชื่อเป็นตัวเลขล้วนๆ (เช่น 20260914) ให้ดึงวันที่จาก draw_time มาแปลงเป็นชื่อไทยแบบเต็ม
+    if (/^\d+$/.test(name) && round.draw_time) {
+      const d = new Date(round.draw_time);
+      const fullMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+      return `${d.getDate()} ${fullMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
+    }
+    return name; // ถ้าชื่อปกติ (เช่น ออยพับงาบ) ก็ให้แสดงเหมือนเดิม
   };
 
   // ----------------------------------------------------
@@ -91,7 +110,7 @@ const SaleReportDetails = () => {
                 <div style={{ padding: '15px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: round.status === 'Completed' ? '#10b981' : '#f59e0b' }}></div>
-                    <strong style={{ color: '#334155' }}>งวด: {round.round_name || round.round_number}</strong>
+                    <strong style={{ color: '#334155' }}>งวด: {formatRoundTitle(round)}</strong>
                   </div>
                 </div>
                 <div style={{ padding: '15px', fontSize: '13px', color: '#64748b' }}>
@@ -130,7 +149,7 @@ const SaleReportDetails = () => {
             <ChevronLeft size={24} />
           </button>
           <div>
-            <h3 style={{ margin: 0, fontSize: '18px' }}>รายละเอียด งวด {selectedRound.round_name || selectedRound.round_number}</h3>
+            <h3 style={{ margin: 0, fontSize: '18px' }}>รายละเอียด งวด {formatRoundTitle(selectedRound)}</h3>
             <span style={{ fontSize: '13px', opacity: 0.8 }}>สถานะ: {selectedRound.status === 'Completed' ? 'ประกาศผลแล้ว' : 'กำลังดำเนินการ'}</span>
           </div>
         </div>
