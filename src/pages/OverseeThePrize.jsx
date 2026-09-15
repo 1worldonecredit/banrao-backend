@@ -112,13 +112,26 @@ const OverseeThePrize = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-  const fetchPrizeRates = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/prize-rates`);
-      const data = await res.json();
-      if (data.success) setPrizeRates(data.rates);
-    } catch (err) { console.error(err); }
-  };
+// 🌟 ดึงข้อมูลอัตราจ่ายจาก API เมื่อเปิดหน้า Admin
+  useEffect(() => {
+    const fetchPrizeRates = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/prize-rates`); // ใช้ API ตัวเดียวกับหน้าสลิปได้เลยครับ
+        const data = await res.json();
+        
+        if (data.success && data.data) {
+          // 🌟 ตั้งค่า state ให้มีข้อมูลเพื่อเอาไปวาดตาราง
+          setPrizeRates(data.data);
+        } else {
+          console.error("ดึงข้อมูลอัตราจ่ายไม่สำเร็จ:", data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch prize rates:', err);
+      }
+    };
+    
+    fetchPrizeRates();
+  }, []);
 
   const fetchExchangeRates = async () => {
     try {
