@@ -112,25 +112,25 @@ const OverseeThePrize = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-// 🌟 ดึงข้อมูลอัตราจ่ายจาก API เมื่อเปิดหน้า Admin
+  // 🌟 ดึงข้อมูลอัตราจ่ายจาก API เมื่อเปิดหน้า Admin (วางโค้ดนี้ไว้รวมกับกลุ่ม useEffect ด้านบนๆ)
   useEffect(() => {
+    // 1. สร้างฟังก์ชัน
     const fetchPrizeRates = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/prize-rates`); // ใช้ API ตัวเดียวกับหน้าสลิปได้เลยครับ
+        const res = await fetch(`${API_URL}/api/prize-rates`); 
         const data = await res.json();
         
         if (data.success && data.data) {
-          // 🌟 ตั้งค่า state ให้มีข้อมูลเพื่อเอาไปวาดตาราง
           setPrizeRates(data.data);
-        } else {
-          console.error("ดึงข้อมูลอัตราจ่ายไม่สำเร็จ:", data);
         }
       } catch (err) {
         console.error('Failed to fetch prize rates:', err);
       }
     };
     
+    // 2. เรียกใช้งานทันที (ต้องอยู่ข้างในวงเล็บของ useEffect เท่านั้น)
     fetchPrizeRates();
+    
   }, []);
 
   const fetchExchangeRates = async () => {
