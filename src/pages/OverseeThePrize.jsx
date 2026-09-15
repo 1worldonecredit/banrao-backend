@@ -549,12 +549,13 @@ return (
         </div>
 
         {/* อัตราการจ่ายรางวัล */}
+        {/* อัตราการจ่ายรางวัล */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <h4 style={{ margin: '0 0 15px 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calculator size={20} color="#8b5cf6" /> 
             ปรับอัตราการจ่ายรางวัล (ตัวคูณ)
           </h4>
-          <div style={{ overflowX: 'auto', marginBottom: '15px', maxHeight: '180px' }}>
+          <div style={{ overflowX: 'auto', marginBottom: '15px', maxHeight: '250px' }}> {/* 🌟 เพิ่มความสูงให้โชว์ครบ */}
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
@@ -563,38 +564,50 @@ return (
                 </tr>
               </thead>
               <tbody>
-                {prizeRates.filter(r => r.lottery_type !== '8').map((rate, index) => (
-                  <tr key={rate.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>
-                      {rate.lottery_type} ตัว
-                    </td>
-                    <td style={{ padding: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#8b5cf6' }}>X</span>
-                        <input 
-                          type="number" 
-                          value={rate.multiplier} 
-                          onChange={(e) => { 
-                            const newRates = [...prizeRates]; 
-                            newRates[index].multiplier = e.target.value; 
-                            setPrizeRates(newRates); 
-                          }} 
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '90px', fontWeight: 'bold' }} 
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {/* 🌟 เอา .filter(r => r.lottery_type !== '8') ออก เพื่อให้แสดงครบทุกรายการ */}
+                {prizeRates.map((rate, index) => {
+                  // 🌟 จัดรูปแบบชื่อให้สวยงามตามประเภทที่ดึงมาจาก Database
+                  let displayName = rate.lottery_type;
+                  if (['2', '3', '4', '6'].includes(rate.lottery_type)) {
+                      displayName = `${rate.lottery_type} ตัว`;
+                  }
+                  
+                  return (
+                    <tr key={rate.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#1e293b' }}>
+                        {displayName}
+                      </td>
+                      <td style={{ padding: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontWeight: 'bold', color: '#8b5cf6' }}>X</span>
+                          <input 
+                            type="number" 
+                            step="0.01" // 🌟 เพิ่ม step เพื่อให้รองรับทศนิยมของเลขวิ่ง (เช่น 3.2, 4.2)
+                            value={rate.multiplier} 
+                            onChange={(e) => { 
+                              const newRates = [...prizeRates]; 
+                              newRates[index].multiplier = e.target.value; 
+                              setPrizeRates(newRates); 
+                            }} 
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '90px', fontWeight: 'bold' }} 
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
+          
           <button 
-            onClick={handleSavePrizeRates} 
+            onClick={handleSavePrizeRates} // 🌟 ใช้ฟังก์ชันเดิมที่คุณวิทยามีอยู่แล้วได้เลยครับ!
             style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <Save size={18} /> บันทึกอัตราจ่าย
           </button>
         </div>
+
       </div>
 
       {/* ------------------------------------------------------------------------- */}
