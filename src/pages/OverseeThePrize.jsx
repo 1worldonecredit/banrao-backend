@@ -112,26 +112,21 @@ const OverseeThePrize = () => {
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
-  // 🌟 ดึงข้อมูลอัตราจ่ายจาก API เมื่อเปิดหน้า Admin (วางโค้ดนี้ไว้รวมกับกลุ่ม useEffect ด้านบนๆ)
-  useEffect(() => {
-    // 1. สร้างฟังก์ชัน
-    const fetchPrizeRates = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/prize-rates`); 
-        const data = await res.json();
-        
-        if (data.success && data.data) {
-          setPrizeRates(data.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch prize rates:', err);
+// 🌟 1. สร้างฟังก์ชันดึงข้อมูล (วางไว้ข้างนอก useEffect เพื่อให้เรียกใช้ได้จากทุกที่ ป้องกัน Error)
+  const fetchPrizeRates = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/prize-rates`); 
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        setPrizeRates(data.data);
       }
-    };
-    
-    // 2. เรียกใช้งานทันที (ต้องอยู่ข้างในวงเล็บของ useEffect เท่านั้น)
-    fetchPrizeRates();
-    
-  }, []);
+    } catch (err) {
+      console.error('Failed to fetch prize rates:', err);
+    }
+  };
+
+
 
   const fetchExchangeRates = async () => {
     try {
