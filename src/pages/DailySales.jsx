@@ -212,6 +212,7 @@ const DailySales = () => {
 
     if (!window.confirm(confirmMsg)) return;
 
+    console.log("รหัสผ่านที่ส่งไปคือ:", adminPassword);
     setIsProcessing(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/viet-lottery/process-payouts`, {
