@@ -44,7 +44,7 @@ body {
   background-position: center;
   background-attachment: fixed; /* ให้ภาพพื้นหลังอยู่นิ่งเวลาเลื่อนหน้าจอ */
   background-repeat: no-repeat;
-  background-color: #0d1e15; /* สีพื้นหลังสำรอง เผื่อรูปโหลดไม่ขึ้น */
+  background-color: #034e26; /* สีพื้นหลังสำรอง เผื่อรูปโหลดไม่ขึ้น */
 }
 
 #root {
@@ -137,7 +137,7 @@ code {
 
 /* สไตล์พื้นฐานสำหรับ Sidebar แบบกระจก (อิงจากภาพอ้างอิง) */
 .glass-sidebar {
-  background: rgba(10, 10, 10, 0.4);
+  background: rgba(4, 93, 203, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
