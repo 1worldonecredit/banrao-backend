@@ -143,3 +143,53 @@ code {
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
 }
+
+/* =========================================
+   🌟 สไตล์กลางสำหรับฟอร์ม (Input, Select, Textarea) ทุกหน้า
+   ========================================= */
+input, 
+select, 
+textarea {
+  /* 1. สีพื้นหลังและตัวอักษร */
+  background-color: #f8fafc; /* สีพื้นหลังช่องกรอก (เทาอ่อนมากๆ ดูสะอาดตา) */
+  color: #1e293b;            /* สีตัวอักษร (เทาเข้มเกือบดำ ให้อ่านง่าย) */
+  
+  /* 2. เส้นขอบและรูปทรง */
+  border: 1px solid #cbd5e1; /* สีเส้นขอบปกติ */
+  border-radius: 8px;        /* ความโค้งมนของขอบ */
+  padding: 10px 14px;        /* ระยะห่างของตัวอักษรกับขอบด้านใน */
+  
+  /* 3. รูปแบบตัวอักษร */
+  font-family: var(--sans);  /* ใช้ฟอนต์หลักของระบบ */
+  font-size: 14px;
+  
+  /* 4. การแสดงผลอื่นๆ */
+  width: 100%;               /* ให้กางเต็มพื้นที่กล่องที่ครอบมันอยู่ */
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s ease; /* ทำให้เอฟเฟกต์ตอนเมาส์ชี้ดูนุ่มนวล */
+}
+
+/* 🌟 เอฟเฟกต์ตอนที่ผู้ใช้ "คลิก" เพื่อเตรียมพิมพ์ (Focus) */
+input:focus, 
+select:focus, 
+textarea:focus {
+  background-color: #ffffff; /* เปลี่ยนพื้นหลังให้สว่างสุดตอนกำลังพิมพ์ */
+  border-color: #3b82f6;     /* เปลี่ยนสีเส้นขอบเป็นสีฟ้า */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); /* เพิ่มเงาเรืองแสงสีฟ้าบางๆ รอบนอก */
+}
+
+/* 🌟 เอฟเฟกต์ตอนที่ช่องกรอกนั้นถูกปิดการใช้งาน (Disabled / Readonly) */
+input:disabled, 
+select:disabled, 
+textarea:disabled {
+  background-color: #e2e8f0; /* พื้นหลังสีเทาทึบขึ้น */
+  color: #94a3b8;            /* ตัวอักษรสีจางลง */
+  cursor: not-allowed;       /* เปลี่ยนรูปเมาส์เป็นเครื่องหมายห้าม */
+}
+
+/* ปรับสี Placeholder (ข้อความจางๆ ที่ใบ้คำในช่องกรอก) */
+::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
