@@ -214,7 +214,7 @@ return (
       {/* ==========================================
           โซนที่ 1: ผลรางวัลประจำวัน (ด้านบน)
       ========================================== */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+      <div style={{  padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px' }}>
             ผลการออกรางวัลประจำงวด <span style={{ color: '#d11010' }}>{formatThaiDateFull(selectedDate)}</span>
@@ -464,7 +464,7 @@ return (
       {/* ==========================================
           โซนที่ 3: ตารางสรุปประวัติย้อนหลัง (รายเดือน)
       ========================================== */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{  padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0,  fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
