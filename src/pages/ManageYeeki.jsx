@@ -551,7 +551,7 @@ const fetchSimulatedUsers = async (type, numberStr) => {
   };
 
 return (
-    <div style={{ padding: '20px', backgroundColor: '#fdf2f8', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ padding: '20px',  minHeight: '100vh', boxSizing: 'border-box' }}>
       
       {/* 🌟 Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
