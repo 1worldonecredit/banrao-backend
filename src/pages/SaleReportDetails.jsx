@@ -87,10 +87,10 @@ const SaleReportDetails = () => {
     return (
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, color: '#1e293b', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2 style={{ margin: 0, color: '#b6be28', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Clock size={24} color="#ef4444" /> รายงานขาย หวยไทย
           </h2>
-          <button onClick={fetchRounds} style={{ padding: '8px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+          <button onClick={fetchRounds} style={{ padding: '8px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#0747a1'  , backgroundColor: 'white', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
             <RefreshCw size={16} /> รีเฟรช
           </button>
         </div>
