@@ -149,7 +149,7 @@ const MenuManagement = () => {
     <div style={{ animation: 'fadeIn 0.3s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
         <ListTree size={28} color="#8b5cf6" />
-        <h2 style={{ margin: 0, color: '#1e293b' }}>จัดการโครงสร้างเมนู (Dynamic Menu)</h2>
+        <h2 style={{ margin: 0, color: '#d2fb0a' }}>จัดการโครงสร้างเมนู (Dynamic Menu)</h2>
       </div>
 
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
