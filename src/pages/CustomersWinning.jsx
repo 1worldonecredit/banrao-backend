@@ -138,7 +138,7 @@ const CustomersWinning = () => {
           <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px' }}>
             <Trophy size={28} color="#eab308" /> รายงานสรุปรางวัล (หวยเวียดนาม)
           </h2>
-          <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>คลิกที่การ์ดเพื่อดูรายชื่อผู้ถูกรางวัล และสรุปกำไรขาดทุน</p>
+          <p style={{ margin: '5px 0 0 0', color: '#b3e708', fontSize: '16px' }}>คลิกที่การ์ดเพื่อดูรายชื่อผู้ถูกรางวัล และสรุปกำไรขาดทุน</p>
         </div>
         
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'white', padding: '8px 15px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
