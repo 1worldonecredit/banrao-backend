@@ -185,7 +185,7 @@ input:disabled,
 select:disabled, 
 textarea:disabled {
   background-color: #e2e8f0; /* พื้นหลังสีเทาทึบขึ้น */
-  color: #94a3b8;            /* ตัวอักษรสีจางลง */
+  color: #0b07d0;            /* ตัวอักษรสีจางลง */
   cursor: not-allowed;       /* เปลี่ยนรูปเมาส์เป็นเครื่องหมายห้าม */
 }
 
