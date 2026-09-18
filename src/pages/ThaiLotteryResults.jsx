@@ -124,7 +124,7 @@ const ThaiLotteryResults = () => {
   const years = ['2024', '2025', '2026', '2027'];
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif',  minHeight: '100vh' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <Trophy size={28} color="#10b981" /> จัดการผลรางวัลหวยไทย
       </h2>
