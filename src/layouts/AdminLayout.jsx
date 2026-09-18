@@ -160,7 +160,7 @@ const AdminLayout = () => {
       {/* ========================================== */}
       <div style={{ 
         width: '320px', 
-        backgroundColor: 'rgba(10, 15, 25, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
+        backgroundColor: 'rgba(21, 50, 249, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
         backdropFilter: 'blur(20px)',             // <-- เอฟเฟกต์เบลอแบบกระจก
         WebkitBackdropFilter: 'blur(20px)',       // <-- รองรับ Safari
         color: '#ffffff',                         // <-- ตัวอักษรสีขาว
