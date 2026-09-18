@@ -178,7 +178,7 @@ const MenuManagement = () => {
 
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', fontSize: '13px', color: '#475569', marginBottom: '5px' }}>Path (URL)</label>
-              <input type="text" value={formData.path} onChange={(e) => setFormData({...formData, path: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }} placeholder="เช่น /admin/employees" />
+              <input type="text" value={formData.path} onChange={(e) => setFormData({...formData, path: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #086de7', outline: 'none' }} placeholder="เช่น /admin/employees" />
             </div>
 
             <div style={{ marginBottom: '15px' }}>
@@ -186,7 +186,7 @@ const MenuManagement = () => {
               <select 
                 value={formData.component} 
                 onChange={(e) => setFormData({...formData, component: e.target.value})} 
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: '#fdf4ff' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #086de7', outline: 'none', backgroundColor: '#4a4765' }}
               >
                 <option value="">-- ไม่ระบุ (ใช้สำหรับเมนูหลักที่มีลูก) --</option>
                 <option value="Dashboard">หน้าแผงควบคุม (Dashboard)</option>
