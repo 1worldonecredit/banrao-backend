@@ -282,11 +282,11 @@ const DailySales = () => {
   if (!selectedDate) {
     const todayStr = new Date().toISOString().split('T')[0];
     return (
-      <div style={{ padding: '20px', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div style={{ padding: '20px',  minHeight: '100vh', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h2 style={{ margin: 0, color: '#1e293b', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><CalendarDays size={24} color="#0284c7" /> รายงานขาย หวยเวียดนาม (รายเดือน)</h2>
-            <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '13px' }}>เลือกเดือนและปี เพื่อดูยอดขายและผลรางวัล (วันล่าสุดอยู่บนสุด)</p>
+            <p style={{ margin: '5px 0 0 0', color: '#d5d80a', fontSize: '13px' }}>เลือกเดือนและปี เพื่อดูยอดขายและผลรางวัล (วันล่าสุดอยู่บนสุด)</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '8px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
