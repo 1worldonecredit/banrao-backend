@@ -122,7 +122,7 @@ const ReceivingAccount = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, color: '#1e293b' }}>จัดการบัญชีรับฝากเงิน (Receiving Accounts)</h2>
+        <h2 style={{ margin: 0, color: '#9eca0d' }}>จัดการบัญชีรับฝากเงิน (Receiving Accounts)</h2>
         <button 
           onClick={handleAddClick}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
