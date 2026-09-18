@@ -160,7 +160,7 @@ const AdminLayout = () => {
       {/* ========================================== */}
       <div style={{ 
         width: '320px', 
-        backgroundColor: 'rgba(21, 50, 249, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
+        backgroundColor: 'rgba(2, 21, 146, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
         backdropFilter: 'blur(20px)',             // <-- เอฟเฟกต์เบลอแบบกระจก
         WebkitBackdropFilter: 'blur(20px)',       // <-- รองรับ Safari
         color: '#ffffff',                         // <-- ตัวอักษรสีขาว
@@ -172,7 +172,7 @@ const AdminLayout = () => {
       }}>
         {/* หัว Sidebar โลโก้ */}
         <div style={{ padding: '24px 20px', fontSize: '22px', fontWeight: 'bold', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', letterSpacing: '1px' }}>
-          SALAPI <span style={{color: '#4ade80'}}>ADMIN</span> {/* ตกแต่งโลโก้ให้สวยขึ้น */}
+          SAPI <span style={{color: '#dead4a'}}>ADMIN</span> {/* ตกแต่งโลโก้ให้สวยขึ้น */}
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex' }}><X size={20} /></button>
           )}
@@ -237,7 +237,7 @@ const AdminLayout = () => {
         {/* Top Navbar */}
         <div style={{ 
           height: '70px', 
-          backgroundColor: 'rgba(62, 85, 131, 0.4)', // กล่องบนสุดโปร่งแสง
+          backgroundColor: 'rgba(158, 183, 231, 1.0)', // กล่องบนสุดโปร่งแสง
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
