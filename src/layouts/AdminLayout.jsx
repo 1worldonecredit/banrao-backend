@@ -124,7 +124,7 @@ const AdminLayout = () => {
     return {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 20px 10px 45px', cursor: 'pointer', transition: 'all 0.3s ease', fontSize: '14px',
-      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent', 
+      backgroundColor: isActive ? 'rgba(16, 33, 133, 0.5)' : 'transparent', 
       color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)', 
       borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent',
       fontWeight: isActive ? '600' : 'normal',
@@ -237,7 +237,7 @@ const AdminLayout = () => {
         {/* Top Navbar */}
         <div style={{ 
           height: '70px', 
-          backgroundColor: 'rgba(158, 183, 231, 1.0)', // กล่องบนสุดโปร่งแสง
+          backgroundColor: 'rgba(8, 38, 94, 0.5)', // กล่องบนสุดโปร่งแสง
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
