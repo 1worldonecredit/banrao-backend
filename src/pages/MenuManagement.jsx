@@ -296,7 +296,7 @@ const MenuManagement = () => {
               const isEditingThis = editingId === main.id;
 
               return (
-                <div key={main.id} style={{ border: isEditingThis ? '2px solid #3b82f6' : '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', backgroundColor: isEditingThis ? '#eff6ff' : '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                <div key={main.id} style={{ border: isEditingThis ? '2px solid #3b82f6' : '1px solid #0e6be4', borderRadius: '8px', padding: '15px', backgroundColor: isEditingThis ? '#eff6ff' : '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', color: '#f1f5fc' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
