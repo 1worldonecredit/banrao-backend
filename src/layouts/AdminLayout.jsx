@@ -159,8 +159,8 @@ const AdminLayout = () => {
       {/* 🌟 Sidebar Area (สไตล์ Glassmorphism) */}
       {/* ========================================== */}
       <div style={{ 
-        width: '280px', 
-        backgroundColor: 'rgba(10, 15, 25, 0.6)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
+        width: '320px', 
+        backgroundColor: 'rgba(10, 15, 25, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
         backdropFilter: 'blur(20px)',             // <-- เอฟเฟกต์เบลอแบบกระจก
         WebkitBackdropFilter: 'blur(20px)',       // <-- รองรับ Safari
         color: '#ffffff',                         // <-- ตัวอักษรสีขาว
