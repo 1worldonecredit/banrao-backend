@@ -48,11 +48,13 @@ body {
 }
 
 #root {
-  /* คง Layout เดิมของคุณวิทยาไว้ 100% */
-  width: 1126px;
+  /* 🌟 แก้ไข: เปลี่ยนจาก 1126px เป็น 100% เพื่อให้กางเต็มพื้นที่จอคอมพิวเตอร์ */
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
+  
+  /* 🌟 แก้ไข: ลบ margin: 0 auto; และ text-align: center; ออก 
+      เพราะเราต้องการให้ระบบ Admin เรียงชิดซ้ายและกางเต็มจอ ไม่ใช่กระจุกอยู่ตรงกลาง */
+  
   /* เอา border ของ root ออก เพราะเราจะไปทำขอบที่ Card แทน */
   border-inline: none; 
   min-height: 100svh;

@@ -237,7 +237,7 @@ const AdminLayout = () => {
         {/* Top Navbar */}
         <div style={{ 
           height: '70px', 
-          backgroundColor: 'rgba(10, 15, 25, 0.4)', // กล่องบนสุดโปร่งแสง
+          backgroundColor: 'rgba(62, 85, 131, 0.4)', // กล่องบนสุดโปร่งแสง
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
