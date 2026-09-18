@@ -1,15 +1,22 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* --- สีพื้นฐาน --- */
+  --text: #e2e8f0; /* ปรับตัวอักษรให้อ่อนลง เพื่อให้อ่านง่ายบนพื้นหลังสีเข้ม */
+  --text-h: #ffffff; /* สีหัวข้อเป็นสีขาว */
+  --bg: transparent; /* เปลี่ยนพื้นหลังหลักเป็นโปร่งใส เพื่อให้เห็นภาพ Background */
+  
+  /* --- ค่าความโปร่งแสง (Glassmorphism) --- */
+  --glass-bg: rgba(255, 255, 255, 0.05); /* สีพื้นหลังของการ์ดโปร่งแสง */
+  --glass-border: rgba(255, 255, 255, 0.1); /* ขอบการ์ดบางๆ */
+  --glass-blur: blur(16px); /* ความเบลอของกระจก */
+  
+  /* --- สีอื่นๆ --- */
+  --border: rgba(255, 255, 255, 0.15);
+  --code-bg: rgba(0, 0, 0, 0.3);
+  --accent: #4ade80; /* เปลี่ยนสี Accent เป็นสีเขียวอ่อนให้เข้ากับธีม */
+  --accent-bg: rgba(74, 222, 128, 0.1);
+  --accent-border: rgba(74, 222, 128, 0.5);
+  
+  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* เงาของการ์ดกระจก */
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -17,9 +24,8 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: dark; /* บังคับให้เป็น Dark mode พื้นฐาน */
   color: var(--text);
-  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -30,44 +36,33 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
 body {
   margin: 0;
+  /* ใส่ภาพพื้นหลัง */
+  background-image: url('/images/bg-admin-green.jpg'); 
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed; /* ให้ภาพพื้นหลังอยู่นิ่งเวลาเลื่อนหน้าจอ */
+  background-repeat: no-repeat;
+  background-color: #0d1e15; /* สีพื้นหลังสำรอง เผื่อรูปโหลดไม่ขึ้น */
 }
 
 #root {
+  /* คง Layout เดิมของคุณวิทยาไว้ 100% */
   width: 1126px;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
+  /* เอา border ของ root ออก เพราะเราจะไปทำขอบที่ Card แทน */
+  border-inline: none; 
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
 
-h1,
-h2 {
+/* --- การตั้งค่าตัวอักษร --- */
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--heading);
   font-weight: 500;
   color: var(--text-h);
@@ -82,6 +77,7 @@ h1 {
     margin: 20px 0;
   }
 }
+
 h2 {
   font-size: 24px;
   line-height: 118%;
@@ -91,12 +87,10 @@ h2 {
     font-size: 20px;
   }
 }
-p {
-  margin: 0;
-}
 
-code,
-.counter {
+p { margin: 0; }
+
+code, .counter {
   font-family: var(--mono);
   display: inline-flex;
   border-radius: 4px;
@@ -108,4 +102,42 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* =========================================
+   สไตล์สำหรับการ์ด Glassmorphism ทุกขนาด
+   (เรียกใช้ class 'glass-card' ใน Component ได้เลย)
+   ========================================= */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur); /* สำหรับ Safari */
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  color: var(--text);
+  /* ป้องกันเนื้อหาล้น */
+  overflow: hidden; 
+}
+
+/* การ์ดขนาดเล็ก (เช่น สถิติตัวเลข) */
+.glass-card.small {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+/* การ์ดขนาดใหญ่ (เช่น ตารางข้อมูล) */
+.glass-card.large {
+  padding: 32px;
+  border-radius: 24px;
+}
+
+/* สไตล์พื้นฐานสำหรับ Sidebar แบบกระจก (อิงจากภาพอ้างอิง) */
+.glass-sidebar {
+  background: rgba(10, 10, 10, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
 }
