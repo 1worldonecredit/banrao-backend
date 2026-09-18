@@ -39,7 +39,7 @@
 body {
   margin: 0;
   /* ใส่ภาพพื้นหลัง */
-  background-image: url('/images/bg-admin-green.jpg'); 
+  background-image: url('/images/bg-admin-green1.jpg'); 
   background-size: cover;
   background-position: center;
   background-attachment: fixed; /* ให้ภาพพื้นหลังอยู่นิ่งเวลาเลื่อนหน้าจอ */
