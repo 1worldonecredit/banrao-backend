@@ -46,6 +46,7 @@ import SetTimeMission from './SetTimeMission';
 import CustomerUnderSurveillance from './CustomerUnderSurveillance';
 import JobRecruitmentPost from './JobRecruitmentPost';
 import ListOfJobApplicants from './ListOfJobApplicants';
+import Profile from './Profile';
 
 
 
@@ -94,7 +95,8 @@ const componentsRegistry = {
   'SetTimeMission': SetTimeMission,
   'CustomerUnderSurveillance': CustomerUnderSurveillance,
   'JobRecruitmentPost': JobRecruitmentPost,
-  'ListOfJobApplicants': ListOfJobApplicants
+  'ListOfJobApplicants': ListOfJobApplicants,
+  'Profile': Profile
 };
 
 export default function PageRouter() {

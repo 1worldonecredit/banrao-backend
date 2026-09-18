@@ -232,6 +232,7 @@ const MenuManagement = () => {
                 <option value="CustomerUnderSurveillance">รายชื่อลูกค้าเฝ่าระวัง (CustomerUnderSurveillance)</option>
                 <option value="JobRecruitmentPost">โพ็สรับสมัครคนทำงานหน้าเว็บ (JobRecruitmentPost)</option>
                 <option value="ListOfJobApplicants">รายชื่อคำขอสมัครงาน (ListOfJobApplicants)</option>
+                <option value= "Profile">โปรไฟล์ (Profile)</option>
               </select>
             </div>
 
