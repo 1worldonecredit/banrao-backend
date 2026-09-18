@@ -467,7 +467,7 @@ return (
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-          <h3 style={{ margin: 0, color: '#0ea5e9', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ margin: 0,  fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <List size={24} /> ตารางสรุปผลการออกรางวัลย้อนหลัง
           </h3>
           
