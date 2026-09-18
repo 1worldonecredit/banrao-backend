@@ -268,15 +268,16 @@ const AdminLayout = () => {
           </div>
         </div>
 
+
         {/* พื้นที่สำหรับ Render หน้าลูก (Outlet) */}
-        {/* 👈 2. ใส่ className="glass-card" และเพิ่ม margin เพื่อทำกรอบกระจกครอบเนื้อหาทุกหน้าย่อย */}
+        {/* 🌟 เอา className="glass-card" และ margin ออก เพื่อไม่ให้มันซ้อนกับหน้าย่อย */}
+        {/* ========================================== */}
         <div 
-          className="glass-card" 
           style={{ 
-            margin: '20px', 
             padding: isMobile ? '16px' : '32px', 
             overflowY: 'auto', 
-            flexGrow: 1 
+            flexGrow: 1,
+            backgroundColor: 'transparent' // บังคับให้โปร่งใสทะลุไปถึง body 
           }}
         >
           <Outlet /> 
