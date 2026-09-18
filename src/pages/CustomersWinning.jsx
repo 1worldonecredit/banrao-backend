@@ -116,7 +116,7 @@ const CustomersWinning = () => {
   // 🌟 6. UI หน้าจอแสดงผล
   // ==========================================
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', minHeight: '100vh' }}>
       
       {/* 🌟 CSS พิเศษสำหรับซ่อนสิ่งที่ไม่จำเป็นตอนพิมพ์ PDF */}
       <style>
