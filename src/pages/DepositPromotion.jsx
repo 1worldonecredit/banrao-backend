@@ -421,7 +421,7 @@ const DepositPromotion = () => {
      {/* ============================================== */}
       {/* 🌟 โซนป้ายโฆษณา (ADS/VIDEO) แบบอัปโหลดตรงลง DB */}
       {/* ============================================== */}
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '4px solid #8b5cf6' }}>
+      <div style={{  padding: '25px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', borderTop: '4px solid #8b5cf6' }}>
         <h4 style={{ margin: '0 0 20px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
           <Megaphone size={22} color="#8b5cf6" /> คลังป้ายโฆษณา (อัปโหลดวิดีโอ/รูปภาพ 9:16)
         </h4>
