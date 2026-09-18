@@ -69,7 +69,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   color: #02ec06d4 !important; /* บังคับตัวอักษรให้เป็นสีขาวเสมอ ทับ Inline Style */
   text-shadow: 0 2px 2px rgb(249, 248, 248) !important; /* เพิ่มเงาดำบางๆ ด้านหลัง เผื่อเจอพื้นหลังสว่างจะได้ยังอ่านออก */
-  background: #034e26;
+  background-color: #e2e8f0;
 }
 
 h1 {
