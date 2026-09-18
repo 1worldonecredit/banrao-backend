@@ -264,7 +264,7 @@ const ManageThaiNumber = () => {
   const formatCurrency = (num) => Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f0f9ff', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif',  minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         <Trophy size={28} /> จัดการหวยรัฐบาลไทย
       </h2>
