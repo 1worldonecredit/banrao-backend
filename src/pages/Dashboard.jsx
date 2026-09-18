@@ -42,7 +42,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>ภาพรวมระบบ (Overview)</h2>
+      <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#ecefe7' }}>ภาพรวมระบบ (Overview)</h2>
       
       {/* 🌟 3. กล่อง UI แสดงผลลัพธ์การทดสอบ Database */}
       <div style={{ backgroundColor: '#f0fdf4', padding: '15px 20px', borderRadius: '12px', border: '1px solid #bbf7d0', display: 'flex', gap: '30px', marginBottom: '25px', alignItems: 'center', flexWrap: 'wrap' }}>
