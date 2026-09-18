@@ -186,7 +186,7 @@ const MenuManagement = () => {
               <select 
                 value={formData.component} 
                 onChange={(e) => setFormData({...formData, component: e.target.value})} 
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #086de7', outline: 'none', backgroundColor: '#4a4765' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #086de7', outline: 'none', backgroundColor: '#ebeaf3' }}
               >
                 <option value="">-- ไม่ระบุ (ใช้สำหรับเมนูหลักที่มีลูก) --</option>
                 <option value="Dashboard">หน้าแผงควบคุม (Dashboard)</option>
@@ -298,7 +298,7 @@ const MenuManagement = () => {
               return (
                 <div key={main.id} style={{ border: isEditingThis ? '2px solid #3b82f6' : '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', backgroundColor: isEditingThis ? '#eff6ff' : '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                   
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', color: '#1e293b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', color: '#f1f5fc' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ color: '#8b5cf6' }}>{renderIcon(main.icon)}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
