@@ -230,9 +230,14 @@ const AdminLayout = () => {
       </div>
 
       {/* ========================================== */}
-      {/* 🌟 Content Area (ปรับให้โปร่งแสงเข้าธีม) */}
+      {/* 🌟 Content Area (ปรับให้โปร่งใส 100% ทะลุถึงพื้นหลัง) */}
       {/* ========================================== */}
-      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: isMobile ? '100%' : 'calc(100% - 280px)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+      <div style={{ 
+        flexGrow: 1, display: 'flex', flexDirection: 'column', 
+        height: '100vh', overflow: 'hidden', 
+        width: isMobile ? '100%' : 'calc(100% - 280px)', 
+        backgroundColor: 'transparent' /* 👈 1. เปลี่ยนเป็นโปร่งใสตรงนี้ */
+      }}>
         
         {/* Top Navbar */}
         <div style={{ 
@@ -264,7 +269,16 @@ const AdminLayout = () => {
         </div>
 
         {/* พื้นที่สำหรับ Render หน้าลูก (Outlet) */}
-        <div style={{ padding: isMobile ? '16px' : '32px', overflowY: 'auto', flexGrow: 1 }}>
+        {/* 👈 2. ใส่ className="glass-card" และเพิ่ม margin เพื่อทำกรอบกระจกครอบเนื้อหาทุกหน้าย่อย */}
+        <div 
+          className="glass-card" 
+          style={{ 
+            margin: '20px', 
+            padding: isMobile ? '16px' : '32px', 
+            overflowY: 'auto', 
+            flexGrow: 1 
+          }}
+        >
           <Outlet /> 
         </div>
 
