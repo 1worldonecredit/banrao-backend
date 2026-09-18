@@ -22,7 +22,7 @@ const AdminLayout = () => {
   const [openMenus, setOpenMenus] = useState({});
   const [dynamicMenus, setDynamicMenus] = useState([]);
   
-  // 🌟 ตัวแปรเก็บจำนวนแจ้งเตือน (คำขอเพิ่มบัญชีที่รอตรวจสอบ)
+  // 🌟 ตัวแปรเก็บจำนวนแจ้งเตือน
   const [pendingBankCount, setPendingBankCount] = useState(0);
 
   // ==========================================
@@ -48,7 +48,7 @@ const AdminLayout = () => {
   }, []);
 
   // ==========================================
-  // 🌟 2. API: ดึงจำนวนการแจ้งเตือนต่างๆ (Auto-Refresh ทุก 10 วินาที)
+  // 🌟 2. API: ดึงจำนวนการแจ้งเตือนต่างๆ 
   // ==========================================
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -57,7 +57,6 @@ const AdminLayout = () => {
         if (res.ok) {
           const result = await res.json();
           if (result.success) {
-            // นับเฉพาะรายการที่สถานะเป็น 'Pending' (รอตรวจสอบ)
             const count = result.data.filter(item => item.status === 'Pending').length;
             setPendingBankCount(count);
           }
@@ -67,11 +66,10 @@ const AdminLayout = () => {
       }
     };
 
-    fetchNotifications(); // ดึงครั้งแรกเมื่อโหลดหน้า
-    const interval = setInterval(fetchNotifications, 10000); // ตั้งเวลาดึงซ้ำทุกๆ 10 วินาที
-    return () => clearInterval(interval); // ทำลายทิ้งเมื่อปิดหน้านี้ (ประหยัดแรม)
+    fetchNotifications(); 
+    const interval = setInterval(fetchNotifications, 10000); 
+    return () => clearInterval(interval); 
   }, []);
-  // ==========================================
 
   useEffect(() => {
     const handleResize = () => {
@@ -102,41 +100,43 @@ const AdminLayout = () => {
   };
 
   // ==========================================
-  // 🌟 3. จัดสไตล์เมนูหลัก (เปลี่ยนเป็นโทนสว่าง)
+  // 🌟 3. จัดสไตล์เมนูหลัก (โทนกระจก)
   // ==========================================
   const getMenuItemStyle = (path, isGroup = false) => {
     const isActive = !isGroup && (location.pathname === path);
     return {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-      padding: '12px 20px', cursor: 'pointer', transition: '0.2s',
-      backgroundColor: isActive ? '#f1f5f9' : 'transparent', // พื้นหลังตอนเลือก (เทาอ่อน)
-      color: isActive ? '#ef4444' : '#475569', // ตัวหนังสือ (สีแดงตอนเลือก / สีเทาเข้มตอนปกติ)
-      borderLeft: isActive ? '4px solid #ef4444' : '4px solid transparent',
-      fontWeight: isActive ? 'bold' : 'normal'
+      padding: '12px 20px', cursor: 'pointer', transition: 'all 0.3s ease',
+      // ปรับให้ตอน Hover หรือ Active เป็นสีสว่างโปร่งแสง และมีขอบมนเล็กน้อยให้ดูทันสมัย
+      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)', 
+      borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent', // เส้นขอบสีเขียวเข้าธีม
+      fontWeight: isActive ? '600' : 'normal',
+      margin: '4px 8px', borderRadius: '8px' // เพิ่ม Margin ให้ปุ่มดูไม่ติดกันเกินไป
     };
   };
 
   // ==========================================
-  // 🌟 4. จัดสไตล์เมนูย่อย (เปลี่ยนเป็นโทนสว่าง)
+  // 🌟 4. จัดสไตล์เมนูย่อย (โทนกระจก)
   // ==========================================
   const getSubMenuItemStyle = (path) => {
     const isActive = location.pathname === path; 
     return {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '10px 20px 10px 50px', cursor: 'pointer', transition: '0.2s', fontSize: '14px',
-      backgroundColor: isActive ? '#f8fafc' : 'transparent', // พื้นหลังเมนูย่อยตอนเลือก
-      color: isActive ? '#ef4444' : '#64748b', 
-      borderLeft: isActive ? '4px solid #ef4444' : '4px solid transparent',
-      fontWeight: isActive ? 'bold' : 'normal'
+      padding: '10px 20px 10px 45px', cursor: 'pointer', transition: 'all 0.3s ease', fontSize: '14px',
+      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent', 
+      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)', 
+      borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent',
+      fontWeight: isActive ? '600' : 'normal',
+      margin: '2px 8px', borderRadius: '8px'
     };
   };
 
-  // Component สำหรับวาดป้ายแจ้งเตือน (สีแดง)
   const NotificationBadge = ({ count }) => (
     <span style={{
       backgroundColor: '#ef4444', color: 'white', fontSize: '11px', fontWeight: 'bold',
       padding: '2px 6px', borderRadius: '10px', minWidth: '18px', textAlign: 'center',
-      boxShadow: '0 0 5px rgba(239, 68, 68, 0.4)'
+      boxShadow: '0 0 5px rgba(239, 68, 68, 0.6)'
     }}>
       {count}
     </span>
@@ -145,37 +145,41 @@ const AdminLayout = () => {
   const mainMenus = dynamicMenus.filter(m => m.parentId === null);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f1f5f9', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+    // เปลี่ยน Background หลักให้โปร่งใส (transparent) เพื่อโชว์ภาพพื้นหลังที่ตั้งไว้ใน CSS
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', fontFamily: 'var(--sans)', overflow: 'hidden' }}>
       
       {isMobile && isSidebarOpen && (
         <div 
           onClick={() => setIsSidebarOpen(false)}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40, animation: 'fadeIn 0.2s' }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40, backdropFilter: 'blur(4px)' }}
         />
       )}
 
       {/* ========================================== */}
-      {/* 🌟 Sidebar Area (เปลี่ยนพื้นหลังเป็นสีขาว) */}
+      {/* 🌟 Sidebar Area (สไตล์ Glassmorphism) */}
       {/* ========================================== */}
       <div style={{ 
         width: '280px', 
-        backgroundColor: '#ffffff', // <-- พื้นหลังสีขาว
-        color: '#1e293b',           // <-- ตัวหนังสือสีเข้ม
-        borderRight: '1px solid #e2e8f0', // <-- เส้นขอบขวาให้ดูมีมิติแยกกับเนื้อหา
+        backgroundColor: 'rgba(10, 15, 25, 0.6)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
+        backdropFilter: 'blur(20px)',             // <-- เอฟเฟกต์เบลอแบบกระจก
+        WebkitBackdropFilter: 'blur(20px)',       // <-- รองรับ Safari
+        color: '#ffffff',                         // <-- ตัวอักษรสีขาว
+        borderRight: '1px solid rgba(255, 255, 255, 0.1)', // <-- เส้นขอบโปร่งแสงบางๆ
         display: 'flex', flexDirection: 'column', flexShrink: 0,
         position: isMobile ? 'fixed' : 'relative', top: 0, bottom: 0, left: 0, transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 0.3s ease-in-out', zIndex: 50
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 50,
+        boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)' // เพิ่มเงาให้ลอยขึ้นมา
       }}>
         {/* หัว Sidebar โลโก้ */}
-        <div style={{ padding: '20px', fontSize: '24px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', color: '#ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          SALAPI ADMIN
+        <div style={{ padding: '24px 20px', fontSize: '22px', fontWeight: 'bold', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', letterSpacing: '1px' }}>
+          SALAPI <span style={{color: '#4ade80'}}>ADMIN</span> {/* ตกแต่งโลโก้ให้สวยขึ้น */}
           {isMobile && (
-            <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={24} /></button>
+            <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex' }}><X size={20} /></button>
           )}
         </div>
         
         {/* วนลูปวาดเมนู */}
-        <div style={{ padding: '10px 0', flexGrow: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '15px 0', flexGrow: 1, overflowY: 'auto' }}>
           {mainMenus.map(mainMenu => {
             const children = dynamicMenus.filter(m => m.parentId === mainMenu.id);
             const hasChildren = children.length > 0;
@@ -188,33 +192,26 @@ const AdminLayout = () => {
                   style={getMenuItemStyle(mainMenu.path, hasChildren)} 
                   onClick={() => hasChildren ? toggleMenu(`menu-${mainMenu.id}`) : handleNavigation(mainMenu.path)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <IconComponent size={20} /> 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <IconComponent size={20} style={{ opacity: 0.8 }} /> 
                     {mainMenu.title}
                   </div>
-                  {hasChildren && (openMenus[`menu-${mainMenu.id}`] ? <ChevronDown size={18} /> : <ChevronRight size={18} />)}
+                  {hasChildren && (openMenus[`menu-${mainMenu.id}`] ? <ChevronDown size={18} style={{ opacity: 0.6 }} /> : <ChevronRight size={18} style={{ opacity: 0.6 }} />)}
                 </div>
 
                 {/* เมนูย่อย (ถ้ามี) */}
                 {hasChildren && openMenus[`menu-${mainMenu.id}`] && (
-                  <div style={{ backgroundColor: '#f8fafc', borderY: '1px solid #f1f5f9' }}>
+                  <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)', padding: '4px 0', marginTop: '4px', borderRadius: '8px', marginInline: '8px' }}>
                     {children.map(child => (
                       <div key={child.id} style={getSubMenuItemStyle(child.path)} onClick={() => handleNavigation(child.path)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          - {child.title}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{opacity: 0.4, fontSize: '10px'}}>●</span> {child.title}
                         </div>
-                        
-                        {/* ========================================== */}
-                        {/* 🌟 5. การแสดงแจ้งเตือน (Notification Badge) */}
-                        {/* ========================================== */}
                         {child.component === 'AccountBank' && pendingBankCount > 0 ? (
-                          // ถ้าเป็นหน้า "คำขอเพิ่มบัญชีธนาคาร" และมีรายการรอตรวจ > 0 ให้โชว์เลขจริง
                           <NotificationBadge count={pendingBankCount} />
                         ) : child.showNotification ? (
-                          // กรณีเมนูอื่นๆ ที่เปิดตั้งค่าให้โชว์ Notification (เช่น อนาคตทำแจ้งเตือนลูกค้าใหม่)
                           <NotificationBadge count={0} />
                         ) : null}
-                        
                       </div>
                     ))}
                   </div>
@@ -224,43 +221,50 @@ const AdminLayout = () => {
           })}
         </div>
 
-        {/* ปุ่มออกจากระบบ (ด้านล่างสุด) */}
-        <div style={{ padding: '20px', borderTop: '1px solid #e2e8f0' }}>
-          <div onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#64748b' }}>
+        {/* ปุ่มออกจากระบบ */}
+        <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', color: 'rgba(255, 255, 255, 0.7)', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'} onMouseOut={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'}>
             <LogOut size={20} /> ออกจากระบบ
           </div>
         </div>
       </div>
 
       {/* ========================================== */}
-      {/* Content Area (พื้นที่ด้านขวาสำหรับแสดงหน้าต่างๆ) */}
+      {/* 🌟 Content Area (ปรับให้โปร่งแสงเข้าธีม) */}
       {/* ========================================== */}
-      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: isMobile ? '100%' : 'calc(100% - 280px)' }}>
+      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: isMobile ? '100%' : 'calc(100% - 280px)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
         
         {/* Top Navbar */}
-        <div style={{ height: '65px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', padding: '0 20px', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ 
+          height: '70px', 
+          backgroundColor: 'rgba(10, 15, 25, 0.4)', // กล่องบนสุดโปร่งแสง
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+          display: 'flex', alignItems: 'center', padding: '0 24px', justifyContent: 'space-between', flexShrink: 0 
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             {isMobile && (
-              <button onClick={() => setIsSidebarOpen(true)} style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Menu size={24} color="#1e293b" />
+              <button onClick={() => setIsSidebarOpen(true)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Menu size={24} color="#ffffff" />
               </button>
             )}
-            {!isMobile && <h3 style={{ margin: 0, color: '#1e293b' }}>ระบบจัดการหลังบ้าน</h3>}
+            {!isMobile && <h3 style={{ margin: 0, color: '#ffffff', fontWeight: '500' }}>Dashboard Overview</h3>}
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ textAlign: 'right', display: isMobile ? 'none' : 'block' }}>
-              <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>ซุปเปอร์ ผู้ดูแลระบบ</div>
-              <div style={{ fontSize: '12px', color: '#64748b' }}>Super Admin</div>
+              <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '14px' }}>ซุปเปอร์ ผู้ดูแลระบบ</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Super Admin</div>
             </div>
-            <div style={{ width: '40px', height: '40px', backgroundColor: '#ef4444', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+            <div style={{ width: '42px', height: '42px', backgroundColor: '#4ade80', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#000', fontWeight: 'bold', boxShadow: '0 0 15px rgba(74, 222, 128, 0.3)' }}>
               ซ
             </div>
           </div>
         </div>
 
         {/* พื้นที่สำหรับ Render หน้าลูก (Outlet) */}
-        <div style={{ padding: isMobile ? '15px' : '25px', overflowY: 'auto', flexGrow: 1 }}>
+        <div style={{ padding: isMobile ? '16px' : '32px', overflowY: 'auto', flexGrow: 1 }}>
           <Outlet /> 
         </div>
 
