@@ -311,7 +311,7 @@ const DepositPromotion = () => {
   return (
     <div style={{ padding: '20px',  minHeight: '100vh', fontFamily: "'Prompt', sans-serif" }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', backgroundColor: 'white', padding: '15px 25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px',  padding: '15px 25px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
         <h2 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Settings size={28} color="#0ea5e9" /> ศูนย์จัดการ P2P & โปรโมชั่น
         </h2>
