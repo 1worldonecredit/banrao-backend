@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-// import ThaiDatePicker, formatDateThai, getTodayInThailand จากที่เคยทำไว้
+
+// กำหนด API_URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 // --- Helper: ดึงวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) ---
 const getTodayInThailand = () => {
@@ -77,7 +79,6 @@ const formatDateThai = (dateString) => {
 };
 
 const P2PStatus = () => {
-    // ... State สำหรับ Tab และ DatePicker เหมือนเดิม ...
     const [startDate, setStartDate] = useState(getTodayInThailand());
     const [endDate, setEndDate] = useState(getTodayInThailand());
     const [mainTab, setMainTab] = useState('requests');
@@ -95,8 +96,8 @@ const P2PStatus = () => {
         const fetchReportData = async () => {
             setLoading(true);
             try {
-                // หากหน้าบ้านเรียก URL นี้ โดยส่ง startDate และ endDate ไปด้วย
-                const response = await fetch(`/api/admin/p2p-report?start_date=${startDate}&end_date=${endDate}`);
+                // แก้ไขโดยใส่ API_URL นำหน้า
+                const response = await fetch(`${API_URL}/api/admin/p2p-report?start_date=${startDate}&end_date=${endDate}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -140,36 +141,38 @@ const P2PStatus = () => {
     // 3. ปรับ Logic การดึง SubTab Data ให้ใช้ข้อมูลจาก reportData
     const getSubTabData = () => {
         if (mainTab === 'requests') {
-            if (subTab === 'all') return reportData.requests;
-            if (subTab === 'success') return reportData.requests.filter(item => item.status === 'COMPLETED');
+            if (subTab === 'all') return reportData.requests || [];
+            if (subTab === 'success') return (reportData.requests || []).filter(item => item.status === 'COMPLETED');
         }
         if (mainTab === 'jobs') {
-            if (subTab === 'all_deposit') return reportData.jobs.filter(item => item.type === 'deposit');
-            if (subTab === 'all_withdraw') return reportData.jobs.filter(item => item.type === 'withdraw');
-            if (subTab === 'success') return reportData.jobs.filter(item => item.status === 'COMPLETED');
-            if (subTab === 'failed') return reportData.jobs.filter(item => item.status === 'CANCELLED');
+            if (subTab === 'all_deposit') return (reportData.jobs || []).filter(item => item.type === 'deposit');
+            if (subTab === 'all_withdraw') return (reportData.jobs || []).filter(item => item.type === 'withdraw');
+            if (subTab === 'success') return (reportData.jobs || []).filter(item => item.status === 'COMPLETED');
+            if (subTab === 'failed') return (reportData.jobs || []).filter(item => item.status === 'CANCELLED');
         }
         return [];
     };
 
     const displayData = getSubTabData();
 
+    // ดึงตัวแปรที่ใช้แสดงผลออกมาเพื่อป้องกัน Error ตอน Render
     const adminAlertJobs = reportData.adminAlertJobs || [];
     const totalDeposit = reportData.summary?.totalDeposit || 0;
     const totalWithdraw = reportData.summary?.totalWithdraw || 0;
+
     const styles = {
-    card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', marginBottom: '20px' },
-    btnGroup: { display: 'flex', gap: '10px', marginBottom: '15px' },
-    btn: (isActive, isAlert) => ({
-      padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold',
-      backgroundColor: isActive ? (isAlert ? '#ef4444' : '#3b82f6') : '#f1f5f9',
-      color: isActive ? 'white' : '#475569',
-      transition: 'all 0.2s'
-    }),
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px' },
-    th: { padding: '12px', borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#1e293b', fontSize: '14px' },
-    td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '14px' },
-  };
+      card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', marginBottom: '20px' },
+      btnGroup: { display: 'flex', gap: '10px', marginBottom: '15px' },
+      btn: (isActive, isAlert) => ({
+        padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold',
+        backgroundColor: isActive ? (isAlert ? '#ef4444' : '#3b82f6') : '#f1f5f9',
+        color: isActive ? 'white' : '#475569',
+        transition: 'all 0.2s'
+      }),
+      table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px' },
+      th: { padding: '12px', borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#1e293b', fontSize: '14px' },
+      td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '14px' },
+    };
 
     return (
     <div>
@@ -196,107 +199,113 @@ const P2PStatus = () => {
       </div>
 
       <div style={styles.card}>
-        {mainTab === 'requests' && (
-          <div style={styles.btnGroup}>
-            <button style={styles.btn(subTab === 'all')} onClick={() => setSubTab('all')}>คำขอทั้งหมด</button>
-            <button style={styles.btn(subTab === 'success')} onClick={() => setSubTab('success')}>คำขอที่สำเร็จ</button>
-            <button style={styles.btn(subTab === 'summary')} onClick={() => setSubTab('summary')}>ยอดสรุปรายวัน</button>
-          </div>
-        )}
-
-        {mainTab === 'jobs' && (
-          <div style={styles.btnGroup}>
-            <button style={styles.btn(subTab === 'all_deposit')} onClick={() => setSubTab('all_deposit')}>รับงานคำขอฝาก</button>
-            <button style={styles.btn(subTab === 'all_withdraw')} onClick={() => setSubTab('all_withdraw')}>รับงานคำขอถอน</button>
-            <button style={styles.btn(subTab === 'success')} onClick={() => setSubTab('success')}>รับงานที่สำเร็จ</button>
-            <button style={styles.btn(subTab === 'failed')} onClick={() => setSubTab('failed')}>รับงานที่ไม่สำเร็จ</button>
-          </div>
-        )}
-
-        {mainTab === 'alerts' ? (
-          <div>
-            <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>⚠️ รายการฝากที่ยอดเงินเกินกระเป๋าผู้ใช้งาน (Admin ต้องรับงานเอง)</h4>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>วันที่</th>
-                  <th style={styles.th}>รหัสคำขอ</th>
-                  <th style={styles.th}>ผู้ขอ (Username)</th>
-                  <th style={styles.th}>ยอดฝาก (บาท)</th>
-                  <th style={styles.th}>เวลาเหลือ</th>
-                  <th style={styles.th}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminAlertJobs.map(job => (
-                  <tr key={job.id}>
-                    <td style={styles.td}>{formatDateThai(job.date)}</td>
-                    <td style={styles.td}>{job.id}</td>
-                    <td style={styles.td}>{job.requester}</td>
-                    <td style={{...styles.td, color: '#ef4444', fontWeight: 'bold'}}>{job.amount.toLocaleString()}</td>
-                    <td style={styles.td}>{job.status === 'pending' ? getCountdown(job.expireAt) : '-'}</td>
-                    <td style={styles.td}>
-                      <button style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                        Admin รับงาน
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {adminAlertJobs.length === 0 && <tr><td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>ไม่มีรายการแจ้งเตือน</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        ) : subTab === 'summary' ? (
-          <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-            <div style={{ padding: '25px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', flex: 1 }}>
-              <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>ยอดฝากรวมที่สำเร็จ</h3>
-              <h2 style={{ margin: '10px 0 0 0', color: '#15803d', fontSize: '28px' }}>{totalDeposit.toLocaleString()} บาท</h2>
-            </div>
-            <div style={{ padding: '25px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', flex: 1 }}>
-              <h3 style={{ margin: 0, color: '#991b1b', fontSize: '16px' }}>ยอดถอนรวมที่สำเร็จ</h3>
-              <h2 style={{ margin: '10px 0 0 0', color: '#b91c1c', fontSize: '28px' }}>{totalWithdraw.toLocaleString()} บาท</h2>
-            </div>
-          </div>
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>กำลังโหลดข้อมูล...</div>
         ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>วันที่</th>
-                <th style={styles.th}>รหัส</th>
-                <th style={styles.th}>ประเภท</th>
-                <th style={styles.th}>ยอดเงิน</th>
-                <th style={styles.th}>ผู้ขอ (Username)</th>
-                <th style={styles.th}>ผู้รับงาน</th>
-                <th style={styles.th}>เวลาเหลือ</th>
-                <th style={styles.th}>สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayData.map(row => (
-                <tr key={row.id}>
-                  <td style={styles.td}>{formatDateThai(row.date)}</td>
-                  <td style={styles.td}>{row.id}</td>
-                  <td style={styles.td}>{row.type === 'deposit' ? 'ฝาก' : 'ถอน'}</td>
-                  <td style={styles.td}>{row.amount.toLocaleString()}</td>
-                  <td style={styles.td}>{row.requester}</td>
-                  <td style={styles.td}>{row.receiver || '-'}</td>
-                  <td style={styles.td}>
-                    {row.status === 'pending' ? getCountdown(row.expireAt) : <span style={{ color: '#94a3b8' }}>-</span>}
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ 
-                      padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500',
-                      backgroundColor: row.status === 'success' ? '#dcfce7' : row.status === 'failed' ? '#fee2e2' : '#fef9c3',
-                      color: row.status === 'success' ? '#166534' : row.status === 'failed' ? '#991b1b' : '#854d0e'
-                    }}>
-                      {row.status === 'success' ? 'สำเร็จ' : row.status === 'failed' ? 'ไม่สำเร็จ' : 'รอดำเนินการ'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {displayData.length === 0 && <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล (ไม่มีรายการในวันที่เลือก)</td></tr>}
-            </tbody>
-          </table>
+          <>
+            {mainTab === 'requests' && (
+              <div style={styles.btnGroup}>
+                <button style={styles.btn(subTab === 'all')} onClick={() => setSubTab('all')}>คำขอทั้งหมด</button>
+                <button style={styles.btn(subTab === 'success')} onClick={() => setSubTab('success')}>คำขอที่สำเร็จ</button>
+                <button style={styles.btn(subTab === 'summary')} onClick={() => setSubTab('summary')}>ยอดสรุปรายวัน</button>
+              </div>
+            )}
+
+            {mainTab === 'jobs' && (
+              <div style={styles.btnGroup}>
+                <button style={styles.btn(subTab === 'all_deposit')} onClick={() => setSubTab('all_deposit')}>รับงานคำขอฝาก</button>
+                <button style={styles.btn(subTab === 'all_withdraw')} onClick={() => setSubTab('all_withdraw')}>รับงานคำขอถอน</button>
+                <button style={styles.btn(subTab === 'success')} onClick={() => setSubTab('success')}>รับงานที่สำเร็จ</button>
+                <button style={styles.btn(subTab === 'failed')} onClick={() => setSubTab('failed')}>รับงานที่ไม่สำเร็จ</button>
+              </div>
+            )}
+
+            {mainTab === 'alerts' ? (
+              <div>
+                <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>⚠️ รายการฝากที่ยอดเงินเกินกระเป๋าผู้ใช้งาน (Admin ต้องรับงานเอง)</h4>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>วันที่</th>
+                      <th style={styles.th}>รหัสคำขอ</th>
+                      <th style={styles.th}>ผู้ขอ (Username)</th>
+                      <th style={styles.th}>ยอดฝาก (บาท)</th>
+                      <th style={styles.th}>เวลาเหลือ</th>
+                      <th style={styles.th}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminAlertJobs.map(job => (
+                      <tr key={job.id}>
+                        <td style={styles.td}>{formatDateThai(job.date)}</td>
+                        <td style={styles.td}>{job.id}</td>
+                        <td style={styles.td}>{job.requester}</td>
+                        <td style={{...styles.td, color: '#ef4444', fontWeight: 'bold'}}>{job.amount.toLocaleString()}</td>
+                        <td style={styles.td}>{job.status === 'pending' ? getCountdown(job.expireAt) : '-'}</td>
+                        <td style={styles.td}>
+                          <button style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                            Admin รับงาน
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {adminAlertJobs.length === 0 && <tr><td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>ไม่มีรายการแจ้งเตือน</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            ) : subTab === 'summary' ? (
+              <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                <div style={{ padding: '25px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', flex: 1 }}>
+                  <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>ยอดฝากรวมที่สำเร็จ</h3>
+                  <h2 style={{ margin: '10px 0 0 0', color: '#15803d', fontSize: '28px' }}>{totalDeposit.toLocaleString()} บาท</h2>
+                </div>
+                <div style={{ padding: '25px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', flex: 1 }}>
+                  <h3 style={{ margin: 0, color: '#991b1b', fontSize: '16px' }}>ยอดถอนรวมที่สำเร็จ</h3>
+                  <h2 style={{ margin: '10px 0 0 0', color: '#b91c1c', fontSize: '28px' }}>{totalWithdraw.toLocaleString()} บาท</h2>
+                </div>
+              </div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>วันที่</th>
+                    <th style={styles.th}>รหัส</th>
+                    <th style={styles.th}>ประเภท</th>
+                    <th style={styles.th}>ยอดเงิน</th>
+                    <th style={styles.th}>ผู้ขอ (Username)</th>
+                    <th style={styles.th}>ผู้รับงาน</th>
+                    <th style={styles.th}>เวลาเหลือ</th>
+                    <th style={styles.th}>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayData.map(row => (
+                    <tr key={row.id}>
+                      <td style={styles.td}>{formatDateThai(row.date)}</td>
+                      <td style={styles.td}>{row.id}</td>
+                      <td style={styles.td}>{row.type === 'deposit' ? 'ฝาก' : 'ถอน'}</td>
+                      <td style={styles.td}>{Number(row.amount).toLocaleString()}</td>
+                      <td style={styles.td}>{row.requester}</td>
+                      <td style={styles.td}>{row.receiver || '-'}</td>
+                      <td style={styles.td}>
+                        {row.status === 'PENDING' ? getCountdown(row.expires_at) : <span style={{ color: '#94a3b8' }}>-</span>}
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ 
+                          padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500',
+                          backgroundColor: row.status === 'COMPLETED' ? '#dcfce7' : row.status === 'CANCELLED' ? '#fee2e2' : '#fef9c3',
+                          color: row.status === 'COMPLETED' ? '#166534' : row.status === 'CANCELLED' ? '#991b1b' : '#854d0e'
+                        }}>
+                          {row.status === 'COMPLETED' ? 'สำเร็จ' : row.status === 'CANCELLED' ? 'ยกเลิก' : row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {displayData.length === 0 && <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล (ไม่มีรายการในวันที่เลือก)</td></tr>}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
     </div>
