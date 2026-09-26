@@ -233,6 +233,7 @@ const MenuManagement = () => {
                 <option value="JobRecruitmentPost">โพ็สรับสมัครคนทำงานหน้าเว็บ (JobRecruitmentPost)</option>
                 <option value="ListOfJobApplicants">รายชื่อคำขอสมัครงาน (ListOfJobApplicants)</option>
                 <option value= "Profile">โปรไฟล์ (Profile)</option>
+                <option value= "P2PStatus">สถานะ P2P (P2PStatus)</option>
               </select>
             </div>
 

@@ -47,6 +47,7 @@ import CustomerUnderSurveillance from './CustomerUnderSurveillance';
 import JobRecruitmentPost from './JobRecruitmentPost';
 import ListOfJobApplicants from './ListOfJobApplicants';
 import Profile from './Profile';
+import P2PStatus from './P2PStatus';
 
 
 
@@ -96,7 +97,8 @@ const componentsRegistry = {
   'CustomerUnderSurveillance': CustomerUnderSurveillance,
   'JobRecruitmentPost': JobRecruitmentPost,
   'ListOfJobApplicants': ListOfJobApplicants,
-  'Profile': Profile
+  'Profile': Profile,
+  'P2PStatus': P2PStatus
 };
 
 export default function PageRouter() {
