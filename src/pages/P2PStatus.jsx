@@ -1,36 +1,115 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
-// --- Mock Data ---
-const mockData = [
-  { id: 'REQ001', type: 'deposit', amount: 5000, status: 'success', requester: 'user_somchai', receiver: 'agent_win', date: '2026-09-25' },
-  { id: 'REQ002', type: 'withdraw', amount: 12000, status: 'pending', requester: 'user_mana', receiver: 'agent_win', date: '2026-09-26' },
-  { id: 'REQ003', type: 'deposit', amount: 150000, status: 'pending', requester: 'user_suda', receiver: null, date: '2026-09-26' }, // ยอดสูงเกินกระเป๋า
-  { id: 'REQ004', type: 'deposit', amount: 2000, status: 'failed', requester: 'user_piti', receiver: 'agent_aom', date: '2026-09-25' },
-  { id: 'REQ005', type: 'withdraw', amount: 8000, status: 'success', requester: 'user_chujai', receiver: 'agent_aom', date: '2026-09-26' },
-  { id: 'REQ006', type: 'deposit', amount: 85000, status: 'pending', requester: 'user_nida', receiver: null, date: '2026-09-27' }, // ยอดสูงเกินกระเป๋า
+// --- Helper Data สำหรับวันที่ไทย ---
+const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ];
 
-// สมมติว่ากระเป๋าเงินผู้ใช้งานในระบบรับได้สูงสุด 50,000 บาทต่อคน (เพื่อใช้เป็นเกณฑ์เตือน Admin)
+const generateYears = () => {
+  const currentYearBE = new Date().getFullYear() + 543;
+  const years = [];
+  for (let i = 0; i < 10; i++) { // ย้อนหลัง 10 ปี
+    years.push(currentYearBE - i);
+  }
+  return years;
+};
+
+// --- คอมโพเนนต์เลือกวันที่แบบไทย ---
+const ThaiDatePicker = ({ label, dateValue, setDateValue }) => {
+  const [day, setDay] = useState(dateValue ? new Date(dateValue).getDate() : '');
+  const [month, setMonth] = useState(dateValue ? new Date(dateValue).getMonth() : '');
+  const [year, setYear] = useState(dateValue ? new Date(dateValue).getFullYear() + 543 : '');
+
+  // อัปเดตค่า dateValue ไปยัง Parent เมื่อมีการเปลี่ยนแปลง
+  useEffect(() => {
+    if (day && month !== '' && year) {
+      const formattedMonth = String(Number(month) + 1).padStart(2, '0');
+      const formattedDay = String(day).padStart(2, '0');
+      const gregorianYear = year - 543;
+      setDateValue(`${gregorianYear}-${formattedMonth}-${formattedDay}`);
+    } else {
+      setDateValue('');
+    }
+  }, [day, month, year, setDateValue]);
+
+  const selectStyle = { padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', marginRight: '5px' };
+
+  return (
+    <div>
+      <label style={{ marginRight: '10px', color: '#475569' }}>{label}:</label>
+      <select style={selectStyle} value={day} onChange={(e) => setDay(e.target.value)}>
+        <option value="">วัน</option>
+        {[...Array(31)].map((_, i) => (
+          <option key={i + 1} value={i + 1}>{i + 1}</option>
+        ))}
+      </select>
+      <select style={selectStyle} value={month} onChange={(e) => setMonth(e.target.value)}>
+        <option value="">เดือน</option>
+        {THAI_MONTHS.map((m, index) => (
+          <option key={index} value={index}>{m}</option>
+        ))}
+      </select>
+      <select style={selectStyle} value={year} onChange={(e) => setYear(e.target.value)}>
+        <option value="">ปี (พ.ศ.)</option>
+        {generateYears().map(y => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+// --- Mock Data (เพิ่มฟิลด์ expireAt เพื่อใช้นับถอยหลัง) ---
+// สมมติเวลาปัจจุบันเป็นฐานในการจำลองข้อมูลรอดำเนินการ
+const mockCurrentTime = new Date().getTime(); 
+
+const mockData = [
+  { id: 'REQ001', type: 'deposit', amount: 5000, status: 'success', requester: 'user_somchai', receiver: 'agent_win', date: '2026-09-25' },
+  { id: 'REQ002', type: 'withdraw', amount: 12000, status: 'pending', requester: 'user_mana', receiver: 'agent_win', date: '2026-09-26', expireAt: mockCurrentTime + (15 * 60000) }, // อีก 15 นาที
+  { id: 'REQ003', type: 'deposit', amount: 150000, status: 'pending', requester: 'user_suda', receiver: null, date: '2026-09-26', expireAt: mockCurrentTime + (5 * 60000) }, // ยอดสูงเกิน
+  { id: 'REQ004', type: 'deposit', amount: 2000, status: 'failed', requester: 'user_piti', receiver: 'agent_aom', date: '2026-09-25' },
+  { id: 'REQ005', type: 'withdraw', amount: 8000, status: 'success', requester: 'user_chujai', receiver: 'agent_aom', date: '2026-09-26' },
+  { id: 'REQ006', type: 'deposit', amount: 85000, status: 'pending', requester: 'user_nida', receiver: null, date: '2026-09-27', expireAt: mockCurrentTime + (2 * 60000) }, // ยอดสูงเกิน
+];
+
 const MAX_USER_WALLET_CAPACITY = 50000;
 
-// Helper แปลงวันที่เป็นภาษาไทย
 const formatDateThai = (dateString) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return date.toLocaleDateString('th-TH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 const P2PStatus = () => {
-  const [mainTab, setMainTab] = useState('requests'); // requests, jobs, alerts
+  const [mainTab, setMainTab] = useState('requests');
   const [subTab, setSubTab] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // State สำหรับเวลานับถอยหลัง
+  const [now, setNow] = useState(new Date().getTime());
 
-  // กรองตามวันที่
+  // อัปเดตเวลาปัจจุบันทุกๆ 1 วินาที
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date().getTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ฟังก์ชันคำนวณเวลาที่เหลือ
+  const getCountdown = (expireAt) => {
+    if (!expireAt) return '-';
+    const diff = expireAt - now;
+    
+    if (diff <= 0) return <span style={{ color: '#ef4444', fontWeight: 'bold' }}>หมดเวลา</span>;
+    
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return <span style={{ color: '#eab308', fontWeight: 'bold' }}>{`${minutes} นาที ${seconds} วิ`}</span>;
+  };
+
   const filteredData = useMemo(() => {
     return mockData.filter(item => {
       const itemDate = new Date(item.date);
@@ -40,7 +119,6 @@ const P2PStatus = () => {
     });
   }, [startDate, endDate]);
 
-  // แยกข้อมูลตามเงื่อนไข
   const adminAlertJobs = filteredData.filter(item => item.type === 'deposit' && item.amount > MAX_USER_WALLET_CAPACITY);
   
   const getSubTabData = () => {
@@ -58,47 +136,32 @@ const P2PStatus = () => {
   };
 
   const displayData = getSubTabData();
-
-  // สรุปยอดรวม (สำหรับ Tab สรุปยอด)
   const totalDeposit = filteredData.filter(i => i.type === 'deposit' && i.status === 'success').reduce((acc, curr) => acc + curr.amount, 0);
   const totalWithdraw = filteredData.filter(i => i.type === 'withdraw' && i.status === 'success').reduce((acc, curr) => acc + curr.amount, 0);
 
-  // สไตล์ CSS แบบ Inline เบื้องต้น
   const styles = {
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', marginBottom: '20px' },
     btnGroup: { display: 'flex', gap: '10px', marginBottom: '15px' },
     btn: (isActive, isAlert) => ({
       padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold',
-      backgroundColor: isActive ? (isAlert ? '#ef4444' : '#3b82f6') : '#e2e8f0',
+      backgroundColor: isActive ? (isAlert ? '#ef4444' : '#3b82f6') : '#f1f5f9',
       color: isActive ? 'white' : '#475569',
+      transition: 'all 0.2s'
     }),
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px' },
-    th: { padding: '12px', borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#1e293b' },
-    td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569' },
-    alertText: { color: '#ef4444', fontWeight: 'bold' }
+    th: { padding: '12px', borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#1e293b', fontSize: '14px' },
+    td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '14px' },
   };
 
   return (
     <div>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>รายงานสรุปสถานะ P2P</h2>
 
-      {/* ตัวกรองวันที่ */}
+      {/* Date Filter (Thai Format) */}
       <div style={styles.card}>
-        <h4 style={{ margin: '0 0 15px 0' }}>กรองข้อมูลตามวันที่ (วัน เดือน ปี)</h4>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <div>
-            <label style={{ marginRight: '10px' }}>ตั้งแต่วันที่:</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ padding: '5px' }} />
-          </div>
-          <div>
-            <label style={{ marginRight: '10px' }}>ถึงวันที่:</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ padding: '5px' }} />
-          </div>
-          {(startDate || endDate) && (
-            <div style={{ color: '#059669', fontSize: '14px' }}>
-              แสดงผล: {startDate ? formatDateThai(startDate) : 'เริ่มต้น'} - {endDate ? formatDateThai(endDate) : 'ปัจจุบัน'}
-            </div>
-          )}
+        <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <ThaiDatePicker label="ตั้งแต่วันที่" dateValue={startDate} setDateValue={setStartDate} />
+          <ThaiDatePicker label="ถึงวันที่" dateValue={endDate} setDateValue={setEndDate} />
         </div>
       </div>
 
@@ -118,7 +181,6 @@ const P2PStatus = () => {
       {/* Content Area */}
       <div style={styles.card}>
         
-        {/* Sub Tabs for Requests */}
         {mainTab === 'requests' && (
           <div style={styles.btnGroup}>
             <button style={styles.btn(subTab === 'all')} onClick={() => setSubTab('all')}>คำขอทั้งหมด</button>
@@ -127,7 +189,6 @@ const P2PStatus = () => {
           </div>
         )}
 
-        {/* Sub Tabs for Jobs */}
         {mainTab === 'jobs' && (
           <div style={styles.btnGroup}>
             <button style={styles.btn(subTab === 'all_deposit')} onClick={() => setSubTab('all_deposit')}>รับงานคำขอฝาก</button>
@@ -137,11 +198,10 @@ const P2PStatus = () => {
           </div>
         )}
 
-        {/* Tables */}
+        {/* Tables Display */}
         {mainTab === 'alerts' ? (
           <div>
-            <h4 style={styles.alertText}>⚠️ รายการฝากที่ยอดเงินเกินกระเป๋าผู้ใช้งาน (Admin ต้องรับงานเอง)</h4>
-            <p>ระบบตรวจพบคำขอฝากที่ยอดเกิน {MAX_USER_WALLET_CAPACITY.toLocaleString()} บาท</p>
+            <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>⚠️ รายการฝากที่ยอดเงินเกินกระเป๋าผู้ใช้งาน (Admin ต้องรับงานเอง)</h4>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -149,6 +209,7 @@ const P2PStatus = () => {
                   <th style={styles.th}>รหัสคำขอ</th>
                   <th style={styles.th}>ผู้ขอ (Username)</th>
                   <th style={styles.th}>ยอดฝาก (บาท)</th>
+                  <th style={styles.th}>เวลาเหลือ</th>
                   <th style={styles.th}>Action</th>
                 </tr>
               </thead>
@@ -159,27 +220,27 @@ const P2PStatus = () => {
                     <td style={styles.td}>{job.id}</td>
                     <td style={styles.td}>{job.requester}</td>
                     <td style={{...styles.td, color: '#ef4444', fontWeight: 'bold'}}>{job.amount.toLocaleString()}</td>
+                    <td style={styles.td}>{job.status === 'pending' ? getCountdown(job.expireAt) : '-'}</td>
                     <td style={styles.td}>
-                      <button style={{ padding: '5px 10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Admin กดรับงาน</button>
+                      <button style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                        Admin รับงาน
+                      </button>
                     </td>
                   </tr>
                 ))}
-                {adminAlertJobs.length === 0 && <tr><td colSpan="5" style={{textAlign: 'center', padding: '20px'}}>ไม่มีรายการแจ้งเตือน</td></tr>}
+                {adminAlertJobs.length === 0 && <tr><td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>ไม่มีรายการแจ้งเตือน</td></tr>}
               </tbody>
             </table>
           </div>
         ) : subTab === 'summary' ? (
-          <div>
-            <h4>ยอดสรุปมูลค่าคำขอที่สำเร็จตามช่วงเวลาที่เลือก</h4>
-            <div style={{ display: 'flex', gap: '20px' }}>
-              <div style={{ padding: '20px', backgroundColor: '#dcfce7', borderRadius: '8px', flex: 1 }}>
-                <h3 style={{ margin: 0, color: '#166534' }}>ยอดฝากรวม</h3>
-                <h2 style={{ margin: '10px 0 0 0', color: '#15803d' }}>{totalDeposit.toLocaleString()} บาท</h2>
-              </div>
-              <div style={{ padding: '20px', backgroundColor: '#fee2e2', borderRadius: '8px', flex: 1 }}>
-                <h3 style={{ margin: 0, color: '#991b1b' }}>ยอดถอนรวม</h3>
-                <h2 style={{ margin: '10px 0 0 0', color: '#b91c1c' }}>{totalWithdraw.toLocaleString()} บาท</h2>
-              </div>
+          <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+            <div style={{ padding: '25px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', flex: 1 }}>
+              <h3 style={{ margin: 0, color: '#166534', fontSize: '16px' }}>ยอดฝากรวมที่สำเร็จ</h3>
+              <h2 style={{ margin: '10px 0 0 0', color: '#15803d', fontSize: '28px' }}>{totalDeposit.toLocaleString()} บาท</h2>
+            </div>
+            <div style={{ padding: '25px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', flex: 1 }}>
+              <h3 style={{ margin: 0, color: '#991b1b', fontSize: '16px' }}>ยอดถอนรวมที่สำเร็จ</h3>
+              <h2 style={{ margin: '10px 0 0 0', color: '#b91c1c', fontSize: '28px' }}>{totalWithdraw.toLocaleString()} บาท</h2>
             </div>
           </div>
         ) : (
@@ -189,9 +250,10 @@ const P2PStatus = () => {
                 <th style={styles.th}>วันที่</th>
                 <th style={styles.th}>รหัส</th>
                 <th style={styles.th}>ประเภท</th>
-                <th style={styles.th}>ยอดเงิน (บาท)</th>
+                <th style={styles.th}>ยอดเงิน</th>
                 <th style={styles.th}>ผู้ขอ (Username)</th>
-                <th style={styles.th}>ผู้รับงาน (Receiver)</th>
+                <th style={styles.th}>ผู้รับงาน</th>
+                <th style={styles.th}>เวลาเหลือ</th>
                 <th style={styles.th}>สถานะ</th>
               </tr>
             </thead>
@@ -205,8 +267,11 @@ const P2PStatus = () => {
                   <td style={styles.td}>{row.requester}</td>
                   <td style={styles.td}>{row.receiver || '-'}</td>
                   <td style={styles.td}>
+                    {row.status === 'pending' ? getCountdown(row.expireAt) : <span style={{ color: '#94a3b8' }}>-</span>}
+                  </td>
+                  <td style={styles.td}>
                     <span style={{ 
-                      padding: '4px 8px', borderRadius: '12px', fontSize: '12px',
+                      padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '500',
                       backgroundColor: row.status === 'success' ? '#dcfce7' : row.status === 'failed' ? '#fee2e2' : '#fef9c3',
                       color: row.status === 'success' ? '#166534' : row.status === 'failed' ? '#991b1b' : '#854d0e'
                     }}>
@@ -215,7 +280,7 @@ const P2PStatus = () => {
                   </td>
                 </tr>
               ))}
-              {displayData.length === 0 && <tr><td colSpan="7" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล</td></tr>}
+              {displayData.length === 0 && <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล</td></tr>}
             </tbody>
           </table>
         )}
