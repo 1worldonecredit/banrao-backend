@@ -1,6 +1,81 @@
 import React, { useState, useMemo, useEffect } from 'react';
 // import ThaiDatePicker, formatDateThai, getTodayInThailand จากที่เคยทำไว้
 
+// --- Helper: ดึงวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) ---
+const getTodayInThailand = () => {
+  const thaiTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  const yyyy = thaiTime.getFullYear();
+  const mm = String(thaiTime.getMonth() + 1).padStart(2, '0');
+  const dd = String(thaiTime.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// --- Helper: แปลงวันที่ YYYY-MM-DD เป็นอ็อบเจกต์ ---
+const parseDateValue = (dateString) => {
+  if (!dateString) return { day: '', month: '', year: '' };
+  const [y, m, d] = dateString.split('-');
+  return { day: parseInt(d, 10), month: parseInt(m, 10) - 1, year: parseInt(y, 10) + 543 };
+};
+
+const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
+const generateYears = () => {
+  const currentYearBE = new Date().getFullYear() + 543;
+  const years = [];
+  for (let i = 0; i < 10; i++) years.push(currentYearBE - i);
+  return years;
+};
+
+// --- คอมโพเนนต์เลือกวันที่แบบไทย ---
+const ThaiDatePicker = ({ label, dateValue, setDateValue }) => {
+  // แก้ไข warning hook ด้วยการดึงค่าเริ่มต้นนอก useMemo
+  const initialDate = parseDateValue(dateValue);
+  const [day, setDay] = React.useState(initialDate.day);
+  const [month, setMonth] = React.useState(initialDate.month);
+  const [year, setYear] = React.useState(initialDate.year);
+
+  React.useEffect(() => {
+    if (day !== '' && month !== '' && year !== '') {
+      const formattedMonth = String(Number(month) + 1).padStart(2, '0');
+      const formattedDay = String(day).padStart(2, '0');
+      const gregorianYear = Number(year) - 543;
+      setDateValue(`${gregorianYear}-${formattedMonth}-${formattedDay}`);
+    } else {
+      setDateValue('');
+    }
+  }, [day, month, year, setDateValue]);
+
+  const selectStyle = { padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', marginRight: '5px' };
+
+  return (
+    <div>
+      <label style={{ marginRight: '10px', color: '#475569' }}>{label}:</label>
+      <select style={selectStyle} value={day} onChange={(e) => setDay(e.target.value)}>
+        <option value="">วัน</option>
+        {[...Array(31)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+      </select>
+      <select style={selectStyle} value={month} onChange={(e) => setMonth(e.target.value)}>
+        <option value="">เดือน</option>
+        {THAI_MONTHS.map((m, index) => <option key={index} value={index}>{m}</option>)}
+      </select>
+      <select style={selectStyle} value={year} onChange={(e) => setYear(e.target.value)}>
+        <option value="">ปี (พ.ศ.)</option>
+        {generateYears().map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
+    </div>
+  );
+};
+
+// --- Helper: แปลงฟอร์แมตวันที่สำหรับแสดงผลตาราง ---
+const formatDateThai = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
 const P2PStatus = () => {
     // ... State สำหรับ Tab และ DatePicker เหมือนเดิม ...
     const [startDate, setStartDate] = useState(getTodayInThailand());
