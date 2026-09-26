@@ -1,6 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
-// --- Helper Data สำหรับวันที่ไทย ---
+// --- Helper: ดึงวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) ---
+const getTodayInThailand = () => {
+  const thaiTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  const yyyy = thaiTime.getFullYear();
+  const mm = String(thaiTime.getMonth() + 1).padStart(2, '0');
+  const dd = String(thaiTime.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`; // รูปแบบ YYYY-MM-DD
+};
+
+// --- Helper: แปลงสตริงวันที่ (YYYY-MM-DD) เป็น วัน, เดือน (index), ปี (พ.ศ.) ---
+const parseDateValue = (dateString) => {
+  if (!dateString) return { day: '', month: '', year: '' };
+  const [y, m, d] = dateString.split('-');
+  return { 
+    day: parseInt(d, 10), 
+    month: parseInt(m, 10) - 1, 
+    year: parseInt(y, 10) + 543 
+  };
+};
+
 const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
@@ -17,16 +36,17 @@ const generateYears = () => {
 
 // --- คอมโพเนนต์เลือกวันที่แบบไทย ---
 const ThaiDatePicker = ({ label, dateValue, setDateValue }) => {
-  const [day, setDay] = useState(dateValue ? new Date(dateValue).getDate() : '');
-  const [month, setMonth] = useState(dateValue ? new Date(dateValue).getMonth() : '');
-  const [year, setYear] = useState(dateValue ? new Date(dateValue).getFullYear() + 543 : '');
+  const initialDate = useMemo(() => parseDateValue(dateValue), []);
+  const [day, setDay] = useState(initialDate.day);
+  const [month, setMonth] = useState(initialDate.month);
+  const [year, setYear] = useState(initialDate.year);
 
-  // อัปเดตค่า dateValue ไปยัง Parent เมื่อมีการเปลี่ยนแปลง
+  // อัปเดตค่า dateValue เมื่อผู้ใช้เลือก วัน/เดือน/ปี ครบ
   useEffect(() => {
-    if (day && month !== '' && year) {
+    if (day !== '' && month !== '' && year !== '') {
       const formattedMonth = String(Number(month) + 1).padStart(2, '0');
       const formattedDay = String(day).padStart(2, '0');
-      const gregorianYear = year - 543;
+      const gregorianYear = Number(year) - 543;
       setDateValue(`${gregorianYear}-${formattedMonth}-${formattedDay}`);
     } else {
       setDateValue('');
@@ -60,17 +80,16 @@ const ThaiDatePicker = ({ label, dateValue, setDateValue }) => {
   );
 };
 
-// --- Mock Data (เพิ่มฟิลด์ expireAt เพื่อใช้นับถอยหลัง) ---
-// สมมติเวลาปัจจุบันเป็นฐานในการจำลองข้อมูลรอดำเนินการ
+// --- Mock Data ---
 const mockCurrentTime = new Date().getTime(); 
 
 const mockData = [
   { id: 'REQ001', type: 'deposit', amount: 5000, status: 'success', requester: 'user_somchai', receiver: 'agent_win', date: '2026-09-25' },
-  { id: 'REQ002', type: 'withdraw', amount: 12000, status: 'pending', requester: 'user_mana', receiver: 'agent_win', date: '2026-09-26', expireAt: mockCurrentTime + (15 * 60000) }, // อีก 15 นาที
-  { id: 'REQ003', type: 'deposit', amount: 150000, status: 'pending', requester: 'user_suda', receiver: null, date: '2026-09-26', expireAt: mockCurrentTime + (5 * 60000) }, // ยอดสูงเกิน
+  { id: 'REQ002', type: 'withdraw', amount: 12000, status: 'pending', requester: 'user_mana', receiver: 'agent_win', date: '2026-09-26', expireAt: mockCurrentTime + (15 * 60000) },
+  { id: 'REQ003', type: 'deposit', amount: 150000, status: 'pending', requester: 'user_suda', receiver: null, date: '2026-09-26', expireAt: mockCurrentTime + (5 * 60000) },
   { id: 'REQ004', type: 'deposit', amount: 2000, status: 'failed', requester: 'user_piti', receiver: 'agent_aom', date: '2026-09-25' },
   { id: 'REQ005', type: 'withdraw', amount: 8000, status: 'success', requester: 'user_chujai', receiver: 'agent_aom', date: '2026-09-26' },
-  { id: 'REQ006', type: 'deposit', amount: 85000, status: 'pending', requester: 'user_nida', receiver: null, date: '2026-09-27', expireAt: mockCurrentTime + (2 * 60000) }, // ยอดสูงเกิน
+  { id: 'REQ006', type: 'deposit', amount: 85000, status: 'pending', requester: 'user_nida', receiver: null, date: '2026-09-27', expireAt: mockCurrentTime + (2 * 60000) },
 ];
 
 const MAX_USER_WALLET_CAPACITY = 50000;
@@ -84,13 +103,13 @@ const formatDateThai = (dateString) => {
 const P2PStatus = () => {
   const [mainTab, setMainTab] = useState('requests');
   const [subTab, setSubTab] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   
-  // State สำหรับเวลานับถอยหลัง
+  // กำหนดค่าเริ่มต้นให้เป็นวันที่ปัจจุบัน (เวลาไทย)
+  const [startDate, setStartDate] = useState(getTodayInThailand());
+  const [endDate, setEndDate] = useState(getTodayInThailand());
+  
   const [now, setNow] = useState(new Date().getTime());
 
-  // อัปเดตเวลาปัจจุบันทุกๆ 1 วินาที
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date().getTime());
@@ -98,13 +117,10 @@ const P2PStatus = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // ฟังก์ชันคำนวณเวลาที่เหลือ
   const getCountdown = (expireAt) => {
     if (!expireAt) return '-';
     const diff = expireAt - now;
-    
     if (diff <= 0) return <span style={{ color: '#ef4444', fontWeight: 'bold' }}>หมดเวลา</span>;
-    
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     return <span style={{ color: '#eab308', fontWeight: 'bold' }}>{`${minutes} นาที ${seconds} วิ`}</span>;
@@ -113,8 +129,9 @@ const P2PStatus = () => {
   const filteredData = useMemo(() => {
     return mockData.filter(item => {
       const itemDate = new Date(item.date);
-      const start = startDate ? new Date(startDate) : new Date('2000-01-01');
-      const end = endDate ? new Date(endDate) : new Date('2100-01-01');
+      // ตั้งเวลาเริ่มต้นเป็น 00:00:00 และสิ้นสุดเป็น 23:59:59 เพื่อให้ครอบคลุมตลอดวัน
+      const start = startDate ? new Date(`${startDate}T00:00:00`) : new Date('2000-01-01');
+      const end = endDate ? new Date(`${endDate}T23:59:59`) : new Date('2100-01-01');
       return itemDate >= start && itemDate <= end;
     });
   }, [startDate, endDate]);
@@ -157,7 +174,7 @@ const P2PStatus = () => {
     <div>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>รายงานสรุปสถานะ P2P</h2>
 
-      {/* Date Filter (Thai Format) */}
+      {/* Date Filter (Thai Format) - Defaults to Today */}
       <div style={styles.card}>
         <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'center' }}>
           <ThaiDatePicker label="ตั้งแต่วันที่" dateValue={startDate} setDateValue={setStartDate} />
@@ -165,7 +182,6 @@ const P2PStatus = () => {
         </div>
       </div>
 
-      {/* Main Tabs */}
       <div style={styles.btnGroup}>
         <button style={styles.btn(mainTab === 'requests')} onClick={() => { setMainTab('requests'); setSubTab('all'); }}>
           คำขอฝาก/ถอนทั้งหมด
@@ -178,9 +194,7 @@ const P2PStatus = () => {
         </button>
       </div>
 
-      {/* Content Area */}
       <div style={styles.card}>
-        
         {mainTab === 'requests' && (
           <div style={styles.btnGroup}>
             <button style={styles.btn(subTab === 'all')} onClick={() => setSubTab('all')}>คำขอทั้งหมด</button>
@@ -198,7 +212,6 @@ const P2PStatus = () => {
           </div>
         )}
 
-        {/* Tables Display */}
         {mainTab === 'alerts' ? (
           <div>
             <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>⚠️ รายการฝากที่ยอดเงินเกินกระเป๋าผู้ใช้งาน (Admin ต้องรับงานเอง)</h4>
@@ -280,7 +293,7 @@ const P2PStatus = () => {
                   </td>
                 </tr>
               ))}
-              {displayData.length === 0 && <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล</td></tr>}
+              {displayData.length === 0 && <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>ไม่พบข้อมูล (ไม่มีรายการในวันที่เลือก)</td></tr>}
             </tbody>
           </table>
         )}
