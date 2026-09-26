@@ -153,6 +153,10 @@ const P2PStatus = () => {
     };
 
     const displayData = getSubTabData();
+
+    const adminAlertJobs = reportData.adminAlertJobs || [];
+    const totalDeposit = reportData.summary?.totalDeposit || 0;
+    const totalWithdraw = reportData.summary?.totalWithdraw || 0;
     const styles = {
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', marginBottom: '20px' },
     btnGroup: { display: 'flex', gap: '10px', marginBottom: '15px' },
