@@ -80,6 +80,8 @@ const P2PStatus = () => {
     // ... State สำหรับ Tab และ DatePicker เหมือนเดิม ...
     const [startDate, setStartDate] = useState(getTodayInThailand());
     const [endDate, setEndDate] = useState(getTodayInThailand());
+    const [mainTab, setMainTab] = useState('requests');
+    const [subTab, setSubTab] = useState('all');
 
     // State สำหรับเก็บข้อมูลจาก API
     const [reportData, setReportData] = useState({ requests: [], jobs: [], adminAlertJobs: [], summary: { totalDeposit: 0, totalWithdraw: 0 } });
