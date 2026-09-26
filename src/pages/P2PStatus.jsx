@@ -240,7 +240,9 @@ const P2PStatus = () => {
                         <td style={styles.td}>{formatDateThai(job.date)}</td>
                         <td style={styles.td}>{job.id}</td>
                         <td style={styles.td}>{job.requester}</td>
-                        <td style={{...styles.td, color: '#ef4444', fontWeight: 'bold'}}>{job.amount.toLocaleString()}</td>
+                       <td style={{...styles.td, color: '#ef4444', fontWeight: 'bold'}}>
+                        {Number(job.amount).toLocaleString()} {job.currency ? `(${job.currency})` : ''}
+                        </td>
                         <td style={styles.td}>{job.status === 'pending' ? getCountdown(job.expireAt) : '-'}</td>
                         <td style={styles.td}>
                           <button style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
@@ -284,7 +286,9 @@ const P2PStatus = () => {
                       <td style={styles.td}>{formatDateThai(row.date)}</td>
                       <td style={styles.td}>{row.id}</td>
                       <td style={styles.td}>{row.type === 'deposit' ? 'ฝาก' : 'ถอน'}</td>
-                      <td style={styles.td}>{Number(row.amount).toLocaleString()}</td>
+                      <td style={styles.td}>
+                        {Number(row.amount).toLocaleString()} {row.currency ? `(${row.currency})` : ''}
+                        </td>
                       <td style={styles.td}>{row.requester}</td>
                       <td style={styles.td}>{row.receiver || '-'}</td>
                       <td style={styles.td}>
