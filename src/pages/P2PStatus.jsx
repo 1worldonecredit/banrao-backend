@@ -153,6 +153,19 @@ const P2PStatus = () => {
     };
 
     const displayData = getSubTabData();
+    const styles = {
+    card: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', marginBottom: '20px' },
+    btnGroup: { display: 'flex', gap: '10px', marginBottom: '15px' },
+    btn: (isActive, isAlert) => ({
+      padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold',
+      backgroundColor: isActive ? (isAlert ? '#ef4444' : '#3b82f6') : '#f1f5f9',
+      color: isActive ? 'white' : '#475569',
+      transition: 'all 0.2s'
+    }),
+    table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px' },
+    th: { padding: '12px', borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#1e293b', fontSize: '14px' },
+    td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '14px' },
+  };
 
     return (
     <div>
