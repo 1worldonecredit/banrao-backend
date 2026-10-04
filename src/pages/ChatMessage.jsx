@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { Send, User, AlertCircle, MessageSquareText } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
@@ -16,8 +15,9 @@ const ChatMessage = () => {
   // 1. ดึงรายชื่อคนแชททั้งหมด
   const fetchChatList = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/admin/chats`);
-      setChatList(res.data);
+      const res = await fetch(`${API_URL}/api/admin/chats`);
+      const data = await res.json();
+      setChatList(data);
     } catch (error) {
       console.error("Error fetching chat list:", error);
     }
@@ -39,8 +39,8 @@ const ChatMessage = () => {
     setP2pContext(null);
 
     try {
-      const res = await axios.get(`${API_URL}/api/admin/chats/${userId}`);
-      const chatHistory = res.data;
+      const res = await fetch(`${API_URL}/api/admin/chats/${userId}`);
+      const chatHistory = await res.json();
       setMessages(chatHistory);
       fetchChatList();
 
@@ -51,9 +51,10 @@ const ChatMessage = () => {
       );
 
       if (isTalkingAboutDeposit) {
-        const p2pRes = await axios.get(`${API_URL}/api/admin/chats/${userId}/smart-p2p`);
-        if (p2pRes.data && p2pRes.data.found) {
-          setP2pContext(p2pRes.data.data);
+        const p2pRes = await fetch(`${API_URL}/api/admin/chats/${userId}/smart-p2p`);
+        const p2pData = await p2pRes.json();
+        if (p2pData.found) {
+          setP2pContext(p2pData.data);
         }
       }
     } catch (error) {
@@ -72,9 +73,15 @@ const ChatMessage = () => {
     setMessages(prev => [...prev, { id: Date.now(), sender_type: 'admin', message_text: msgText, created_at: new Date().toISOString() }]);
 
     try {
-      await axios.post(`${API_URL}/api/admin/chats/send`, {
-        user_id: selectedUserId,
-        message_text: msgText
+      await fetch(`${API_URL}/api/admin/chats/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: selectedUserId,
+          message_text: msgText
+        })
       });
       fetchChatList();
     } catch (error) {
