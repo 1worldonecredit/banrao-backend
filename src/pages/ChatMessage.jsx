@@ -26,12 +26,34 @@ const ChatMessage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchChatList();
-    const interval = setInterval(fetchChatList, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  // 🌟 เพิ่มฟังก์ชันดึงประวัติแชทเฉพาะของคนที่กำลังคุยอยู่
+  const fetchActiveChatMessages = async (userId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/chats/${userId}`);
+      const chatHistory = await res.json();
+      setMessages(chatHistory);
+    } catch (error) {
+      console.error("Error fetching active chat messages:", error);
+    }
+  };
 
+  // 🌟 useEffect อัปเดตข้อมูลอัตโนมัติ (Polling)
+  useEffect(() => {
+    fetchChatList(); // ดึงรายชื่อครั้งแรกตอนเปิดหน้า
+
+    const interval = setInterval(() => {
+      fetchChatList(); // อัปเดตรายชื่อและแจ้งเตือน (ซ้ายมือ)
+      
+      // ถ้าเปิดแชทของลูกค้าคนไหนอยู่ ให้ดึงข้อความใหม่ของคนนั้นมาด้วย
+      if (selectedUser && selectedUser.user_id) {
+        fetchActiveChatMessages(selectedUser.user_id);
+      }
+    }, 3000); // แอบดึงข้อมูลใหม่ทุกๆ 3 วินาที
+
+    return () => clearInterval(interval);
+  }, [selectedUser]); // ใส่ selectedUser ไว้ เพื่อให้ระบบรู้ว่าตอนนี้กำลังโฟกัสลูกค้าคนไหน
+
+  // เลื่อนจอลงล่างสุดอัตโนมัติเมื่อมีข้อความใหม่
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, p2pContext]);
@@ -42,11 +64,14 @@ const ChatMessage = () => {
     setP2pContext(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/chats/${user.user_id}`);
-      const chatHistory = await res.json();
-      setMessages(chatHistory);
+      // ดึงประวัติแชทของคนที่คลิกเลือก
+      await fetchActiveChatMessages(user.user_id);
       fetchChatList();
 
+      // วิเคราะห์คำเพื่อดึงข้อมูล P2P (ฝากเงิน)
+      // (ต้องยิง API ไปดึงข้อความมาเช็คอีกรอบเพื่อความชัวร์ในจังหวะคลิก)
+      const res = await fetch(`${API_URL}/api/admin/chats/${user.user_id}`);
+      const chatHistory = await res.json();
       const recentMessages = chatHistory.slice(-5);
       const isTalkingAboutDeposit = recentMessages.some(msg => 
         msg.sender_type === 'user' && (msg.message_text.includes('ฝาก') || msg.message_text.includes('โอน'))
@@ -60,7 +85,7 @@ const ChatMessage = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching chat detail:", error);
+      console.error("Error setting up chat detail:", error);
     }
   };
 
@@ -72,6 +97,7 @@ const ChatMessage = () => {
     const msgText = inputValue;
     setInputValue('');
 
+    // เอาข้อความโชว์หน้าจอก่อนทันทีเพื่อความรวดเร็ว
     setMessages(prev => [...prev, { 
       id: Date.now(), 
       sender_type: 'admin', 
@@ -86,15 +112,17 @@ const ChatMessage = () => {
         body: JSON.stringify({
           user_id: selectedUser.user_id,
           message_text: msgText,
-          admin_name: currentAdmin.username // ส่งชื่อ admin ไปบันทึกด้วย (ถ้า API รองรับ)
+          admin_name: currentAdmin.username 
         })
       });
+      // พอส่งสำเร็จ ก็ดึงรายชื่อใหม่ให้อันดับลูกค้าเด้งขึ้นไปบนสุด
       fetchChatList();
     } catch (error) {
       alert("ส่งข้อความไม่สำเร็จ");
     }
   };
 
+  // 🌟 ส่วน UI (Render)
   return (
     <div className="chat-admin-container">
       <h2 className="chat-admin-title">จัดการข้อร้องเรียนลูกค้า</h2>
@@ -121,7 +149,6 @@ const ChatMessage = () => {
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {/* 🌟 แสดงชื่อ Username ของลูกค้า (ถ้ามี) ถ้าไม่มีให้โชว์ ID */}
                     <h5 style={{ margin: 0, color: '#1e293b', fontSize: '14px' }}>
                       {user.username ? `ลูกค้า: ${user.username}` : `ผู้ใช้ ID: ${user.user_id}`}
                     </h5>
@@ -175,7 +202,6 @@ const ChatMessage = () => {
               <div className="chat-messages-area">
                 {messages.map((msg) => (
                   <div key={msg.id} className={`chat-bubble-wrapper ${msg.sender_type === 'admin' ? 'admin' : 'user'}`}>
-                    {/* 🌟 ระบุชื่อคนส่งบนกล่องข้อความ */}
                     <span className="chat-sender-name">
                       {msg.sender_type === 'admin' ? `แอดมิน (${currentAdmin.username})` : (selectedUser.username || `ลูกค้า ID: ${selectedUser.user_id}`)}
                     </span>
