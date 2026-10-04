@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send, User, Search, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+// 🌟 รวม Import Icon ทั้งหมดไว้ด้านบนสุดที่เดียว
+import { Send, User, Search, AlertCircle, CheckCircle, Clock, MessageSquareText } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
@@ -48,16 +49,16 @@ const ChatMessage = () => {
       setMessages(chatHistory);
       fetchChatList(); // อัปเดต badge ตัวเลข
 
-      // 🤖 ความฉลาดอยู่ตรงนี้: วิเคราะห์ว่าลูกค้าคุยเรื่อง "ฝากเงิน" หรือไม่
+      // 🤖 วิเคราะห์ว่าลูกค้าคุยเรื่อง "ฝากเงิน" หรือไม่
       const recentMessages = chatHistory.slice(-5); // ดู 5 ข้อความล่าสุด
       const isTalkingAboutDeposit = recentMessages.some(msg => 
         msg.sender_type === 'user' && (msg.message_text.includes('ฝาก') || msg.message_text.includes('โอน'))
       );
 
-      // ถ้าคุยเรื่องฝากเงิน ให้ยิง API ไปดึงข้อมูล P2P ล่าสุดของคนนี้มาเลย
+      // ถ้าคุยเรื่องฝากเงิน ให้ยิง API ไปดึงข้อมูล P2P ล่าสุดของคนนี้มา
       if (isTalkingAboutDeposit) {
         const p2pRes = await axios.get(`${API_URL}/api/admin/chats/${userId}/smart-p2p`);
-        if (p2pRes.data.found) {
+        if (p2pRes.data && p2pRes.data.found) {
           setP2pContext(p2pRes.data.data);
         }
       }
@@ -145,7 +146,7 @@ const ChatMessage = () => {
                 <h3 style={{ margin: 0, color: '#1e293b' }}>สนทนากับผู้ใช้ ID: {selectedUserId}</h3>
               </div>
 
-              {/* 🤖 การ์ดอัจฉริยะ (Smart P2P Info) จะโชว์เมื่อคุยเรื่องฝากเงิน */}
+              {/* 🤖 การ์ดอัจฉริยะ (Smart P2P Info) */}
               {p2pContext && (
                 <div style={{ margin: '15px', padding: '15px', backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -214,8 +215,5 @@ const ChatMessage = () => {
     </div>
   );
 };
-
-// 🌟 จำเป็นต้อง import icon นี้เพิ่มด้านบน (ลืมใส่ในบรรทัด import ตอนแรก)
-import { MessageSquareText } from 'lucide-react'; 
 
 export default ChatMessage;
