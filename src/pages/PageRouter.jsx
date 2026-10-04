@@ -48,6 +48,7 @@ import JobRecruitmentPost from './JobRecruitmentPost';
 import ListOfJobApplicants from './ListOfJobApplicants';
 import Profile from './Profile';
 import P2PStatus from './P2PStatus';
+import SatAutoMessage from './SatAutoMessage';
 
 
 
@@ -98,7 +99,8 @@ const componentsRegistry = {
   'JobRecruitmentPost': JobRecruitmentPost,
   'ListOfJobApplicants': ListOfJobApplicants,
   'Profile': Profile,
-  'P2PStatus': P2PStatus
+  'P2PStatus': P2PStatus,
+  'SatAutoMessage': SatAutoMessage
 };
 
 export default function PageRouter() {

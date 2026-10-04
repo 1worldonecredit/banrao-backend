@@ -234,6 +234,7 @@ const MenuManagement = () => {
                 <option value="ListOfJobApplicants">รายชื่อคำขอสมัครงาน (ListOfJobApplicants)</option>
                 <option value= "Profile">โปรไฟล์ (Profile)</option>
                 <option value= "P2PStatus">สถานะ P2P (P2PStatus)</option>
+                <option value= "SatAutoMessage">สร้างข้อความโต้ตอบ (SatAutoMessage)</option>
               </select>
             </div>
 
