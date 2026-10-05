@@ -100,7 +100,7 @@ const componentsRegistry = {
   'ListOfJobApplicants': ListOfJobApplicants,
   'Profile': Profile,
   'P2PStatus': P2PStatus,
-  'SatAutoMessage': SatAutoMessage
+  'SatAutoMessage': SatAutoMessage,
 };
 
 export default function PageRouter() {
