@@ -48,7 +48,7 @@ import JobRecruitmentPost from './JobRecruitmentPost';
 import ListOfJobApplicants from './ListOfJobApplicants';
 import Profile from './Profile';
 import P2PStatus from './P2PStatus';
-import SetAutoMessage from './SatAutoMessage';
+import SetAutoMessage from './SetAutoMessage';
 
 
 
