@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SatAutoMessage = () => {
+const SetAutoMessage = () => {
   return (
     <div>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>SatAutoMessage</h2>
@@ -15,4 +15,4 @@ const SatAutoMessage = () => {
   );
 };
 
-export default SatAutoMessage ;
+export default SetAutoMessage ;
