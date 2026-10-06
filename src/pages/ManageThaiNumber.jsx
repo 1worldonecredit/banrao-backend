@@ -230,31 +230,47 @@ const ManageThaiNumber = () => {
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
   };
+const handleProcessPayout = async (idsToPay) => {
+  // 1. ป้องกันฟังก์ชันทำงานซ้ำซ้อน ถ้าระบบกำลังประมวลผลอยู่ (isProcessing = true)
+  if (isProcessing) return; 
 
-  // 🌟 ยืนยันโอนเงินเฉพาะคนที่เลือก
-  const handleProcessPayout = async (idsToPay) => {
-    if (idsToPay.length === 0) return alert('กรุณาเลือกผู้ใช้อย่างน้อย 1 รายการเพื่อโอนเงิน');
-    if (!window.confirm(`ยืนยันการโอนเงินเข้า Wallet จำนวน ${idsToPay.length} รายการ ใช่หรือไม่?`)) return;
+  // 2. (ถ้ามี State เช็คสถานะรอบ) ตรวจสอบว่ารอบนี้โอนสำเร็จไปแล้วหรือยัง
+  // สมมติว่าคุณมี property status ใน viewingWinnersRound
+  if (viewingWinnersRound?.status === 'paid' || viewingWinnersRound?.is_paid) {
+      alert('❌ งวดนี้ได้ทำการโอนเงินรางวัลไปแล้ว');
+      return;
+  }
+
+  if (idsToPay.length === 0) return alert('กรุณาเลือกผู้ใช้อย่างน้อย 1 รายการเพื่อโอนเงิน');
+  
+  if (!window.confirm(`ยืนยันการโอนเงินเข้า Wallet จำนวน ${idsToPay.length} รายการ ใช่หรือไม่?`)) return;
+
+  setIsProcessing(true);
+  try {
+    const res = await fetch(`${API_URL}/api/admin/thai-lottery/process-payouts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_item_ids: idsToPay, round_id: viewingWinnersRound.round_id })
+    });
+    const data = await res.json();
     
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${API_URL}/api/admin/thai-lottery/process-payouts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_item_ids: idsToPay, round_id: viewingWinnersRound.round_id })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('✅ โอนเงินรางวัลสำเร็จเรียบร้อยแล้ว!');
-        setShowWinnersModal(false);
-        fetchRounds();
-      } else { alert(`❌ เกิดข้อผิดพลาด: ${data.message}`); }
-    } catch (err) {
-      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    } finally {
-      setIsProcessing(false);
+    if (data.success) {
+      alert('✅ โอนเงินรางวัลสำเร็จเรียบร้อยแล้ว!');
+      setShowWinnersModal(false);
+      fetchRounds();
+      
+      // 3. แนะนำให้เพิ่มการอัปเดต State ตรงนี้เพื่อระบุว่ารอบนี้โอนแล้ว
+      // setViewingWinnersRound(prev => ({ ...prev, is_paid: true }));
+      
+    } else { 
+      alert(`❌ เกิดข้อผิดพลาด: ${data.message}`); 
     }
-  };
+  } catch (err) {
+    alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -524,14 +540,18 @@ const ManageThaiNumber = () => {
                 <button onClick={() => setShowWinnersModal(false)} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>
                   ปิดหน้าต่าง
                 </button>
-                <button 
-                  onClick={() => handleProcessPayout(selectedWinnerIds)}
-                  disabled={selectedWinnerIds.length === 0 || isProcessing}
-                  style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: selectedWinnerIds.length === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: selectedWinnerIds.length === 0 ? 0.5 : 1 }}
-                >
-                  {isProcessing ? <RefreshCw className="spin" size={18} /> : <CheckCircle size={18} />} 
-                  ยืนยันโอนเงินทันที ({selectedWinnerIds.length} รายการ)
-                </button>
+                <button
+  onClick={() => handleProcessPayout(selectedWinnerIds)}
+  disabled={
+    selectedWinnerIds.length === 0 || 
+    isProcessing || 
+    viewingWinnersRound?.is_paid // ปิดปุ่มถ้ารอบนี้โอนไปแล้ว
+  }
+  style={{ /* สไตล์เดิมของคุณ */ }}
+>
+  {isProcessing ? <RefreshCw className="spin" size={18} /> : <CheckCircle size={18} />}
+  ยืนยันโอนเงินทันที ({selectedWinnerIds.length} รายการ)
+</button>
               </div>
             </div>
           </div>
