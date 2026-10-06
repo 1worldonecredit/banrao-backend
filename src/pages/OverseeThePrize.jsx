@@ -227,7 +227,10 @@ const OverseeThePrize = () => {
         return; 
     }
 
-    const updated = { ...settings, auto_draw_percent: targetPercent };
+    // 🌟 แปลงค่าให้เป็นตัวเลข (Number) ก่อนส่ง เพื่อป้องกันบั๊กที่ส่งไปเป็น String 
+    const numericPercent = Number(targetPercent);
+
+    const updated = { ...settings, auto_draw_percent: numericPercent };
 
     try {
         const res = await fetch(`${API_URL}/api/admin/settings`, {
@@ -239,7 +242,7 @@ const OverseeThePrize = () => {
 
         if (data.success) {
             setSettings(updated);
-            alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
+            alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${numericPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
         } else {
             alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
             // ถ้าบันทึกไม่สำเร็จ ค่อยเด้งสไลเดอร์กลับ
@@ -251,8 +254,7 @@ const OverseeThePrize = () => {
         // ถ้าติดต่อเซิร์ฟเวอร์ไม่ได้ ก็เด้งสไลเดอร์กลับเช่นกัน
         setTargetPercent(settings.auto_draw_percent || 50); 
     }
-};
-
+  };
   const handleSaveAllTimes = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/settings`, { 
