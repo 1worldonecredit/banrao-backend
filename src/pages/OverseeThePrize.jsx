@@ -210,35 +210,42 @@ const OverseeThePrize = () => {
     }
   };
 
-  const handleSaveAutoPercent = async () => {
-    if (!window.confirm(`⚠️ ยืนยันการตั้งค่า "สัดส่วนเป้าหมายการจ่ายเงิน" เป็น ${targetPercent}% ใช่หรือไม่?\n\n(ระบบจะจำค่านี้ไว้และใช้ตลอดจนกว่าคุณจะเปลี่ยนใหม่)`)) {
-      setTargetPercent(settings.auto_draw_percent); 
-      return;
+ const handleSaveAutoPercent = async () => {
+    // ดักไว้ก่อนว่าผู้ใช้กดยืนยันไหม
+    const isConfirmed = window.confirm(`⚠️ ยืนยันการตั้งค่า "สัดส่วนเป้าหมายการจ่ายเงิน" เป็น ${targetPercent}% ใช่หรือไม่?\n(ระบบจะจดจำค่านี้ไว้ใช้คำนวณ)`);
+    
+    // ถ้าผู้ใช้กด "ยกเลิก" (Cancel)
+    if (!isConfirmed) {
+        // ให้เด้งสไลเดอร์กลับไปที่ค่าเดิมที่เคยบันทึกไว้ใน settings
+        setTargetPercent(settings.auto_draw_percent || 50);
+        return; 
     }
 
     const updated = { ...settings, auto_draw_percent: targetPercent };
-    
-    try {
-      const res = await fetch(`${API_URL}/api/admin/settings`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(updated) 
-      });
-      const data = await res.json();
 
-      if (data.success) {
-        setSettings(updated);
-        alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
-      } else {
-        alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
-        setTargetPercent(settings.auto_draw_percent); // โหลดค่าเดิมกลับมา
-      }
-    } catch (err) { 
-      console.error(err); 
-      alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ (การบันทึกล้มเหลว)');
-      setTargetPercent(settings.auto_draw_percent); // โหลดค่าเดิมกลับมา
+    try {
+        const res = await fetch(`${API_URL}/api/admin/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            setSettings(updated);
+            alert(`✅ บันทึกเป้าหมายการจ่ายเงินที่ ${targetPercent}% เรียบร้อยแล้ว (ระบบบันทึกค่าไว้แล้ว)`);
+        } else {
+            alert(`❌ ระบบหลังบ้านแจ้ง Error: ${data.message}`);
+            // ถ้าบันทึกไม่สำเร็จ ค่อยเด้งสไลเดอร์กลับ
+            setTargetPercent(settings.auto_draw_percent || 50); 
+        }
+    } catch (err) {
+        console.error(err);
+        alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ (การบันทึกล้มเหลว)');
+        // ถ้าติดต่อเซิร์ฟเวอร์ไม่ได้ ก็เด้งสไลเดอร์กลับเช่นกัน
+        setTargetPercent(settings.auto_draw_percent || 50); 
     }
-  };
+};
 
   const handleSaveAllTimes = async () => {
     try {
@@ -672,6 +679,7 @@ return (
               {isSuggesting ? 'กำลังค้นหา...' : 'สุ่มหาเลข'}
             </button>
           </div>
+
           <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#64748b' }}>
             * หากตั้งค่า % แล้วกด <b>"บันทึก %"</b> ระบบจะจำค่านี้ไว้ถาวร และใช้คุมยอดจ่ายเมื่อออโต้ทำงาน
           </p>
