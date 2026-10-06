@@ -96,19 +96,25 @@ const OverseeThePrize = () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/settings`);
       const data = await res.json();
-      if (data.success && data.data) {
-        const formatTime24 = (timeStr) => timeStr ? timeStr.substring(0, 5) : '00:00';
-        
-        setSettings({
-          close_time: formatTime24(data.data.close_time) || '17:00',
-          open_time: formatTime24(data.data.open_time) || '18:00',
-          draw_time: formatTime24(data.data.draw_time) || '17:30',
-          is_sales_open: data.data.is_sales_open,
-          is_auto_draw: data.data.is_auto_draw || false,
-          auto_draw_percent: data.data.auto_draw_percent || 50
-        });
-        setTargetPercent(data.data.auto_draw_percent || 50);
-      }
+     if (data.success) { 
+    // ตรวจสอบโครงสร้างก่อน ถ้าใช้ data.settings ก็เปลี่ยนให้ตรง
+    const settingsData = data.settings || data.data; // เผื่อเหนียวไว้ทั้งสองแบบ
+
+    const formatTime24 = (timeStr) => timeStr ? timeStr.substring(0, 5) : '00:00';
+    
+    setSettings({
+        close_time: formatTime24(settingsData.close_time) || '17:00',
+        open_time: formatTime24(settingsData.open_time) || '18:00',
+        draw_time: formatTime24(settingsData.draw_time) || '17:30',
+        is_sales_open: settingsData.is_sales_open,
+        is_auto_draw: settingsData.is_auto_draw || false,
+        // 🌟 แก้ไขจุดอ้างอิงตรงนี้
+        auto_draw_percent: settingsData.auto_draw_percent || 50
+    });
+    
+    // 🌟 แก้ไขจุดอ้างอิงตรงนี้ด้วย
+    setTargetPercent(settingsData.auto_draw_percent || 50);
+}
     } catch (err) { console.error('Error fetching settings:', err); }
   };
 
