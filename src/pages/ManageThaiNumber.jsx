@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Save, Clock, Trophy, CheckCircle, Ban, PlayCircle, RefreshCw, AlertTriangle, Edit, XCircle, Users, CheckSquare, Square, Search } from 'lucide-react';
+import { PlusCircle, Save, Clock, Trophy, CheckCircle, RefreshCw, XCircle, Users, CheckSquare, Square } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
 
 // ==========================================
-// 🌟 Component: ตัวเลือกวันเวลาแบบไทย 100% (รักษาของเดิมไว้สมบูรณ์แบบ)
+// 🌟 Component: ตัวเลือกวันเวลาแบบไทย 100% (รักษาของเดิมไว้)
 // ==========================================
 const ThaiDateTimePicker = ({ value, onChange }) => {
   const current = value ? new Date(value) : new Date();
@@ -76,14 +76,10 @@ const ManageThaiNumber = () => {
   const [closeDate, setCloseDate] = useState('');
   const [drawDate, setDrawDate] = useState('');
 
-  const [selectedRound, setSelectedRound] = useState(null);
-  const [number6, setNumber6] = useState('');
-  const [number2bot, setNumber2bot] = useState('');
-
   const [editingRoundId, setEditingRoundId] = useState(null);
   const [editFormData, setEditFormData] = useState({ round_number: '', open_time: '', close_time: '', draw_time: '' });
 
-  // 🌟 State สำหรับระบบตรวจสอบรายชื่อผู้ถูกรางวัล (ใหม่)
+  // State สำหรับระบบตรวจสอบรายชื่อผู้ถูกรางวัล
   const [showWinnersModal, setShowWinnersModal] = useState(false);
   const [viewingWinnersRound, setViewingWinnersRound] = useState(null);
   const [winnersList, setWinnersList] = useState([]);
@@ -106,7 +102,7 @@ const ManageThaiNumber = () => {
 
   useEffect(() => { fetchRounds(); }, []);
 
-  // 🌟 นับถอยหลังโอนเงินอัตโนมัติ
+  // นับถอยหลังโอนเงินอัตโนมัติ
   useEffect(() => {
     let timer;
     if (showWinnersModal && autoPayoutCountdown > 0 && !isAutoPayoutPaused) {
@@ -139,7 +135,7 @@ const ManageThaiNumber = () => {
     finally { setIsProcessing(false); }
   };
 
-  // 🌟 เปิดระบบแก้ไขเมื่อคลิกการ์ด (สำหรับงวดยังไม่ออกผล)
+  // เปิดระบบแก้ไขเมื่อคลิกการ์ด
   const startEdit = (round) => {
     setEditingRoundId(round.round_id);
     setEditFormData({
@@ -151,7 +147,7 @@ const ManageThaiNumber = () => {
   };
 
   const handleSaveEdit = async (round_id, e) => {
-    e.stopPropagation(); // ป้องกันการคลิกซ้อน
+    e.stopPropagation();
     if (!editFormData.round_number || !editFormData.open_time || !editFormData.close_time || !editFormData.draw_time) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
     setIsProcessing(true);
     try {
@@ -169,31 +165,7 @@ const ManageThaiNumber = () => {
     finally { setIsProcessing(false); }
   };
 
-  const handleExecuteDraw = async () => {
-    if (number6.length !== 6) return alert('กรุณากรอก รางวัลที่ 1 ให้ครบ 6 หลัก');
-    if (number2bot.length !== 2) return alert('กรุณากรอก เลขท้าย 2 ตัว ให้ครบ 2 หลัก');
-    if (!selectedRound) return alert('กรุณาเลือกรวดที่ต้องการประกาศผล');
-
-    if (!window.confirm(`⚠️ ยืนยันผลหวยไทย งวด ${selectedRound.round_number} \nรางวัลที่ 1: ${number6} \nเลขท้าย 2 ตัว: ${number2bot} \n\nระบบจะประมวลผลรายชื่อผู้ถูกรางวัล (ยังไม่โอนเงินทันที)`)) return;
-
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${API_URL}/api/admin/thai-lottery/execute-draw`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ round_id: selectedRound.round_id, number6, number2bot })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('ประมวลผลสำเร็จ! กรุณาตรวจสอบรายชื่อและกดยืนยันการโอนเงิน');
-        setNumber6(''); setNumber2bot(''); setSelectedRound(null);
-        fetchRounds();
-      } else { alert(`❌ ผิดพลาด: ${data.message}`); }
-    } catch (err) { alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ'); } 
-    finally { setIsProcessing(false); }
-  };
-
-  // 🌟 ดึงข้อมูลรายชื่อผู้ถูกรางวัลมาแสดงใน Modal (ปรับใหม่ เปิดหน้าต่างเสมอ ไม่พึ่ง Alert)
+  // ดึงข้อมูลรายชื่อผู้ถูกรางวัลมาแสดงใน Modal
   const fetchWinnersAndOpenModal = async (round) => {
     setViewingWinnersRound(round);
     setIsLoading(true);
@@ -203,20 +175,16 @@ const ManageThaiNumber = () => {
       
       if (data.success && data.winners) {
         setWinnersList(data.winners);
-        // เลือกทุกคนเป็นค่าเริ่มต้น
         setSelectedWinnerIds(data.winners.map(w => w.order_item_id));
       } else {
-        // ดึงไม่สำเร็จ หรือไม่มีข้อมูล ก็ให้เป็นตารางว่างๆ
         setWinnersList([]);
         setSelectedWinnerIds([]);
       }
     } catch (err) {
       console.error(err);
-      // กรณีเน็ตหลุด หรือ API พัง ก็ให้เปิดตารางว่างๆ ดีกว่าโชว์ Error กวนใจ
       setWinnersList([]);
       setSelectedWinnerIds([]);
     } finally {
-      // 🌟 บังคับเปิดหน้าต่าง (Modal) เสมอ ไม่ว่าข้อมูลจะมาหรือไม่
       setAutoPayoutCountdown(300); 
       setIsAutoPayoutPaused(false);
       setShowWinnersModal(true);
@@ -224,53 +192,47 @@ const ManageThaiNumber = () => {
     }
   };
 
-  // 🌟 Toggle เลือกคนจ่ายเงิน
+  // Toggle เลือกคนจ่ายเงิน
   const toggleWinnerSelection = (itemId) => {
     setSelectedWinnerIds(prev => 
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
   };
-const handleProcessPayout = async (idsToPay) => {
-  // 1. ป้องกันฟังก์ชันทำงานซ้ำซ้อน ถ้าระบบกำลังประมวลผลอยู่ (isProcessing = true)
-  if (isProcessing) return; 
 
-  // 2. (ถ้ามี State เช็คสถานะรอบ) ตรวจสอบว่ารอบนี้โอนสำเร็จไปแล้วหรือยัง
-  // สมมติว่าคุณมี property status ใน viewingWinnersRound
-  if (viewingWinnersRound?.status === 'paid' || viewingWinnersRound?.is_paid) {
-      alert('❌ งวดนี้ได้ทำการโอนเงินรางวัลไปแล้ว');
-      return;
-  }
+  const handleProcessPayout = async (idsToPay) => {
+    if (isProcessing) return; 
 
-  if (idsToPay.length === 0) return alert('กรุณาเลือกผู้ใช้อย่างน้อย 1 รายการเพื่อโอนเงิน');
-  
-  if (!window.confirm(`ยืนยันการโอนเงินเข้า Wallet จำนวน ${idsToPay.length} รายการ ใช่หรือไม่?`)) return;
-
-  setIsProcessing(true);
-  try {
-    const res = await fetch(`${API_URL}/api/admin/thai-lottery/process-payouts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_item_ids: idsToPay, round_id: viewingWinnersRound.round_id })
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      alert('✅ โอนเงินรางวัลสำเร็จเรียบร้อยแล้ว!');
-      setShowWinnersModal(false);
-      fetchRounds();
-      
-      // 3. แนะนำให้เพิ่มการอัปเดต State ตรงนี้เพื่อระบุว่ารอบนี้โอนแล้ว
-      // setViewingWinnersRound(prev => ({ ...prev, is_paid: true }));
-      
-    } else { 
-      alert(`❌ เกิดข้อผิดพลาด: ${data.message}`); 
+    if (viewingWinnersRound?.status === 'paid' || viewingWinnersRound?.is_paid) {
+        alert('❌ งวดนี้ได้ทำการโอนเงินรางวัลไปแล้ว');
+        return;
     }
-  } catch (err) {
-    alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
-  } finally {
-    setIsProcessing(false);
-  }
-};
+
+    if (idsToPay.length === 0) return alert('กรุณาเลือกผู้ใช้อย่างน้อย 1 รายการเพื่อโอนเงิน');
+    
+    if (!window.confirm(`ยืนยันการโอนเงินเข้า Wallet จำนวน ${idsToPay.length} รายการ ใช่หรือไม่?`)) return;
+
+    setIsProcessing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/thai-lottery/process-payouts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_item_ids: idsToPay, round_id: viewingWinnersRound.round_id })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert('✅ โอนเงินรางวัลสำเร็จเรียบร้อยแล้ว!');
+        setShowWinnersModal(false);
+        fetchRounds();
+      } else { 
+        alert(`❌ เกิดข้อผิดพลาด: ${data.message}`); 
+      }
+    } catch (err) {
+      alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -280,14 +242,15 @@ const handleProcessPayout = async (idsToPay) => {
   const formatCurrency = (num) => Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif',  minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         <Trophy size={28} /> จัดการหวยรัฐบาลไทย
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+      {/* 🌟 นำกรอบแบ่งครึ่งออก ให้ฟอร์มเปิดรับแทงกว้างเต็มพื้นที่ */}
+      <div style={{ marginBottom: '30px' }}>
         {/* ฟอร์มเปิดงวดใหม่ */}
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: '4px solid #0ea5e9' }}>
+        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: '4px solid #0ea5e9', maxWidth: '800px' }}>
           <h4 style={{ margin: '0 0 20px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
             <PlusCircle size={22} color="#0ea5e9" /> เปิดรับแทงงวดใหม่
           </h4>
@@ -313,39 +276,6 @@ const handleProcessPayout = async (idsToPay) => {
             </button>
           </form>
         </div>
-
-        {/* ฟอร์มประกาศผลรางวัล */}
-        <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderTop: selectedRound ? '4px solid #10b981' : '4px solid #cbd5e1', opacity: selectedRound ? 1 : 0.6 }}>
-          <h4 style={{ margin: '0 0 20px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-            <CheckCircle size={22} color={selectedRound ? "#10b981" : "#94a3b8"} /> กรอกผลรางวัล
-          </h4>
-          {!selectedRound ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
-              <Clock size={48} style={{ margin: '0 auto 15px auto', opacity: 0.5 }} />
-              <p>คลิกเลือกงวดที่ "ปิดรับแทงแล้ว" ด้านล่าง<br/>เพื่อกรอกผลรางวัล</p>
-            </div>
-          ) : (
-            <div>
-              <div style={{ backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #bbf7d0' }}>
-                <strong style={{ color: '#166534', display: 'block', fontSize: '16px' }}>ประกาศผล: งวด {selectedRound.round_number}</strong>
-              </div>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#b91c1c', fontSize: '14px' }}>รางวัลที่ 1 (6 หลัก)</label>
-                <input type="tel" maxLength="6" value={number6} onChange={(e) => setNumber6(e.target.value.replace(/\D/g, ''))} placeholder="XXXXXX" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #fca5a5', boxSizing: 'border-box', fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', color: '#b91c1c' }} />
-              </div>
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#1d4ed8', fontSize: '14px' }}>เลขท้าย 2 ตัว (ล่าง)</label>
-                <input type="tel" maxLength="2" value={number2bot} onChange={(e) => setNumber2bot(e.target.value.replace(/\D/g, ''))} placeholder="XX" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #93c5fd', boxSizing: 'border-box', fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', color: '#1d4ed8' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setSelectedRound(null)} style={{ flex: '1', padding: '12px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>ยกเลิก</button>
-                <button onClick={handleExecuteDraw} disabled={isProcessing} style={{ flex: '2', padding: '12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
-                  {isProcessing ? <RefreshCw className="spin" size={20} /> : <Trophy size={20} />} บันทึกผล & ตรวจสอบ
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       <h3 style={{ color: '#0f172a', marginBottom: '15px' }}>ประวัติและงวดหวยไทยทั้งหมด (คลิกที่การ์ดเพื่อจัดการ)</h3>
@@ -361,11 +291,10 @@ const handleProcessPayout = async (idsToPay) => {
             const isEditing = editingRoundId === r.round_id;
             
             return (
-              // 🌟 ทำให้การ์ดทั้งใบกดได้: ถ้าออกผลแล้ว ดูรายชื่อ, ถ้ายัง ให้อยู่โหมด Edit
               <div 
                 key={r.round_id} 
                 onClick={() => {
-                  if (isEditing) return; // ถ้ากำลังแก้ไขอยู่ ไม่ต้องทำอะไร
+                  if (isEditing) return;
                   if (isCompleted) fetchWinnersAndOpenModal(r);
                   else if (!isClosed) startEdit(r);
                 }}
@@ -375,7 +304,7 @@ const handleProcessPayout = async (idsToPay) => {
                   <strong style={{ color: '#0f172a', fontSize: '16px' }}>งวด: {r.round_number}</strong>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {isCompleted ? <span style={{ backgroundColor: '#16a34a', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>ออกผลแล้ว (ดูรายชื่อ)</span> :
-                     isClosed ? <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>รอประกาศผล</span> :
+                     isClosed ? <span style={{ backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>ปิดรับแทงแล้ว</span> :
                      isOpen ? <span style={{ backgroundColor: '#0ea5e9', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>กำลังเปิด (คลิกแก้ไข)</span> :
                      <span style={{ backgroundColor: '#d97706', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>รอเปิดขาย</span>}
                   </div>
@@ -411,22 +340,12 @@ const handleProcessPayout = async (idsToPay) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>เปิดรับแทง:</span> <strong>{formatDate(r.open_time)}</strong></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>ปิดรับแทง:</span> <strong style={{ color: '#ef4444' }}>{formatDate(r.close_time)}</strong></div>
                     
-                    {isCompleted ? (
+                    {isCompleted && (
                       <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
                           <div><span style={{ display: 'block', fontSize: '11px' }}>รางวัลที่ 1</span><strong style={{ fontSize: '20px', color: '#b91c1c' }}>{r.result_6}</strong></div>
                           <div><span style={{ display: 'block', fontSize: '11px' }}>เลขล่าง 2 ตัว</span><strong style={{ fontSize: '20px', color: '#1d4ed8' }}>{r.result_2_bottom}</strong></div>
                         </div>
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: '15px' }}>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setSelectedRound(r); }} 
-                          disabled={!isClosed && !isCompleted}
-                          style={{ width: '100%', padding: '10px', backgroundColor: isClosed ? '#10b981' : '#e2e8f0', color: isClosed ? 'white' : '#94a3b8', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isClosed ? 'pointer' : 'not-allowed' }}
-                        >
-                          {isClosed ? 'คลิกเพื่อประกาศผลรางวัล' : 'ยังไม่ถึงเวลาประกาศผล'}
-                        </button>
                       </div>
                     )}
                   </div>
@@ -541,17 +460,17 @@ const handleProcessPayout = async (idsToPay) => {
                   ปิดหน้าต่าง
                 </button>
                 <button
-  onClick={() => handleProcessPayout(selectedWinnerIds)}
-  disabled={
-    selectedWinnerIds.length === 0 || 
-    isProcessing || 
-    viewingWinnersRound?.is_paid // ปิดปุ่มถ้ารอบนี้โอนไปแล้ว
-  }
-  style={{ /* สไตล์เดิมของคุณ */ }}
->
-  {isProcessing ? <RefreshCw className="spin" size={18} /> : <CheckCircle size={18} />}
-  ยืนยันโอนเงินทันที ({selectedWinnerIds.length} รายการ)
-</button>
+                  onClick={() => handleProcessPayout(selectedWinnerIds)}
+                  disabled={
+                    selectedWinnerIds.length === 0 || 
+                    isProcessing || 
+                    viewingWinnersRound?.is_paid
+                  }
+                  style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {isProcessing ? <RefreshCw className="spin" size={18} /> : <CheckCircle size={18} />}
+                  ยืนยันโอนเงินทันที ({selectedWinnerIds.length} รายการ)
+                </button>
               </div>
             </div>
           </div>
