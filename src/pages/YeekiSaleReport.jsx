@@ -73,10 +73,33 @@ const YeekiSaleReport = () => {
                 </div>
               </div>
 
-              {viewingRound.status === 'ended' && viewingRound.winning_result ? (
+              {/* 🌟 ส่วนที่ปรับแก้เพื่อแสดงผลรางวัลแยกทีละตัว */}
+              {viewingRound.status === 'ended' ? (
                 <div style={{ backgroundColor: '#fffbeb', padding: '15px 25px', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัลที่ออก</p>
-                  <h2 style={{ margin: 0, color: '#d97706', letterSpacing: '2px', fontSize: '24px' }}>{viewingRound.winning_result}</h2>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัลที่ออก</p>
+                  
+                  {(() => {
+                      const res6 = viewingRound.result_8_super || '-'; 
+                      const res4 = viewingRound.result_4_top || '-';
+                      const res3 = viewingRound.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
+                      const res2top = res4 !== '-' ? res4.slice(-2) : '-';
+                      const res2bot = viewingRound.result_2_bottom || '-';
+                      
+                      // Fallback เผื่อ API เก่ายังส่งแค่ winning_result
+                      if (res6 === '-' && viewingRound.winning_result) {
+                          return <h2 style={{ margin: 0, color: '#d97706', letterSpacing: '2px', fontSize: '24px' }}>{viewingRound.winning_result}</h2>;
+                      }
+
+                      return (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', fontSize: '15px', fontWeight: 'bold', color: '#1e40af' }}>
+                              <span style={{ background: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>6 ตัว: <span style={{ color: '#ef4444' }}>{res6}</span></span>
+                              <span style={{ background: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>4 ตัว: <span style={{ color: '#ef4444' }}>{res4}</span></span>
+                              <span style={{ background: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>3 บน: <span style={{ color: '#ef4444' }}>{res3}</span></span>
+                              <span style={{ background: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>2 บน: <span style={{ color: '#ef4444' }}>{res2top}</span></span>
+                              <span style={{ background: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>2 ล่าง: <span style={{ color: '#ef4444' }}>{res2bot}</span></span>
+                          </div>
+                      );
+                  })()}
                 </div>
               ) : viewingRound.status === 'open' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 'bold', padding: '15px' }}>
