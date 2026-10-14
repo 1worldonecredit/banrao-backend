@@ -78,12 +78,16 @@ const YeekiSaleReport = () => {
                   <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัลที่ออก</p>
                   
                   {(() => {
-                      // 🌟 แก้ไข: เพิ่มการเช็คก้อนข้อความ "XXX / XXX / XX" ที่ Backend ชอบส่งมา
+                      let res6 = '-';
+                      let res4 = '-';
+                      let res3 = '-';
+                      let res2top = '-';
+                      let res2bot = '-';
+
                       let raw6 = viewingRound.result_8_super;
                       let raw4 = viewingRound.result_4_top;
                       let raw2bot = viewingRound.result_2_bottom;
 
-                      // ถ้า API ส่งมารวมกันใน winning_result ให้จับหั่นด้วยเครื่องหมาย "/"
                       if (!raw6 && viewingRound.winning_result) {
                           const parts = viewingRound.winning_result.split('/').map(s => s.trim());
                           raw6 = parts[0] || '-';
@@ -91,12 +95,21 @@ const YeekiSaleReport = () => {
                           raw2bot = parts[2] || '-';
                       }
 
-                      // หั่นให้เหลือจำนวนตัวที่ถูกต้อง
-                      const res6 = raw6 && raw6 !== '-' ? String(raw6).slice(-6) : '-'; 
-                      const res4 = raw4 && raw4 !== '-' ? String(raw4).slice(-4) : '-';
-                      const res3 = res4 !== '-' ? res4.slice(-3) : '-';
-                      const res2top = res4 !== '-' ? res4.slice(-2) : '-';
-                      const res2bot = raw2bot && raw2bot !== '-' ? String(raw2bot).slice(-2) : '-';
+                      // 🌟 บังคับหั่นเลขทุกตัวจากฐาน 6 ตัวเท่านั้น! 
+                      if (raw6 && raw6 !== '-') {
+                          res6 = String(raw6).slice(-6);
+                          res4 = res6.slice(-4);
+                          res3 = res6.slice(-3);
+                          res2top = res6.slice(-2);
+                      } else if (raw4 && raw4 !== '-') {
+                          res4 = String(raw4).slice(-4);
+                          res3 = res4.slice(-3);
+                          res2top = res4.slice(-2);
+                      }
+
+                      if (raw2bot && raw2bot !== '-') {
+                          res2bot = String(raw2bot).slice(-2);
+                      }
 
                       return (
                           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', fontSize: '15px', fontWeight: 'bold', color: '#1e40af' }}>

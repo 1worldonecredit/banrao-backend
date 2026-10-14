@@ -117,18 +117,27 @@ const AwardHistoryYeeki = () => {
               ) : historyData.length > 0 ? (
                 historyData.map((round) => {
                   
-                  // 🌟 แก้ไข: บังคับตัดเลขให้เหลือตามจำนวนหลักที่ถูกต้อง
-                  const raw8 = round.result_8_super || '-';
-                  const res6 = raw8 !== '-' ? String(raw8).slice(-6) : '-'; // ตัดเหลือ 6 ตัว
-                  
-                  const raw4 = round.result_4_top || '-';
-                  const res4 = raw4 !== '-' ? String(raw4).slice(-4) : '-'; // ตัดเหลือ 4 ตัว
-                  
-                  const res3 = res4 !== '-' ? res4.slice(-3) : '-';
-                  const res2top = res4 !== '-' ? res4.slice(-2) : '-';
-                  
-                  const raw2bot = round.result_2_bottom || '-';
-                  const res2bot = raw2bot !== '-' ? String(raw2bot).slice(-2) : '-'; // ตัดเหลือ 2 ตัว
+                  // 🌟 บังคับหั่นเลขทุกตัวจากฐาน 6 ตัวเท่านั้น! เพื่อให้เป็นชุดเดียวกัน
+                  let res6 = '-';
+                  let res4 = '-';
+                  let res3 = '-';
+                  let res2top = '-';
+                  let res2bot = '-';
+
+                  if (round.result_8_super && round.result_8_super !== '-') {
+                      res6 = String(round.result_8_super).slice(-6);
+                      res4 = res6.slice(-4);
+                      res3 = res6.slice(-3);
+                      res2top = res6.slice(-2);
+                  } else if (round.result_4_top && round.result_4_top !== '-') {
+                      res4 = String(round.result_4_top).slice(-4);
+                      res3 = res4.slice(-3);
+                      res2top = res4.slice(-2);
+                  }
+
+                  if (round.result_2_bottom && round.result_2_bottom !== '-') {
+                      res2bot = String(round.result_2_bottom).slice(-2);
+                  }
 
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
