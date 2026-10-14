@@ -40,10 +40,8 @@ const AwardHistoryYeeki = () => {
     }
   };
 
-  // 🌟 ฟังก์ชันแก้ปัญหาเวลาเพี้ยน (ป้องกันเบราว์เซอร์บวกเวลาเพิ่ม 7 ชม.)
   const formatCorrectTime = (timeStr) => {
     if (!timeStr) return '-';
-    // ตัดตัว Z ออก เพื่อบังคับให้เบราว์เซอร์อ่านเป็นเวลา Local ของไทยตาม Database
     const cleanStr = timeStr.endsWith('Z') ? timeStr.slice(0, -1) : timeStr;
     return new Date(cleanStr).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   };
@@ -66,7 +64,6 @@ const AwardHistoryYeeki = () => {
 
   return (
     <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-      
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
         <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Trophy color="#f59e0b" size={28} /> ประวัติการออกเลขจับยี่กี
@@ -107,7 +104,7 @@ const AwardHistoryYeeki = () => {
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>รอบที่</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>เวลา</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>6 ตัว</th>
-                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>4 ตัวท้าย</th> {/* 🌟 เพิ่มคอลัมน์ 4 ตัวท้าย */}
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>4 ตัวท้าย</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>3 ตัวบน</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวบน</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวล่าง</th>
@@ -120,12 +117,18 @@ const AwardHistoryYeeki = () => {
               ) : historyData.length > 0 ? (
                 historyData.map((round) => {
                   
-                  // 🌟 ดึงข้อมูลและหั่นเลขให้ถูกต้องเหมือนหน้าอื่นๆ
-                  const res6 = round.result_8_super || '-';
-                  const res4 = round.result_4_top || '-';
-                  const res3 = round.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
+                  // 🌟 แก้ไข: บังคับตัดเลขให้เหลือตามจำนวนหลักที่ถูกต้อง
+                  const raw8 = round.result_8_super || '-';
+                  const res6 = raw8 !== '-' ? String(raw8).slice(-6) : '-'; // ตัดเหลือ 6 ตัว
+                  
+                  const raw4 = round.result_4_top || '-';
+                  const res4 = raw4 !== '-' ? String(raw4).slice(-4) : '-'; // ตัดเหลือ 4 ตัว
+                  
+                  const res3 = res4 !== '-' ? res4.slice(-3) : '-';
                   const res2top = res4 !== '-' ? res4.slice(-2) : '-';
-                  const res2bot = round.result_2_bottom || '-';
+                  
+                  const raw2bot = round.result_2_bottom || '-';
+                  const res2bot = raw2bot !== '-' ? String(raw2bot).slice(-2) : '-'; // ตัดเหลือ 2 ตัว
 
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
@@ -141,7 +144,7 @@ const AwardHistoryYeeki = () => {
                         <NumberBadge number={res6} color="#8b5cf6" bg="#ede9fe" />
                       </td>
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={res4} color="#ec4899" bg="#fce7f3" /> {/* 🌟 แสดง 4 ตัวท้าย */}
+                        <NumberBadge number={res4} color="#ec4899" bg="#fce7f3" />
                       </td>
                       <td style={{ padding: '15px' }}>
                         <NumberBadge number={res3} color="#ef4444" bg="#fee2e2" />
@@ -170,7 +173,7 @@ const AwardHistoryYeeki = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ padding: '50px', color: '#94a3b8', textAlign: 'center' }}> {/* 🌟 แก้ colSpan เป็น 8 */}
+                  <td colSpan="8" style={{ padding: '50px', color: '#94a3b8', textAlign: 'center' }}>
                     <AlertCircle size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
                     <div>ไม่มีข้อมูลการออกรางวัลในวันที่เลือก</div>
                   </td>

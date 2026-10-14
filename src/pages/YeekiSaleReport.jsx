@@ -73,22 +73,30 @@ const YeekiSaleReport = () => {
                 </div>
               </div>
 
-              {/* 🌟 ส่วนที่ปรับแก้เพื่อแสดงผลรางวัลแยกทีละตัว */}
               {viewingRound.status === 'ended' ? (
                 <div style={{ backgroundColor: '#fffbeb', padding: '15px 25px', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center' }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#b45309', fontWeight: 'bold' }}>ผลรางวัลที่ออก</p>
                   
                   {(() => {
-                      const res6 = viewingRound.result_8_super || '-'; 
-                      const res4 = viewingRound.result_4_top || '-';
-                      const res3 = viewingRound.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
-                      const res2top = res4 !== '-' ? res4.slice(-2) : '-';
-                      const res2bot = viewingRound.result_2_bottom || '-';
-                      
-                      // Fallback เผื่อ API เก่ายังส่งแค่ winning_result
-                      if (res6 === '-' && viewingRound.winning_result) {
-                          return <h2 style={{ margin: 0, color: '#d97706', letterSpacing: '2px', fontSize: '24px' }}>{viewingRound.winning_result}</h2>;
+                      // 🌟 แก้ไข: เพิ่มการเช็คก้อนข้อความ "XXX / XXX / XX" ที่ Backend ชอบส่งมา
+                      let raw6 = viewingRound.result_8_super;
+                      let raw4 = viewingRound.result_4_top;
+                      let raw2bot = viewingRound.result_2_bottom;
+
+                      // ถ้า API ส่งมารวมกันใน winning_result ให้จับหั่นด้วยเครื่องหมาย "/"
+                      if (!raw6 && viewingRound.winning_result) {
+                          const parts = viewingRound.winning_result.split('/').map(s => s.trim());
+                          raw6 = parts[0] || '-';
+                          raw4 = parts[1] || '-';
+                          raw2bot = parts[2] || '-';
                       }
+
+                      // หั่นให้เหลือจำนวนตัวที่ถูกต้อง
+                      const res6 = raw6 && raw6 !== '-' ? String(raw6).slice(-6) : '-'; 
+                      const res4 = raw4 && raw4 !== '-' ? String(raw4).slice(-4) : '-';
+                      const res3 = res4 !== '-' ? res4.slice(-3) : '-';
+                      const res2top = res4 !== '-' ? res4.slice(-2) : '-';
+                      const res2bot = raw2bot && raw2bot !== '-' ? String(raw2bot).slice(-2) : '-';
 
                       return (
                           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', fontSize: '15px', fontWeight: 'bold', color: '#1e40af' }}>
