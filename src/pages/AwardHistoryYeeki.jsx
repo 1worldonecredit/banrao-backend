@@ -107,6 +107,7 @@ const AwardHistoryYeeki = () => {
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>รอบที่</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>เวลา</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>6 ตัว</th>
+                <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>4 ตัวท้าย</th> {/* 🌟 เพิ่มคอลัมน์ 4 ตัวท้าย */}
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>3 ตัวบน</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวบน</th>
                 <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0' }}>2 ตัวล่าง</th>
@@ -115,21 +116,21 @@ const AwardHistoryYeeki = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan="7" style={{ padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</td></tr>
+                <tr><td colSpan="8" style={{ padding: '40px', color: '#94a3b8' }}>กำลังโหลดข้อมูล...</td></tr>
               ) : historyData.length > 0 ? (
                 historyData.map((round) => {
                   
-                  // 🌟 ดึงข้อมูลตรงๆ จาก Database (รับประกันว่าเลขท้ายตรงกัน 100%)
-                  const super8 = round.result_8_super || '-';
-                  const top6 = super8 !== '-' ? super8.slice(-6) : '-'; // หั่น 6 ตัวจากแจ็คพอต
-                  const top3 = round.result_3_top || '-';
-                  const top2 = top3 !== '-' ? top3.slice(-2) : '-'; // หั่น 2 ตัวบนจาก 3 ตัวบน
+                  // 🌟 ดึงข้อมูลและหั่นเลขให้ถูกต้องเหมือนหน้าอื่นๆ
+                  const res6 = round.result_8_super || '-';
+                  const res4 = round.result_4_top || '-';
+                  const res3 = round.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
+                  const res2top = res4 !== '-' ? res4.slice(-2) : '-';
+                  const res2bot = round.result_2_bottom || '-';
 
                   return (
                     <tr key={round.round_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
                       <td style={{ padding: '15px', fontWeight: 'bold', color: '#334155' }}>{round.round_number}</td>
                       
-                      {/* 🌟 แสดงเวลาที่แก้ไขแล้ว */}
                       <td style={{ padding: '15px', color: '#64748b' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
                           <Clock size={14} /> {formatCorrectTime(round.draw_time)}
@@ -137,16 +138,19 @@ const AwardHistoryYeeki = () => {
                       </td>
                       
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={top6} color="#8b5cf6" bg="#ede9fe" />
+                        <NumberBadge number={res6} color="#8b5cf6" bg="#ede9fe" />
                       </td>
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={top3} color="#ef4444" bg="#fee2e2" />
+                        <NumberBadge number={res4} color="#ec4899" bg="#fce7f3" /> {/* 🌟 แสดง 4 ตัวท้าย */}
                       </td>
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={top2} color="#f59e0b" bg="#fef3c7" />
+                        <NumberBadge number={res3} color="#ef4444" bg="#fee2e2" />
                       </td>
                       <td style={{ padding: '15px' }}>
-                        <NumberBadge number={round.result_2_bottom} color="#0ea5e9" bg="#e0f2fe" />
+                        <NumberBadge number={res2top} color="#f59e0b" bg="#fef3c7" />
+                      </td>
+                      <td style={{ padding: '15px' }}>
+                        <NumberBadge number={res2bot} color="#0ea5e9" bg="#e0f2fe" />
                       </td>
 
                       <td style={{ padding: '15px' }}>
@@ -166,7 +170,7 @@ const AwardHistoryYeeki = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" style={{ padding: '50px', color: '#94a3b8', textAlign: 'center' }}>
+                  <td colSpan="8" style={{ padding: '50px', color: '#94a3b8', textAlign: 'center' }}> {/* 🌟 แก้ colSpan เป็น 8 */}
                     <AlertCircle size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
                     <div>ไม่มีข้อมูลการออกรางวัลในวันที่เลือก</div>
                   </td>
