@@ -119,12 +119,12 @@ const ManageYeeki = () => {
         }
         
         if (data.round) {
-          const res8 = data.round.result_8_super || '-';
-          const res4 = data.round.result_4_top || '-';
-          const res3 = data.round.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
-          const res2top = res4 !== '-' ? res4.slice(-2) : '-';
-          const res2bot = data.round.result_2_bottom || '-';
-          const res6 = (res2bot !== '-' && res4 !== '-') ? `${res2bot}${res4}` : '-';
+         const res8 = data.round.result_8_super || '-'; 
+const res6 = data.round.result_8_super || '-'; // 💡 เลข 6 ตัวดึงมาจาก result_8_super โดยตรงเลย
+const res4 = data.round.result_4_top || '-';
+const res3 = data.round.result_3_top || (res4 !== '-' ? res4.slice(-3) : '-');
+const res2top = res4 !== '-' ? res4.slice(-2) : '-';
+const res2bot = data.round.result_2_bottom || '-';
 
           setSelectedRound(prev => ({ ...prev, result_8_super: res8, result_4_top: res4, result_3_top: res3, result_2_bottom: res2bot }));
           
@@ -238,12 +238,12 @@ const ManageYeeki = () => {
       const res = await fetch(`${API_URL}/api/admin/yeeki-draw-history?date=${date}`);
       const data = await res.json();
       if (data.success) {
-        if (data.results) {
-          const res8 = data.results.result_8_super || '-';
+       if (data.results) {
+          const res6 = data.results.result_8_super || '-'; // 💡 เลข 6 ตัว
           const res4 = data.results.result_4_top || '-';
           setResults(prev => ({
-            prize_8: res8 !== '-' ? res8 : prev.prize_8,
-            prize_6: res8 !== '-' ? res8.slice(-6) : prev.prize_6,
+            prize_8: '-', 
+            prize_6: res6 !== '-' ? res6 : prev.prize_6,
             prize_4: res4 !== '-' ? res4 : prev.prize_4,
             prize_3: data.results.result_3_top || prev.prize_3,
             prize_2_top: res4 !== '-' ? res4.slice(-2) : prev.prize_2_top,
