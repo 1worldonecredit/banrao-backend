@@ -28,20 +28,17 @@ const AdminLayout = () => {
   // 🌟 ตัวแปรเก็บจำนวนแจ้งเตือน
   const [pendingBankCount, setPendingBankCount] = useState(0);
 
+
   // ==========================================
   // 🌟 1. API: ดึงโครงสร้างเมนู และ ตรวจสอบสิทธิ์ (Role)
   // ==========================================
   const fetchMenusAndPermissions = async () => {
     try {
-      // ดึงโครงสร้างเมนูทั้งหมด
       const menusRes = await fetch(`${API_URL}/api/menus`);
       if (!menusRes.ok) throw new Error('Failed to fetch menus');
       const allMenus = await menusRes.json();
 
-      // ดึง User ID จาก LocalStorage 
       const userDataStr = localStorage.getItem('userData');
-      
-      // ถ้าไม่มีข้อมูล User ให้ถือว่ายังไม่ Login
       if (!userDataStr) {
           setDynamicMenus(allMenus); 
           return;
@@ -50,7 +47,6 @@ const AdminLayout = () => {
       const userData = JSON.parse(userDataStr);
       const userId = userData.user_id || userData.id;
 
-      // ดึงสิทธิ์ว่า Role ของ User คนนี้เห็นเมนู ID อะไรได้บ้าง
       const permsRes = await fetch(`${API_URL}/api/admin/user-permissions`, {
           headers: { 'user-id': userId }
       });
@@ -58,18 +54,25 @@ const AdminLayout = () => {
       if (permsRes.ok) {
           const permsData = await permsRes.json();
           if (permsData.success) {
-              setAllowedMenus(permsData.allowedMenus); // เก็บ ID เมนูที่ได้รับอนุญาต
               
-              // 🌟 กรองเมนูให้เหลือเฉพาะอันที่อยู่ใน allowedMenus
+              // 🌟 จุดที่แก้ไข: ปลดล็อคให้ Super Admin (role_id = 1) เห็นทุกเมนูเสมอ! ป้องกันการโดนล็อคตัวเอง
+              if (permsData.roleId === 1 || permsData.roleId === '1') {
+                  setAllowedMenus(allMenus.map(m => m.id));
+                  setDynamicMenus(allMenus);
+                  localStorage.setItem('system_menus', JSON.stringify(allMenus));
+                  return;
+              }
+
+              // สำหรับ Role อื่นๆ (2, 3, 4) จะต้องถูกกรองตามสิทธิ์ในฐานข้อมูล
+              setAllowedMenus(permsData.allowedMenus); 
               const filteredMenus = allMenus.filter(menu => permsData.allowedMenus.includes(menu.id));
               
-              setDynamicMenus(filteredMenus); // แสดงเฉพาะเมนูที่กรองแล้ว
+              setDynamicMenus(filteredMenus); 
               localStorage.setItem('system_menus', JSON.stringify(filteredMenus));
               return;
           }
       }
       
-      // ถ้าดึงสิทธิ์ไม่ผ่าน (Fallback)
       setDynamicMenus(allMenus);
       localStorage.setItem('system_menus', JSON.stringify(allMenus));
 
