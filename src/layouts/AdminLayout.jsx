@@ -22,14 +22,13 @@ const AdminLayout = () => {
   const [openMenus, setOpenMenus] = useState({});
   const [dynamicMenus, setDynamicMenus] = useState([]);
   
+  // 🌟 เพิ่ม State เก็บรายการเมนูที่ได้รับอนุญาต
+  const [allowedMenus, setAllowedMenus] = useState([]);
+  
   // 🌟 ตัวแปรเก็บจำนวนแจ้งเตือน
   const [pendingBankCount, setPendingBankCount] = useState(0);
-  const [allowedMenus, setAllowedMenus] = useState([]);
 
   // ==========================================
-  // 🌟 1. API: ดึงโครงสร้างเมนูจากฐานข้อมูล
-  // ==========================================
- // ==========================================
   // 🌟 1. API: ดึงโครงสร้างเมนู และ ตรวจสอบสิทธิ์ (Role)
   // ==========================================
   const fetchMenusAndPermissions = async () => {
@@ -39,11 +38,10 @@ const AdminLayout = () => {
       if (!menusRes.ok) throw new Error('Failed to fetch menus');
       const allMenus = await menusRes.json();
 
-      // ดึง User ID จาก LocalStorage (คุณต้องเซฟตอน Login สำเร็จ)
-      // ตัวอย่าง: localStorage.setItem('userData', JSON.stringify({ user_id: 1, ... }))
+      // ดึง User ID จาก LocalStorage 
       const userDataStr = localStorage.getItem('userData');
       
-      // ถ้าไม่มีข้อมูล User ให้ถือว่ายังไม่ Login (แต่เรามี ProtectedRoute ดักไว้แล้ว)
+      // ถ้าไม่มีข้อมูล User ให้ถือว่ายังไม่ Login
       if (!userDataStr) {
           setDynamicMenus(allMenus); 
           return;
@@ -86,13 +84,6 @@ const AdminLayout = () => {
     return () => window.removeEventListener('menuUpdated', fetchMenusAndPermissions);
   }, []);
 
-  
-  useEffect(() => {
-    fetchMenus();
-    window.addEventListener('menuUpdated', fetchMenus);
-    return () => window.removeEventListener('menuUpdated', fetchMenus);
-  }, []);
-
   // ==========================================
   // 🌟 2. API: ดึงจำนวนการแจ้งเตือนต่างๆ 
   // ==========================================
@@ -133,6 +124,7 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('userData');
+    localStorage.removeItem('token');
     navigate('/login');
   };
 
@@ -153,12 +145,11 @@ const AdminLayout = () => {
     return {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
       padding: '12px 20px', cursor: 'pointer', transition: 'all 0.3s ease',
-      // ปรับให้ตอน Hover หรือ Active เป็นสีสว่างโปร่งแสง และมีขอบมนเล็กน้อยให้ดูทันสมัย
       backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
       color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)', 
-      borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent', // เส้นขอบสีเขียวเข้าธีม
+      borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent', 
       fontWeight: isActive ? '600' : 'normal',
-      margin: '4px 8px', borderRadius: '8px' // เพิ่ม Margin ให้ปุ่มดูไม่ติดกันเกินไป
+      margin: '4px 8px', borderRadius: '8px' 
     };
   };
 
@@ -191,7 +182,6 @@ const AdminLayout = () => {
   const mainMenus = dynamicMenus.filter(m => m.parentId === null);
 
   return (
-    // เปลี่ยน Background หลักให้โปร่งใส (transparent) เพื่อโชว์ภาพพื้นหลังที่ตั้งไว้ใน CSS
     <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', fontFamily: 'var(--sans)', overflow: 'hidden' }}>
       
       {isMobile && isSidebarOpen && (
@@ -206,19 +196,19 @@ const AdminLayout = () => {
       {/* ========================================== */}
       <div style={{ 
         width: '320px', 
-        backgroundColor: 'rgba(2, 21, 146, 0.9)', // <-- เปลี่ยนเป็นสีเข้มโปร่งแสง
-        backdropFilter: 'blur(20px)',             // <-- เอฟเฟกต์เบลอแบบกระจก
-        WebkitBackdropFilter: 'blur(20px)',       // <-- รองรับ Safari
-        color: '#ffffff',                         // <-- ตัวอักษรสีขาว
-        borderRight: '1px solid rgba(255, 255, 255, 0.1)', // <-- เส้นขอบโปร่งแสงบางๆ
+        backgroundColor: 'rgba(2, 21, 146, 0.9)', 
+        backdropFilter: 'blur(20px)',            
+        WebkitBackdropFilter: 'blur(20px)',       
+        color: '#ffffff',                         
+        borderRight: '1px solid rgba(255, 255, 255, 0.1)', 
         display: 'flex', flexDirection: 'column', flexShrink: 0,
         position: isMobile ? 'fixed' : 'relative', top: 0, bottom: 0, left: 0, transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 50,
-        boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)' // เพิ่มเงาให้ลอยขึ้นมา
+        boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)' 
       }}>
         {/* หัว Sidebar โลโก้ */}
         <div style={{ padding: '24px 20px', fontSize: '22px', fontWeight: 'bold', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', letterSpacing: '1px' }}>
-          SAPI <span style={{color: '#dead4a'}}>ADMIN</span> {/* ตกแต่งโลโก้ให้สวยขึ้น */}
+          SAPI <span style={{color: '#dead4a'}}>ADMIN</span> 
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex' }}><X size={20} /></button>
           )}
@@ -276,19 +266,19 @@ const AdminLayout = () => {
       </div>
 
       {/* ========================================== */}
-      {/* 🌟 Content Area (ปรับให้โปร่งใส 100% ทะลุถึงพื้นหลัง) */}
+      {/* 🌟 Content Area */}
       {/* ========================================== */}
       <div style={{ 
         flexGrow: 1, display: 'flex', flexDirection: 'column', 
         height: '100vh', overflow: 'hidden', 
         width: isMobile ? '100%' : 'calc(100% - 280px)', 
-        backgroundColor: 'transparent' /* 👈 1. เปลี่ยนเป็นโปร่งใสตรงนี้ */
+        backgroundColor: 'transparent' 
       }}>
         
         {/* Top Navbar */}
         <div style={{ 
           height: '70px', 
-          backgroundColor: 'rgba(8, 38, 94, 0.5)', // กล่องบนสุดโปร่งแสง
+          backgroundColor: 'rgba(8, 38, 94, 0.5)', 
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
@@ -314,16 +304,13 @@ const AdminLayout = () => {
           </div>
         </div>
 
-
         {/* พื้นที่สำหรับ Render หน้าลูก (Outlet) */}
-        {/* 🌟 เอา className="glass-card" และ margin ออก เพื่อไม่ให้มันซ้อนกับหน้าย่อย */}
-        {/* ========================================== */}
         <div 
           style={{ 
             padding: isMobile ? '16px' : '32px', 
             overflowY: 'auto', 
             flexGrow: 1,
-            backgroundColor: 'transparent' // บังคับให้โปร่งใสทะลุไปถึง body 
+            backgroundColor: 'transparent' 
           }}
         >
           <Outlet /> 
