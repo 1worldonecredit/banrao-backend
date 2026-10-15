@@ -24,23 +24,69 @@ const AdminLayout = () => {
   
   // 🌟 ตัวแปรเก็บจำนวนแจ้งเตือน
   const [pendingBankCount, setPendingBankCount] = useState(0);
+  const [allowedMenus, setAllowedMenus] = useState([]);
 
   // ==========================================
   // 🌟 1. API: ดึงโครงสร้างเมนูจากฐานข้อมูล
   // ==========================================
-  const fetchMenus = async () => {
+ // ==========================================
+  // 🌟 1. API: ดึงโครงสร้างเมนู และ ตรวจสอบสิทธิ์ (Role)
+  // ==========================================
+  const fetchMenusAndPermissions = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/menus`);
-      if (response.ok) {
-        const data = await response.json();
-        setDynamicMenus(data);
-        localStorage.setItem('system_menus', JSON.stringify(data));
+      // ดึงโครงสร้างเมนูทั้งหมด
+      const menusRes = await fetch(`${API_URL}/api/menus`);
+      if (!menusRes.ok) throw new Error('Failed to fetch menus');
+      const allMenus = await menusRes.json();
+
+      // ดึง User ID จาก LocalStorage (คุณต้องเซฟตอน Login สำเร็จ)
+      // ตัวอย่าง: localStorage.setItem('userData', JSON.stringify({ user_id: 1, ... }))
+      const userDataStr = localStorage.getItem('userData');
+      
+      // ถ้าไม่มีข้อมูล User ให้ถือว่ายังไม่ Login (แต่เรามี ProtectedRoute ดักไว้แล้ว)
+      if (!userDataStr) {
+          setDynamicMenus(allMenus); 
+          return;
       }
+      
+      const userData = JSON.parse(userDataStr);
+      const userId = userData.user_id || userData.id;
+
+      // ดึงสิทธิ์ว่า Role ของ User คนนี้เห็นเมนู ID อะไรได้บ้าง
+      const permsRes = await fetch(`${API_URL}/api/admin/user-permissions`, {
+          headers: { 'user-id': userId }
+      });
+      
+      if (permsRes.ok) {
+          const permsData = await permsRes.json();
+          if (permsData.success) {
+              setAllowedMenus(permsData.allowedMenus); // เก็บ ID เมนูที่ได้รับอนุญาต
+              
+              // 🌟 กรองเมนูให้เหลือเฉพาะอันที่อยู่ใน allowedMenus
+              const filteredMenus = allMenus.filter(menu => permsData.allowedMenus.includes(menu.id));
+              
+              setDynamicMenus(filteredMenus); // แสดงเฉพาะเมนูที่กรองแล้ว
+              localStorage.setItem('system_menus', JSON.stringify(filteredMenus));
+              return;
+          }
+      }
+      
+      // ถ้าดึงสิทธิ์ไม่ผ่าน (Fallback)
+      setDynamicMenus(allMenus);
+      localStorage.setItem('system_menus', JSON.stringify(allMenus));
+
     } catch (error) {
-      console.error('ไม่สามารถดึงข้อมูลเมนูได้:', error);
+      console.error('ไม่สามารถดึงข้อมูลเมนูหรือสิทธิ์ได้:', error);
     }
   };
 
+  useEffect(() => {
+    fetchMenusAndPermissions();
+    window.addEventListener('menuUpdated', fetchMenusAndPermissions);
+    return () => window.removeEventListener('menuUpdated', fetchMenusAndPermissions);
+  }, []);
+
+  
   useEffect(() => {
     fetchMenus();
     window.addEventListener('menuUpdated', fetchMenus);
