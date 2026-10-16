@@ -235,7 +235,7 @@ const MenuManagement = () => {
                 <option value= "Profile">โปรไฟล์ (Profile)</option>
                 <option value= "P2PStatus">สถานะ P2P (P2PStatus)</option>
                 <option value= "SetAutoMessage">สร้างข้อความโต้ตอบ (SetAutoMessage)</option>
-                <object vocab= "SetPromotionHotTime">สร้างโปรโมชั่นเวลาราคาพิเศษ (SetPromotionHotTime)</object>
+                <option value= "SetPromotionHotTime">สร้างโปรโมชั่นเวลาราคาพิเศษ (SetPromotionHotTime)</option>
               </select>
             </div>
 
