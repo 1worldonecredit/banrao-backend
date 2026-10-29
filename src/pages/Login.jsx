@@ -57,7 +57,7 @@ export default function Login() {
             <ShieldAlert size={40} color="#2563eb" />
           </div>
           <h2 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '24px' }}>Admin Portal</h2>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>ระบบจัดการหลังบ้าน SALAPI</p>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>ระบบจัดการหลังบ้าน หมู่บ้านเรา</p>
         </div>
 
         <form onSubmit={handleLogin}>
