@@ -119,14 +119,14 @@ useEffect(() => {
         </div>
 
         <div style={{ padding: '15px 0', flexGrow: 1, overflowY: 'auto' }}>
-          {MENUS.map(menu => {
-            const IconComponent = menu.icon;
-            return (
-              <div key={menu.id} style={getMenuItemStyle(menu.path)} onClick={() => handleNavigation(menu.path)}>
-                <IconComponent size={20} style={{ opacity: 0.85 }} />
-                <span>{menu.title}</span>
-              </div>
-            );
+          {menus.map(menu => {
+           const IconComponent = ICON_MAP[menu.icon_name] || Circle;
+          return (
+          <div key={menu.menu_id} style={getMenuItemStyle(menu.route_path)} onClick={() => handleNavigation(menu.route_path)}>
+         <IconComponent size={20} style={{ opacity: 0.85 }} />
+         <span>{menu.menu_name}</span>
+          </div>
+          );
           })}
         </div>
 
