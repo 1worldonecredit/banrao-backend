@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Menu, X, User } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, X, User, Users } from 'lucide-react';
+
 
 const MENUS = [
   { id: 1, title: 'ภาพรวมระบบ (Dashboard)', path: '/dashboard', icon: LayoutDashboard },
   { id: 2, title: 'ข้อมูลส่วนตัว (Profile)', path: '/profile', icon: User },
+  { id: 3, title: 'จัดการผู้ใช้งาน (Users)', path: '/users', icon: Users },
 ];
 
 const AdminLayout = () => {
