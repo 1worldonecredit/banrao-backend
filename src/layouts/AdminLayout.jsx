@@ -112,7 +112,7 @@ useEffect(() => {
         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 50,
         boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)'
       }}>
-        <div style={{ padding: '24px 20px', fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', letterSpacing: '1px' }}>
+        <div style={{ padding: '24px 20px', fontSize: '20px', fontWeight: 'bold', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', letterSpacing: '1px' }}>
           <span>BAN RAO <span style={{ color: '#4ade80' }}>ADMIN</span></span>
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex' }}>
@@ -172,7 +172,7 @@ useEffect(() => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ textAlign: 'right', display: isMobile ? 'none' : 'block' }}>
-              <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '14px' }}>{displayName}</div>
+              <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '10px' }}>{displayName}</div>
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{displayRole}</div>
             </div>
             <div style={{ width: '40px', height: '40px', backgroundColor: '#4ade80', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#000', fontWeight: 'bold', boxShadow: '0 0 15px rgba(74, 222, 128, 0.3)' }}>
