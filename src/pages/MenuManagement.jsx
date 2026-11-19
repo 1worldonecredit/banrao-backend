@@ -190,52 +190,7 @@ const MenuManagement = () => {
               >
                 <option value="">-- ไม่ระบุ (ใช้สำหรับเมนูหลักที่มีลูก) --</option>
                 <option value="Dashboard">หน้าแผงควบคุม (Dashboard)</option>
-                <option value="EmployeeList">หน้ารายชื่อพนักงาน (EmployeeList)</option>
-                <option value="OrgStructure">หน้าโครงสร้างองค์กร (OrgStructure)</option>
-                <option value="UserPermissions">หน้ากำหนดสิทธิ์ (UserPermissions)</option>
-                <option value="AddBankSystem">หน้าเพิ่มบัญชีระบบ (AddBankSystem)</option>
-                <option value="ManageDeposit">หน้ารายการคำขอฝากเงิน(ManageDeposit)</option>
-                <option value="AwardResults">ผลการออกหวยเวีบด (AwardResults)</option>
-                <option value="DailySales">รายงานยอดขายรายวัน(DailySales)</option>
-                <option value="AddNumberViet">เพิ่มเลขหวยเวียด(AddNumberViet)</option>
-                <option value="CustomerList">หน้ารายชื่อลูกค้า (CustomerList)</option>
-                <option value="AccountBank">หน้าตรวจสอบบัญชีธนาคาร (AccountBank)</option>
-                <option value="DepositRequest">คำขอฝากเงิน(DepositRequest)</option>
-                <option value= "CustomersRequestBook">คำขอเพิ่มบัญชีธนาคาร(CustomersRequestBook)</option>
-                <option value="OverseeThePrize">จัดการออกเลข คั้งค่าควบคุม(OverseeThePrize)</option>
-                <option value="CustomersWinning">ลูกค้าถูกเลข(CustomersWinning)</option>
-                <option value="WithdrawalRequest">คำขอถอนเงิน(WithdrawalRequest)</option>
-                <option value="ReportDeposit">รายงานสรุปเงินฝาก(ReportDeposit)</option>
-                <option value="OderNumber">รายงานขายรายวัน(OderNumber)</option>
-                <option value="ChatMessage">ข้อความพูดคุย(ChatMessage)</option>
-                <option value="DepositBalance">คีย์ยอดฝากเงินที่ลูกค้าโอนมา (DepositBalance)</option>
-                <option value="MaliciousIP">IP ที่ต้องระวัง(MaliciousIP)</option>
-                <option value="LaosSalesReport">รายงานยอดขายในลาว(LaosSalesReport)</option>
-                <option value="SetNameSystem">ตั้งขื่อระบบ(SetNameSystem)</option>
-                <option value="PrizeTransferReport">รายงานโอนเงินรางวัลคนถูกหาย(PrizeTransferReport)</option>
-                <option value="ProfitReport">รายงานผลกำไรรายวัน(ProfitReport)</option>
-                <option value="ReceivingAccount">เพิ่มบัญชีรับเงินโอน(ReceivingAccount)</option>
-                <option value="HRMResources">เพิ่มแผนก และตำแหน่งงาน(HRMResources)</option>
-                <option value="CommissionSetting">ปรับ % Commission(CommissionSetting)</option>
-                <option value="ManageYeeki">จัดการหวยซุปเปอร์ จับยี่กี(ManageYeeki)</option>
-                <option value="AddNumberYeeki">จัดการเลขและเงินรางวัล หวยจับยี่กี(AddNumberYeeki)</option>
-                <option value="SetTimeYeeki">ตั้งเวลา รอบหวยจับยี่กี(SetTimeYeeki)</option>
-                <option value="YeekiSaleReport">รายงานขายหวยจับยี่กี(YeekiSaleReport)</option>
-                <option value="AwardHistoryYeeki">ประวัติการออกเลข จับยี่กี(AwardHistoryYeeki)</option>
-                <option value="SaleReportDetails">รายงานขายแต่ละรอบ(SaleReportDetails)</option>
-                <option value="DailySaleThaiNumber">รายงานขายหวยไทย (DailySaleThaiNumber)</option>
-                <option value="ManageThaiNumber">ตัดการควบคุมหวยไทย (ManageThaiNumber)</option>
-                <option value="ThaiLotteryResults">เพิ่มผลออกเลขรางวัลหวยไทย (ThaiLotteryResults)</option>
-                <option value="DepositPromotion">โปรโมชั่นฝากถอนเงิน P2P (DepositPromotion)</option>
-                <option value="CommissionP2P">ปรับ Commission P2P (CommissionP2P)</option>
-                <option value="SetTimeMission">ตั้งเวลาภารกิจ (SetTimeMission)</option>
-                <option value="CustomerUnderSurveillance">รายชื่อลูกค้าเฝ่าระวัง (CustomerUnderSurveillance)</option>
-                <option value="JobRecruitmentPost">โพ็สรับสมัครคนทำงานหน้าเว็บ (JobRecruitmentPost)</option>
-                <option value="ListOfJobApplicants">รายชื่อคำขอสมัครงาน (ListOfJobApplicants)</option>
-                <option value= "Profile">โปรไฟล์ (Profile)</option>
-                <option value= "P2PStatus">สถานะ P2P (P2PStatus)</option>
-                <option value= "SetAutoMessage">สร้างข้อความโต้ตอบ (SetAutoMessage)</option>
-                <option value= "SetPromotionHotTime">สร้างโปรโมชั่นเวลาราคาพิเศษ (SetPromotionHotTime)</option>
+
               </select>
             </div>
 

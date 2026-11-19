@@ -4,52 +4,7 @@ import { useLocation } from 'react-router-dom';
 // นำเข้าหน้าต่างๆ (เช็กให้ชัวร์ว่ามีไฟล์เหล่านี้อยู่ในโฟลเดอร์ pages ครบถ้วน)
 import Dashboard from './Dashboard';
 import MenuManagement from './MenuManagement';
-import EmployeeList from './EmployeeList';
-import OrgStructure from './OrgStructure';
-import UserPermissions from './UserPermissions';
-import AddBankSystem from './AddBankSystem';
-import CustomerList from "./CustomerList";
-import AccountBank from './AccountBank';
-import ManageDeposit from './ManageDeposit';
-import AddNumberViet from './AddNumberViet';
-import AwardResults from './AwardResults';
-import OverseeThePrize from './OverseeThePrize';
-import DepositRequest from './DepositRequest';
-import DailySales from './DailySales';
-import CustomersRequestBook from './CustomersRequestBook';
-import CustomersWinning  from './CustomersWinning';
-import WithdrawalRequest from './WithdrawalRequest';
-import ReportDeposit from './ReportDeposit';
-import OderNumber from './OderNumber';
-import ChatMessage from './ChatMessage';
-import MaliciousIP from './MaliciousIP';
-import DepositBalance from './DepositBalance';
-import LaosSalesReport from './LaosSalesReport';
-import SetNameSystem from './SetNameSystem';
-import PrizeTransferReport from './PrizeTransferReport';
-import ProfitReport from './ProfitReport';
-import ReceivingAccount from './ReceivingAccount';
-import HRMResources from './HRMResources';
-import CommissionSetting from './CommissionSetting';
-import SetTimeYeeki from './SetTimeYeeki';
-import ManageYeeki from './ManageYeeki';
-import AddNumberYeeki from './AddNumberYeeki';
-import YeekiSaleReport from './YeekiSaleReport';
-import AwardHistoryYeeki from './AwardHistoryYeeki';
-import SaleReportDetails from './SaleReportDetails';
-import ManageThaiNumber from './ManageThaiNumber';
-import DailySaleThaiNumber from './DailySaleThaiNumber';
-import ThaiLotteryResults from './ThaiLotteryResults';
-import DepositPromotion from './DepositPromotion';
-import CommissionP2P from './CommissionP2P';
-import SetTimeMission from './SetTimeMission';
-import CustomerUnderSurveillance from './CustomerUnderSurveillance';
-import JobRecruitmentPost from './JobRecruitmentPost';
-import ListOfJobApplicants from './ListOfJobApplicants';
-import Profile from './Profile';
-import P2PStatus from './P2PStatus';
-import SetAutoMessage from './SetAutoMessage';
-import SetPromotionHotTime from './SetPromotionHotTime';
+
 
 
 
@@ -57,52 +12,7 @@ import SetPromotionHotTime from './SetPromotionHotTime';
 const componentsRegistry = {
   'Dashboard': Dashboard,
   'MenuManagement': MenuManagement,
-  'EmployeeList': EmployeeList,
-  'OrgStructure': OrgStructure,
-  'UserPermissions': UserPermissions,
-  'AddBankSystem': AddBankSystem,
-  'CustomerList': CustomerList,
-  'AccountBank': AccountBank,
-  'ManageDeposit': ManageDeposit,
-  'AddNumberViet': AddNumberViet,
-  'AwardResults': AwardResults,
-  'OverseeThePrize': OverseeThePrize,
-  'DepositRequest': DepositRequest,
-  'DailySales': DailySales,
-  'CustomersRequestBook': CustomersRequestBook,
-  'CustomersWinning': CustomersWinning ,
-  'WithdrawalRequest': WithdrawalRequest,
-  'ReportDeposit': ReportDeposit,
-  'OderNumber': OderNumber,
-  'ChatMessage': ChatMessage,
-  'DepositBalance': DepositBalance,
-  'MaliciousIP': MaliciousIP,
-  'LaosSalesReport': LaosSalesReport,
-  'SetNameSystem': SetNameSystem,
-  'PrizeTransferReport': PrizeTransferReport,
-  'ProfitReport': ProfitReport,
-  'ReceivingAccount': ReceivingAccount,
-  'HRMResources': HRMResources,
-  'CommissionSetting': CommissionSetting,
-  'AddNumberYeeki': AddNumberYeeki,
-  'ManageYeeki': ManageYeeki,
-  'SetTimeYeeki': SetTimeYeeki,
-  'AwardHistoryYeeki': AwardHistoryYeeki,
-  'YeekiSaleReport': YeekiSaleReport,
-  'SaleReportDetails': SaleReportDetails,
-  'ManageThaiNumber': ManageThaiNumber,
-  'DailySaleThaiNumber': DailySaleThaiNumber,
-  'ThaiLotteryResults': ThaiLotteryResults,
-  'DepositPromotion': DepositPromotion,
-  'CommissionP2P': CommissionP2P,
-  'SetTimeMission': SetTimeMission,
-  'CustomerUnderSurveillance': CustomerUnderSurveillance,
-  'JobRecruitmentPost': JobRecruitmentPost,
-  'ListOfJobApplicants': ListOfJobApplicants,
-  'Profile': Profile,
-  'P2PStatus': P2PStatus,
-  'SetAutoMessage': SetAutoMessage,
-  'SetPromotionHotTime': SetPromotionHotTime,
+
 };
 
 export default function PageRouter() {
