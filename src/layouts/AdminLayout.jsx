@@ -51,11 +51,13 @@ const AdminLayout = () => {
     if (isMobile) setIsSidebarOpen(false);
   };
 
-  const getMenuItemStyle = (path) => {
+const getMenuItemStyle = (path) => {
     const isActive = location.pathname === path;
     return {
-      display: 'flex', alignItems: 'center', gap: '12px',
-      padding: '12px 20px', cursor: 'pointer', transition: 'all 0.2s ease',
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '10px 16px', // ปรับความสูง-กว้างของปุ่มเมนูให้กระชับขึ้น
+      fontSize: '14px',     // ✨ เพิ่มตรงนี้ครับ (ลองปรับเป็น '13px' หรือ '14px' จะพอดี 1 บรรทัด)
+      cursor: 'pointer', transition: 'all 0.2s ease',
       backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
       color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.75)',
       borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent',
