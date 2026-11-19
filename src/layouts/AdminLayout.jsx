@@ -11,7 +11,7 @@ const iconMap = { LayoutDashboard, Landmark, UserCog, Package, Users, WalletCard
 // ==========================================
 // 🌟 กำหนด URL สำหรับต่อ API
 // ==========================================
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company'; 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life'; 
 
 const AdminLayout = () => {
   const navigate = useNavigate();
