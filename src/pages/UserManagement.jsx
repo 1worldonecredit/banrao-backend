@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, ShieldCheck, UserCheck, UserX, RefreshCw, MapPin } from 'lucide-react';
+import {
+  Users, Search, ShieldCheck, UserCheck, UserX,
+  RefreshCw, MapPin, Settings, Plus, Pencil, Trash2, Check, X
+} from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
+
+const LEVEL_OPTIONS = [
+  { value: 'VILLAGE', label: 'ระดับหมู่บ้าน (VILLAGE)' },
+  { value: 'TAMBON', label: 'ระดับตำบล (TAMBON)' },
+  { value: 'AMPHURE', label: 'ระดับอำเภอ (AMPHURE)' },
+  { value: 'PROVINCE', label: 'ระดับจังหวัด (PROVINCE)' },
+  { value: 'NATIONAL', label: 'ระดับประเทศ (NATIONAL)' },
+  { value: 'ADMIN', label: 'ผู้ดูแลระบบ (ADMIN)' },
+  { value: 'LOCAL', label: 'ทั่วไป (LOCAL)' },
+];
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -9,6 +22,15 @@ export default function UserManagement() {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // State สำหรับ Modal จัดการตำแหน่ง (เพิ่ม / แก้ไข / ลบ)
+  const [showPosModal, setShowPosModal] = useState(false);
+  const [newPosName, setNewPosName] = useState('');
+  const [newPosLevel, setNewPosLevel] = useState('VILLAGE');
+  const [editingPosId, setEditingPosId] = useState(null);
+  const [editPosName, setEditPosName] = useState('');
+  const [editPosLevel, setEditPosLevel] = useState('VILLAGE');
+  const [isSavingPos, setIsSavingPos] = useState(false);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -39,6 +61,83 @@ export default function UserManagement() {
   const countSuperAdmin = users.filter(u => isSuperAdmin(u)).length;
   const countByPosition = (posId) => users.filter(u => u.positions?.some(p => p.position_id === posId)).length;
 
+  // ==========================================
+  // ฟังก์ชัน เพิ่ม / แก้ไข / ลบ ตำแหน่ง
+  // ==========================================
+  const handleAddPosition = async (e) => {
+    e.preventDefault();
+    if (!newPosName.trim()) return alert('กรุณากรอกชื่อตำแหน่ง');
+    setIsSavingPos(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/positions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ position_name: newPosName, position_level: newPosLevel })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewPosName('');
+        fetchUsers();
+      } else {
+        alert('❌ ' + data.message);
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    } finally {
+      setIsSavingPos(false);
+    }
+  };
+
+  const handleSaveEditPosition = async (posId) => {
+    if (!editPosName.trim()) return alert('กรุณากรอกชื่อตำแหน่ง');
+    setIsSavingPos(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/positions/${posId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ position_name: editPosName, position_level: editPosLevel })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingPosId(null);
+        fetchUsers();
+      } else {
+        alert('❌ ' + data.message);
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    } finally {
+      setIsSavingPos(false);
+    }
+  };
+
+  const handleDeletePosition = async (pos) => {
+    const cnt = countByPosition(pos.position_id);
+    if (cnt > 0) {
+      return alert(`ไม่สามารถลบ "${pos.position_name}" ได้ เนื่องจากมีผู้ใช้งานถือตำแหน่งนี้อยู่ ${cnt} คน`);
+    }
+    if (!window.confirm(`ยืนยันการลบตำแหน่ง "${pos.position_name}" ?`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/positions/${pos.position_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (String(selectedFilter) === String(pos.position_id)) setSelectedFilter('ALL');
+        fetchUsers();
+      } else {
+        alert('❌ ' + data.message);
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
   const filteredUsers = users.filter(u => {
     let matchFilter = true;
     if (selectedFilter === 'CITIZEN') {
@@ -57,42 +156,22 @@ export default function UserManagement() {
     return matchFilter && matchSearch;
   });
 
-  // =========================================================================
-  // ✨ จุดที่ 1: ปรับความทึบของ "การ์ดและกล่องตาราง" (Glassmorphism)
-  // =========================================================================
   const glassStyle = {
-    // เดิม: 'rgba(255, 255, 255, 0.08)' (ใสมากจนลายพื้นหลังกวนสายตา)
-    // ใหม่: ใช้สีกรมท่าเข้ม (15, 23, 42) ผสมความทึบ 0.88 (88%)
-    // 💡 ตัวอย่างการปรับเอง: แก้เลขตัวสุดท้าย (0.00 = ใสสนิท, 1.00 = ทึบสนิท)
-    //    - อยากใสขึ้นนิดหน่อย  -> 'rgba(15, 23, 42, 0.75)'
-    //    - อยากทึบเกือบสนิท   -> 'rgba(15, 23, 42, 0.95)'
     background: 'rgba(15, 23, 42, 0.88)',
-
-    // 💡 ตัวอย่างการปรับความเบลอของกระจก: เลขยิ่งเยอะยิ่งเบลอ (เช่น blur(8px) หรือ blur(24px))
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255, 255, 255, 0.18)', // สีเส้นขอบกล่อง
+    border: '1px solid rgba(255, 255, 255, 0.18)',
     borderRadius: '16px',
     color: '#ffffff',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)'
   };
 
-  // =========================================================================
-  // ✨ จุดที่ 2: ปรับความทึบของ "ปุ่มกรองตำแหน่ง" (Filter Pills)
-  // =========================================================================
   const tabStyle = (active) => ({
     padding: '8px 14px',
     borderRadius: '999px',
     border: active ? '1px solid #4ade80' : '1px solid rgba(255, 255, 255, 0.25)',
-
-    // เดิม: 'rgba(255,255,255,0.06)' (โปร่งใสเกินไป)
-    // ใหม่: ปรับพื้นหลังปุ่มให้ทึบ 0.85 เพื่อให้อ่านชื่อตำแหน่งชัดแม้พื้นหลังมีลาย
-    // 💡 ตัวอย่างการปรับเอง:
-    //    - ปุ่มที่เลือก (active)     -> 'rgba(22, 101, 52, 0.90)' (เขียวเข้มทึบ 90%)
-    //    - ปุ่มที่ยังไม่เลือก (ปกติ)   -> 'rgba(15, 23, 42, 0.85)' (กรมท่าเข้มทึบ 85%)
     background: active ? 'rgba(22, 101, 52, 0.90)' : 'rgba(15, 23, 42, 0.85)',
-
-    color: active ? '#86efac' : '#f1f5f9', // สีตัวอักษรบนปุ่ม (สว่างขึ้น)
+    color: active ? '#86efac' : '#f1f5f9',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: active ? '700' : '500',
@@ -105,7 +184,7 @@ export default function UserManagement() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
       
-      {/* หัวข้อ + ช่องค้นหา */}
+      {/* หัวข้อ + ช่องค้นหา + ปุ่มจัดการตำแหน่ง */}
       <div style={{ ...glassStyle, padding: '20px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '20px', fontWeight: '700', color: '#ffffff' }}>
@@ -128,7 +207,7 @@ export default function UserManagement() {
                 padding: '9px 14px 9px 36px',
                 borderRadius: '10px',
                 border: '1px solid rgba(255,255,255,0.25)',
-                background: 'rgba(2, 6, 23, 0.75)', // พื้นหลังช่องค้นหาสีเข้มอ่านง่าย
+                background: 'rgba(2, 6, 23, 0.75)',
                 color: '#ffffff',
                 outline: 'none',
                 fontSize: '14px',
@@ -136,6 +215,18 @@ export default function UserManagement() {
               }}
             />
           </div>
+
+          <button
+            onClick={() => setShowPosModal(true)}
+            style={{
+              padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(96, 165, 250, 0.5)',
+              background: 'rgba(37, 99, 235, 0.85)', color: '#ffffff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600'
+            }}
+          >
+            <Settings size={15} /> จัดการตำแหน่ง (เพิ่ม/แก้ไข/ลบ)
+          </button>
+
           <button
             onClick={fetchUsers}
             style={{
@@ -178,10 +269,6 @@ export default function UserManagement() {
       <div style={{ ...glassStyle, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
           <thead>
-            {/* ========================================================================= */}
-            {/* ✨ จุดที่ 3: ปรับพื้นหลังและสีตัวอักษร "หัวตาราง" ให้สว่างอ่านง่าย           */}
-            {/* 💡 ตัวอย่างการปรับเอง: แก้ color เป็น '#ffffff' (ขาวล้วน) หรือ '#93c5fd' (ฟ้าอ่อน) */}
-            {/* ========================================================================= */}
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.2)', background: 'rgba(2, 6, 23, 0.85)', color: '#e2e8f0' }}>
               <th style={{ padding: '14px 16px', color: '#e2e8f0' }}>#</th>
               <th style={{ padding: '14px 16px', color: '#e2e8f0' }}>ชื่อ - นามสกุล</th>
@@ -208,13 +295,10 @@ export default function UserManagement() {
               filteredUsers.map((u, idx) => (
                 <tr key={u.account_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   <td style={{ padding: '14px 16px', color: '#94a3b8' }}>{idx + 1}</td>
-
-                  {/* ✨ จุดที่ 4: บังคับสีชื่อ-นามสกุลเป็นสีขาวสว่าง (#ffffff) กันโดน CSS หลักทับเป็นสีดำ */}
                   <td style={{ padding: '14px 16px', fontWeight: '600', color: '#ffffff' }}>
                     {u.first_name} {u.last_name}
                     {u.nickname && <span style={{ color: '#94a3b8', fontWeight: '400', marginLeft: '6px' }}>({u.nickname})</span>}
                   </td>
-
                   <td style={{ padding: '14px 16px', fontFamily: 'monospace', color: '#93c5fd', fontWeight: '600' }}>
                     {u.username_phone}
                   </td>
@@ -262,6 +346,141 @@ export default function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* ===================================================================== */}
+      {/* Modal จัดการตำแหน่ง (เพิ่ม / แก้ไข / ลบ sys_positions)                */}
+      {/* ===================================================================== */}
+      {showPosModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            ...glassStyle,
+            background: 'rgba(15, 23, 42, 0.96)',
+            width: '100%', maxWidth: '680px', maxHeight: '85vh',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden'
+          }}>
+            {/* หัว Modal */}
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Settings size={20} color="#60a5fa" /> จัดการตำแหน่งงานในระบบ ({positions.length})
+              </div>
+              <button onClick={() => setShowPosModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* ฟอร์มเพิ่มตำแหน่งใหม่ */}
+            <form onSubmit={handleAddPosition} style={{ padding: '16px 22px', borderBottom: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexWrap: 'wrap', gap: '10px', background: 'rgba(2, 6, 23, 0.5)' }}>
+              <input
+                type="text"
+                placeholder="ชื่อตำแหน่งใหม่ (เช่น กำนัน, สารวัตรกำนัน)..."
+                value={newPosName}
+                onChange={(e) => setNewPosName(e.target.value)}
+                style={{ flex: '1 1 200px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(15,23,42,0.9)', color: '#fff', fontSize: '14px', outline: 'none' }}
+              />
+              <select
+                value={newPosLevel}
+                onChange={(e) => setNewPosLevel(e.target.value)}
+                style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(15,23,42,0.9)', color: '#fff', fontSize: '13px', outline: 'none' }}
+              >
+                {LEVEL_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+              <button
+                type="submit"
+                disabled={isSavingPos}
+                style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+              >
+                <Plus size={16} /> เพิ่มตำแหน่ง
+              </button>
+            </form>
+
+            {/* รายการตำแหน่งทั้งหมด */}
+            <div style={{ overflowY: 'auto', padding: '12px 22px', flexGrow: 1 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8', textAlign: 'left' }}>
+                    <th style={{ padding: '10px 8px' }}>ชื่อตำแหน่ง</th>
+                    <th style={{ padding: '10px 8px' }}>ระดับ</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'center' }}>ผู้ใช้งาน</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'center', width: '100px' }}>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.map(pos => {
+                    const isEditing = editingPosId === pos.position_id;
+                    const cnt = countByPosition(pos.position_id);
+                    return (
+                      <tr key={pos.position_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <td style={{ padding: '10px 8px', color: '#fff', fontWeight: '500' }}>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editPosName}
+                              onChange={(e) => setEditPosName(e.target.value)}
+                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #60a5fa', background: '#0f172a', color: '#fff', outline: 'none' }}
+                            />
+                          ) : pos.position_name}
+                        </td>
+                        <td style={{ padding: '10px 8px', color: '#cbd5e1', fontSize: '12px' }}>
+                          {isEditing ? (
+                            <select
+                              value={editPosLevel}
+                              onChange={(e) => setEditPosLevel(e.target.value)}
+                              style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #60a5fa', background: '#0f172a', color: '#fff', fontSize: '12px' }}
+                            >
+                              {LEVEL_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+                            </select>
+                          ) : pos.position_level}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center', color: cnt > 0 ? '#4ade80' : '#64748b', fontWeight: '600' }}>
+                          {cnt} คน
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+                              <button onClick={() => handleSaveEditPosition(pos.position_id)} disabled={isSavingPos} title="บันทึก" style={{ padding: '6px', borderRadius: '6px', border: 'none', background: '#16a34a', color: '#fff', cursor: 'pointer', display: 'flex' }}>
+                                <Check size={14} />
+                              </button>
+                              <button onClick={() => setEditingPosId(null)} title="ยกเลิก" style={{ padding: '6px', borderRadius: '6px', border: 'none', background: '#475569', color: '#fff', cursor: 'pointer', display: 'flex' }}>
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+                              <button
+                                onClick={() => { setEditingPosId(pos.position_id); setEditPosName(pos.position_name); setEditPosLevel(pos.position_level || 'LOCAL'); }}
+                                title="แก้ไขชื่อตำแหน่ง"
+                                style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'rgba(59, 130, 246, 0.25)', color: '#93c5fd', cursor: 'pointer', display: 'flex' }}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePosition(pos)}
+                                title={cnt > 0 ? 'ลบไม่ได้ (มีผู้ใช้งานถือตำแหน่งนี้อยู่)' : 'ลบตำแหน่ง'}
+                                style={{
+                                  padding: '6px', borderRadius: '6px', border: 'none',
+                                  background: cnt > 0 ? 'rgba(100, 116, 139, 0.2)' : 'rgba(239, 68, 68, 0.25)',
+                                  color: cnt > 0 ? '#64748b' : '#f87171',
+                                  cursor: cnt > 0 ? 'not-allowed' : 'pointer', display: 'flex'
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
