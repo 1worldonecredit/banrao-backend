@@ -4,7 +4,7 @@ import {
   Shield, CreditCard, Camera, Edit3, Activity 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
@@ -31,7 +31,7 @@ const Profile = () => {
           firstname: 'ซุปเปอร์',
           lastname: 'ผู้ดูแลระบบ',
           role: 'Super Admin',
-          email: 'admin@salapi.company',
+          email: 'admin@banrao.life',
           phone: '089-123-4567',
           location: 'กรุงเทพมหานคร, ประเทศไทย',
           joinDate: '2026-07-25',

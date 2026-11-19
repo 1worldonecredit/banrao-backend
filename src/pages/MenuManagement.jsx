@@ -5,7 +5,7 @@ import {
   Settings, Building, ShieldCheck, DollarSign, CreditCard, FileText, Circle
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 const availableIcons = [
   { id: 'LayoutDashboard', name: 'แผงควบคุม', component: LayoutDashboard },
   { id: 'UserCog', name: 'จัดการผู้ใช้/พนักงาน', component: UserCog },

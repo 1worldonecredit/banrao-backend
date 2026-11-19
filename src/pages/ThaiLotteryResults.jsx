@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Clock, History, Calendar, Search, CheckCircle2, Lock, Unlock, RefreshCw } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const ThaiLotteryResults = () => {
   const [activeTab, setActiveTab] = useState('draw'); // 'draw' | 'history'

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Save, User, CheckCircle2, AlertCircle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const UserPermissions = () => {
   const [selectedRole, setSelectedRole] = useState('');
