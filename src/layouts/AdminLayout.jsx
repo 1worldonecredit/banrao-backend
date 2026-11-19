@@ -3,6 +3,10 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, LogOut, Menu, X, User, Users } from 'lucide-react';
 
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
+const ICON_MAP = { LayoutDashboard, Users, Settings, User, MapPin, ShieldCheck, FileText, Circle };
+
+
 const MENUS = [
   { id: 1, title: 'ภาพรวมระบบ (Dashboard)', path: '/dashboard', icon: LayoutDashboard },
   { id: 2, title: 'ข้อมูลส่วนตัว (Profile)', path: '/profile', icon: User },
@@ -56,6 +60,30 @@ const AdminLayout = () => {
       margin: '4px 8px', borderRadius: '8px'
     };
   };
+
+    const [menus, setMenus] = useState([]);
+
+const loadMyMenus = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/api/admin/my-menus`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      setMenus(data.data);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+useEffect(() => {
+  loadMyMenus();
+  window.addEventListener('menuUpdated', loadMyMenus);
+  return () => window.removeEventListener('menuUpdated', loadMyMenus);
+}, []);
+
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', fontFamily: 'var(--sans)', overflow: 'hidden' }}>

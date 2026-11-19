@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import UserManagement from './pages/UserManagement';
+import AdminMenuManagement from './pages/AdminMenuManagement';
 
 // เช็กว่าล็อกอินแล้วหรือยัง
 const ProtectedRoute = ({ children }) => {
@@ -31,6 +32,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
           <Route path="users" element={<UserManagement/>} />
+          <Route path="admin-menus" element={<AdminMenuManagement/>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
