@@ -1,208 +1,235 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, Wallet, TrendingUp, TrendingDown, 
-  Activity, Award, DollarSign, AlertCircle, CheckCircle 
+import {
+  Users, Home, MapPin, Building2, Map,
+  CheckCircle2, RefreshCw, ShieldCheck, Layers
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const Dashboard = () => {
-  // States สำหรับเก็บข้อมูลแต่ละหมวด
-  const [userStats, setUserStats] = useState(null);
-  const [finStats, setFinStats] = useState(null);
-  const [lotteryStats, setLotteryStats] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState('');
 
-  // ดึงข้อมูลเมื่อโหลดหน้า
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [usersRes, finRes, lottoRes] = await Promise.all([
-          fetch(`${API_URL}/api/admin/dashboard/users-summary`).then(res => res.json()),
-          fetch(`${API_URL}/api/admin/dashboard/financial-summary`).then(res => res.json()),
-          fetch(`${API_URL}/api/admin/dashboard/lottery-summary`).then(res => res.json())
-        ]);
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 
-        if (usersRes.success) setUserStats(usersRes.data);
-        if (finRes.success) setFinStats(finRes.data);
-        if (lottoRes.success) setLotteryStats(lottoRes.data);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/dashboard/overview`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      if (json.success) {
+        setStats(json.data);
+        setLastUpdated(new Date().toLocaleTimeString('th-TH'));
       }
-    };
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDashboardData();
-    // Refresh ทุกๆ 30 วินาที
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  // คำนวณเปอร์เซ็นต์ความคืบหน้าตำบลที่มีหมู่บ้านแล้ว
+  const tambonProgress = stats?.total_tambons
+    ? Math.min(100, ((stats.tambons_with_villages / stats.total_tambons) * 100)).toFixed(1)
+    : 0;
+
   // ==========================================
-  // 🌟 ฟังก์ชันจัดการสไตล์ Glassmorphism (กระจกโปร่งแสง)
+  // สไตล์ Glassmorphism (กระจกใสโปร่งแสง)
   // ==========================================
   const glassCardStyle = {
-    background: 'rgba(255, 255, 255, 0.08)', // พื้นหลังขาวโปร่งแสง
-    backdropFilter: 'blur(16px)',            // เอฟเฟกต์กระจกเบลอ
+    background: 'rgba(255, 255, 255, 0.08)',
+    backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255, 255, 255, 0.15)', // ขอบการ์ดบางๆ
-    borderRadius: '16px',
-    padding: '24px',
-    color: '#ffffff', // ตัวอักษรสีขาว
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.16)',
+    borderRadius: '18px',
+    padding: '22px',
+    color: '#ffffff',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px'
+    gap: '12px',
+    transition: 'transform 0.2s ease, border-color 0.2s ease'
   };
 
+  const iconBoxStyle = (bg, color) => ({
+    backgroundColor: bg,
+    color: color,
+    padding: '10px',
+    borderRadius: '12px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  });
+
   return (
-    <div style={{ paddingBottom: '40px' }}>
+    <div style={{ padding: '16px', paddingBottom: '60px', maxWidth: '1200px', margin: '0 auto' }}>
       
-      {/* 🟢 แถวที่ 1: ข้อมูลผู้ใช้งาน และสกุลเงิน */}
-      <h2 style={{ color: '#fff', marginBottom: '20px', fontWeight: '500', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>ภาพรวมผู้ใช้งาน</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-        
-        {/* การ์ดรวมผู้ใช้ */}
-        <div style={{ ...glassCardStyle, borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>ลูกค้าทั้งหมดในระบบ</div>
-            <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', padding: '10px', borderRadius: '10px', color: '#60a5fa' }}><Users size={24} /></div>
+      {/* ส่วนหัวต้อนรับ + ปุ่มรีเฟรช */}
+      <div style={{
+        ...glassCardStyle,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '28px',
+        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(16, 185, 129, 0.12))',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#93c5fd', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>
+            <ShieldCheck size={16} /> BAN RAO ADMIN PORTAL
           </div>
-          <h3 style={{ margin: 0, fontSize: '32px' }}>{userStats?.totalUsers?.toLocaleString() || '...'} <span style={{fontSize: '16px', color: 'rgba(255,255,255,0.5)'}}>คน</span></h3>
+          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#fff' }}>
+            สวัสดี, {userData?.full_name || 'ผู้ดูแลระบบ'}
+          </h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>
+            ภาพรวมข้อมูลประชากร ครัวเรือน และโครงสร้างเขตการปกครองทั้งประเทศ
+          </p>
         </div>
 
-        {/* การ์ดแยกสกุลเงิน */}
-        <div style={{ ...glassCardStyle, borderLeft: '4px solid #10b981', gridColumn: 'span 2' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>สัดส่วนลูกค้าแยกตามสกุลเงิน</div>
-            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', padding: '10px', borderRadius: '10px', color: '#34d399' }}><Wallet size={24} /></div>
+        <button
+          onClick={fetchDashboardData}
+          disabled={isLoading}
+          style={{
+            background: 'rgba(255, 255, 255, 0.12)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            padding: '10px 16px',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '13px',
+            fontWeight: '600'
+          }}
+        >
+          <RefreshCw size={15} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+          {lastUpdated ? `อัปเดตล่าสุด ${lastUpdated}` : 'กำลังโหลด...'}
+        </button>
+      </div>
+
+      {/* แถวที่ 1: ภาพรวมประชากรและครัวเรือน */}
+      <h3 style={{ color: 'rgba(255,255,255,0.9)', fontSize: '16px', fontWeight: '600', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Users size={18} color="#60a5fa" /> ข้อมูลผู้ใช้งานและครัวเรือน
+      </h3>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+        {/* บัญชีผู้ใช้งาน */}
+        <div style={{ ...glassCardStyle, borderTop: '3px solid #3b82f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>บัญชีผู้ใช้ในระบบ</span>
+            <div style={iconBoxStyle('rgba(59, 130, 246, 0.2)', '#60a5fa')}><Users size={20} /></div>
           </div>
-          <div style={{ display: 'flex', gap: '30px', marginTop: '10px' }}>
-             <div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>เงินบาท (THB)</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{userStats?.currencies?.THB?.toLocaleString() || '0'} <span style={{fontSize: '12px', fontWeight: 'normal'}}>คน</span></div>
-             </div>
-             <div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>เงินกีบ (LAK)</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{userStats?.currencies?.LAK?.toLocaleString() || '0'} <span style={{fontSize: '12px', fontWeight: 'normal'}}>คน</span></div>
-             </div>
-             <div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>ดอลลาร์ (USD)</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{userStats?.currencies?.USD?.toLocaleString() || '0'} <span style={{fontSize: '12px', fontWeight: 'normal'}}>คน</span></div>
-             </div>
+          <div style={{ fontSize: '30px', fontWeight: '800' }}>
+            {stats?.total_accounts?.toLocaleString() ?? '...'}
+            <span style={{ fontSize: '14px', fontWeight: '400', color: 'rgba(255,255,255,0.5)', marginLeft: '6px' }}>บัญชี</span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <CheckCircle2 size={13} /> ใช้งานปกติ {stats?.active_accounts?.toLocaleString() ?? 0} บัญชี
+          </div>
+        </div>
+
+        {/* จำนวนครัวเรือน */}
+        <div style={{ ...glassCardStyle, borderTop: '3px solid #10b981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>บ้านเลขที่ / ครัวเรือน</span>
+            <div style={iconBoxStyle('rgba(16, 185, 129, 0.2)', '#34d399')}><Home size={20} /></div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: '800' }}>
+            {stats?.total_households?.toLocaleString() ?? '...'}
+            <span style={{ fontSize: '14px', fontWeight: '400', color: 'rgba(255,255,255,0.5)', marginLeft: '6px' }}>หลังคาเรือน</span>
+          </div>
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)' }}>
+            ข้อมูลบ้านเลขที่ที่บันทึกในระบบแล้ว
+          </div>
+        </div>
+
+        {/* สมาชิกในครัวเรือน */}
+        <div style={{ ...glassCardStyle, borderTop: '3px solid #a855f7' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>ประชากรในครัวเรือน</span>
+            <div style={iconBoxStyle('rgba(168, 85, 247, 0.2)', '#c084fc')}><Layers size={20} /></div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: '800' }}>
+            {stats?.total_members?.toLocaleString() ?? '...'}
+            <span style={{ fontSize: '14px', fontWeight: '400', color: 'rgba(255,255,255,0.5)', marginLeft: '6px' }}>คน</span>
+          </div>
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)' }}>
+            รวมข้อมูลสมาชิกทั้งหมดทุกหมู่บ้าน
           </div>
         </div>
       </div>
 
-      {/* 🟡 แถวที่ 2: ข้อมูลการเงิน และ P2P (รายวัน) */}
-      <h2 style={{ color: '#fff', marginBottom: '20px', fontWeight: '500', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>ธุรกรรมการเงินรายวัน (P2P)</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-        
-        {/* P2P ฝากเงิน */}
-        <div style={{ ...glassCardStyle, borderTop: '4px solid #14b8a6' }}>
+      {/* แถวที่ 2: โครงสร้างเขตการปกครอง (Master Data) */}
+      <h3 style={{ color: 'rgba(255,255,255,0.9)', fontSize: '16px', fontWeight: '600', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <MapPin size={18} color="#fbbf24" /> โครงสร้างเขตการปกครอง (Master Data)
+      </h3>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div style={{ ...glassCardStyle, borderLeft: '4px solid #6366f1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', fontWeight: 'bold' }}>คำขอฝากเงิน P2P</div>
-            <TrendingUp size={24} color="#2dd4bf" />
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>จังหวัดทั้งหมด</span>
+            <Building2 size={18} color="#818cf8" />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'rgba(0,0,0,0.2)', padding: '15px', borderRadius: '10px' }}>
-             <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}><CheckCircle size={14}/> สำเร็จ</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{finStats?.p2p?.deposit?.success || '0'}</div>
-             </div>
-             <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}><AlertCircle size={14}/> ไม่สำเร็จ</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{finStats?.p2p?.deposit?.failed || '0'}</div>
-             </div>
-             <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '15px' }}>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>ยอดรวม (THB)</div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2dd4bf' }}>฿{finStats?.p2p?.deposit?.amount_thb?.toLocaleString() || '0'}</div>
-             </div>
-          </div>
+          <div style={{ fontSize: '28px', fontWeight: '800' }}>{stats?.total_provinces?.toLocaleString() ?? '...'}</div>
         </div>
 
-        {/* P2P ถอนเงิน */}
-        <div style={{ ...glassCardStyle, borderTop: '4px solid #f43f5e' }}>
+        <div style={{ ...glassCardStyle, borderLeft: '4px solid #38bdf8' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', fontWeight: 'bold' }}>คำขอถอนเงิน P2P</div>
-            <TrendingDown size={24} color="#fb7185" />
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>อำเภอทั้งหมด</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'rgba(0,0,0,0.2)', padding: '15px', borderRadius: '10px' }}>
-             <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}><CheckCircle size={14}/> สำเร็จ</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{finStats?.p2p?.withdraw?.success || '0'}</div>
-             </div>
-             <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}><AlertCircle size={14}/> ไม่สำเร็จ</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{finStats?.p2p?.withdraw?.failed || '0'}</div>
-             </div>
-             <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '15px' }}>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>ยอดรวม (THB)</div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fb7185' }}>฿{finStats?.p2p?.withdraw?.amount_thb?.toLocaleString() || '0'}</div>
-             </div>
-          </div>
+          <div style={{ fontSize: '28px', fontWeight: '800' }}>{stats?.total_amphures?.toLocaleString() ?? '...'}</div>
         </div>
 
+        <div style={{ ...glassCardStyle, borderLeft: '4px solid #34d399' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>ตำบลทั้งหมด</span>
+            <MapPin size={18} color="#34d399" />
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: '800' }}>{stats?.total_tambons?.toLocaleString() ?? '...'}</div>
+        </div>
+
+        <div style={{ ...glassCardStyle, borderLeft: '4px solid #fbbf24' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>หมู่บ้านในระบบ</span>
+            <Home size={18} color="#fbbf24" />
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: '800', color: '#fde047' }}>{stats?.total_villages?.toLocaleString() ?? '...'}</div>
+        </div>
       </div>
 
-      {/* 🔴 แถวที่ 3: สถิติหวย กำไร-ขาดทุน */}
-      <h2 style={{ color: '#fff', marginBottom: '20px', fontWeight: '500', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>สถิติยอดขายหวย และ กำไร-ขาดทุน (รายวัน)</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-        
-        {/* หวยไทย */}
-        <div style={{ ...glassCardStyle, borderTop: '4px solid #facc15' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold' }}>
-              <Award color="#facc15" /> หวยไทย
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ยอดขายวันนี้:</span>
-              <span style={{ fontWeight: 'bold' }}>฿{lotteryStats?.thaiLottery?.sales?.toLocaleString() || '0'}</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ผู้ถูกรางวัล:</span>
-              <span style={{ fontWeight: 'bold', color: '#facc15' }}>{lotteryStats?.thaiLottery?.winnersCount || '0'} คน</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '5px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>กำไรสุทธิ:</span>
-              <span style={{ fontWeight: 'bold', fontSize: '20px', color: '#4ade80' }}>+฿{lotteryStats?.thaiLottery?.profit?.toLocaleString() || '0'}</span>
-           </div>
+      {/* การ์ดแถบความคืบหน้าการเพิ่มข้อมูลหมู่บ้าน */}
+      <div style={glassCardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>
+            ความคืบหน้าการเพิ่มฐานข้อมูลหมู่บ้านรายตำบล
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: '700', color: '#34d399' }}>
+            {stats?.tambons_with_villages?.toLocaleString() ?? 0} / {stats?.total_tambons?.toLocaleString() ?? 0} ตำบล ({tambonProgress}%)
+          </span>
         </div>
-
-        {/* หวยลาว */}
-        <div style={{ ...glassCardStyle, borderTop: '4px solid #c084fc' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold' }}>
-              <Award color="#c084fc" /> หวยลาว
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ยอดขายวันนี้:</span>
-              <span style={{ fontWeight: 'bold' }}>฿{lotteryStats?.laosLottery?.sales?.toLocaleString() || '0'}</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ผู้ถูกรางวัล:</span>
-              <span style={{ fontWeight: 'bold', color: '#c084fc' }}>{lotteryStats?.laosLottery?.winnersCount || '0'} คน</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '5px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>กำไรสุทธิ:</span>
-              <span style={{ fontWeight: 'bold', fontSize: '20px', color: '#4ade80' }}>+฿{lotteryStats?.laosLottery?.profit?.toLocaleString() || '0'}</span>
-           </div>
+        <div style={{ width: '100%', height: '10px', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: '999px', overflow: 'hidden' }}>
+          <div style={{
+            width: `${tambonProgress}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+            borderRadius: '999px',
+            transition: 'width 0.5s ease'
+          }} />
         </div>
-
-        {/* หวยยี่กี */}
-        <div style={{ ...glassCardStyle, borderTop: '4px solid #ff7c43' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold' }}>
-              <Activity color="#ff7c43" /> หวยซุปเปอร์ยี่กี
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ยอดขายวันนี้:</span>
-              <span style={{ fontWeight: 'bold' }}>฿{lotteryStats?.yeekiLottery?.sales?.toLocaleString() || '0'}</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>ผู้ถูกรางวัล:</span>
-              <span style={{ fontWeight: 'bold', color: '#ff7c43' }}>{lotteryStats?.yeekiLottery?.winnersCount || '0'} คน</span>
-           </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '5px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>กำไรสุทธิ:</span>
-              <span style={{ fontWeight: 'bold', fontSize: '20px', color: '#4ade80' }}>+฿{lotteryStats?.yeekiLottery?.profit?.toLocaleString() || '0'}</span>
-           </div>
-        </div>
-
       </div>
 
     </div>
