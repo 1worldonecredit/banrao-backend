@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Menu, X, User, Users } from 'lucide-react';
+import {
+  LayoutDashboard, LogOut, Menu, X, User, Users,
+  Settings, MapPin, ShieldCheck, FileText, Circle
+} from 'lucide-react';
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
