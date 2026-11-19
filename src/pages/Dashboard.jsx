@@ -4,7 +4,7 @@ import {
   Activity, Award, DollarSign, AlertCircle, CheckCircle 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.salapi.company';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const Dashboard = () => {
   // States สำหรับเก็บข้อมูลแต่ละหมวด
