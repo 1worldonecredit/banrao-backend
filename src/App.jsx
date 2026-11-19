@@ -4,6 +4,7 @@ import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import UserManagement from './pages/UserManagement';
 
 // เช็กว่าล็อกอินแล้วหรือยัง
 const ProtectedRoute = ({ children }) => {
@@ -29,6 +30,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="users" element={<UserManagement/>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
