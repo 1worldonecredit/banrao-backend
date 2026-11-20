@@ -376,14 +376,18 @@ const FrontendMenuManagement = () => {
                             </span>
                           ) : (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                              {roles.map((r, i) => (
-                                <span key={i} style={{
-                                  padding: '3px 8px', borderRadius: '999px',
-                                  backgroundColor: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: 700
-                                }}>
-                                  {r}
-                                </span>
-                              ))}
+                                {roles.map((r, i) => {
+                                const posObj = positions.find((p) => String(p.position_id) === String(r) || p.position_name === r);
+                                 const labelText = posObj ? posObj.position_name : r;
+                                 return (
+                                 <span key={i} style={{
+                                   padding: '3px 10px', borderRadius: '999px',
+                                   backgroundColor: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: 700
+                                 }}>
+                              {labelText}
+                               </span>
+                                 );
+                                })}
                             </div>
                           )}
                         </td>
@@ -548,28 +552,49 @@ const FrontendMenuManagement = () => {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
-                  {positions.map((pos) => {
-                    const checked = menuForm.selected_roles.includes(pos.position_name);
-                    return (
-                      <label
-                        key={pos.position_id}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px',
-                          borderRadius: '8px', border: checked ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                          backgroundColor: checked ? '#eff6ff' : '#ffffff', fontSize: '12px', cursor: 'pointer', fontWeight: checked ? 700 : 500
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleRoleSelection(pos.position_name)}
-                        />
-                        {pos.position_name}
-                      </label>
-                    );
-                  })}
-                </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '8px' }}>
+  {positions.map((pos) => {
+    const checked = menuForm.selected_roles.some(
+      (r) => String(r) === String(pos.position_id) || r === pos.position_name
+    );
+    return (
+      <label
+        key={pos.position_id}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: '8px',
+          padding: '10px 12px',
+          borderRadius: '10px',
+          border: checked ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+          backgroundColor: checked ? '#eff6ff' : '#ffffff',
+          color: checked ? '#1e40af' : '#1e293b', // ✨ บังคับสีตัวอักษรเข้ม อ่านชัด 100%
+          fontSize: '13px',
+          fontWeight: checked ? 700 : 600,
+          cursor: 'pointer',
+          textAlign: 'left',
+          lineHeight: 1.3
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => toggleRoleSelection(pos.position_id)}
+          style={{
+            width: '16px',      // ✨ ล็อกขนาด Checkbox ไม่ให้โดน CSS หลักขยาย 100%
+            height: '16px',
+            margin: 0,
+            flexShrink: 0,
+            accentColor: '#2563eb',
+            cursor: 'pointer'
+          }}
+        />
+        <span style={{ color: 'inherit' }}>{pos.position_name}</span>
+      </label>
+    );
+  })}
+</div>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
                   * หากไม่ติ๊กตำแหน่งใดเลย ระบบจะแสดงเป็น <strong>"ทุกคน / ประชาชนพื้นฐาน"</strong> (ลงทะเบียนใหม่เห็นทันที)
                 </div>
