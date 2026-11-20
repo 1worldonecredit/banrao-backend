@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import UserManagement from './pages/UserManagement';
 import AdminMenuManagement from './pages/AdminMenuManagement';
+import FrontendMenuManagement from './pages/FrontendMenuManagement';
 
 import UserDataInspector from './pages/UserDataInspector';
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="users" element={<UserManagement/>} />
           <Route path="admin-menus" element={<AdminMenuManagement/>} />
           <Route path="/data-inspector" element={<UserDataInspector />} />
+          <Route path="/frontend-menus" element={<FrontendMenuManagement />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
