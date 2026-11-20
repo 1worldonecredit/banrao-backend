@@ -9,6 +9,7 @@ import AdminMenuManagement from './pages/AdminMenuManagement';
 import FrontendMenuManagement from './pages/FrontendMenuManagement';
 
 import UserDataInspector from './pages/UserDataInspector';
+import OrgStructureManagement from './pages/OrgStructureManagement';
 
 // เช็กว่าล็อกอินแล้วหรือยัง
 const ProtectedRoute = ({ children }) => {
@@ -38,6 +39,7 @@ function App() {
           <Route path="admin-menus" element={<AdminMenuManagement/>} />
           <Route path="/data-inspector" element={<UserDataInspector />} />
           <Route path="/frontend-menus" element={<FrontendMenuManagement />} />
+          <Route path="/org-structure" element={<OrgStructureManagement />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
