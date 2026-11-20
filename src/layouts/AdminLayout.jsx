@@ -14,7 +14,7 @@ const MENUS = [
   { id: 1, title: 'ภาพรวมระบบ (Dashboard)', path: '/dashboard', icon: LayoutDashboard },
   { id: 2, title: 'ข้อมูลส่วนตัว (Profile)', path: '/profile', icon: User },
   { id: 3, title: 'จัดการผู้ใช้งาน (Users)', path: '/users', icon: Users },
-  
+   { id: 4, title: 'ค้นหาข้อมูลผู้ใช้ (data-inspector)', path: '/data-inspector', icon: Users },
 ];
 
 const AdminLayout = () => {
