@@ -7,6 +7,8 @@ import Profile from './pages/Profile';
 import UserManagement from './pages/UserManagement';
 import AdminMenuManagement from './pages/AdminMenuManagement';
 
+import UserDataInspector from './pages/UserDataInspector';
+
 // เช็กว่าล็อกอินแล้วหรือยัง
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -33,6 +35,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="users" element={<UserManagement/>} />
           <Route path="admin-menus" element={<AdminMenuManagement/>} />
+          <Route path="/data-inspector" element={<UserDataInspector />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
