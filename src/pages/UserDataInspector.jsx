@@ -3,8 +3,7 @@ import {
   Search, Database, AlertTriangle, CheckCircle2, Trash2,
   Edit3, Save, X, Table2, RefreshCw
 } from 'lucide-react';
-import TopNavbar from '../components/TopNavbar';
-import BottomNavbar from '../components/BottomNavbar';
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
@@ -181,7 +180,7 @@ const UserDataInspector = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      <TopNavbar userData={userData} />
+    
 
       <div className="max-w-4xl mx-auto p-4 pt-24 relative z-10">
         {/* ✨ การ์ดกระจกหลัก (Light Frosted Glass Theme) */}
@@ -346,7 +345,7 @@ const UserDataInspector = () => {
         </div>
       </div>
 
-      <BottomNavbar />
+    
     </div>
   );
 };
