@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Search, Database, AlertTriangle, CheckCircle2, Trash2,
-  Edit3, Save, X, Table2, RefreshCw
+  Edit3, Save, X, Table2, RefreshCw, FileDown, Lock
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
@@ -31,18 +31,15 @@ const UserDataInspector = () => {
       if (data.success) {
         setInspectData(data);
         const p = data.tables.user_profiles[0] || {};
-        const a = data.tables.user_accounts[0] || {};
+        // เตรียมเฉพาะข้อมูลส่วนตัวที่ปลอดภัย (ไม่รวมพื้นที่, role, is_active)
         setEditForm({
           profile_id: p.profile_id || '',
-          account_id: a.account_id || '',
           first_name: p.first_name || '',
           last_name: p.last_name || '',
           nickname: p.nickname || '',
           gender: p.gender || '',
           dob: p.dob ? String(p.dob).split('T')[0] : '',
-          house_no: p.house_no || '',
-          role: a.role || 'CITIZEN',
-          is_active: a.is_active !== false
+          house_no: p.house_no || ''
         });
       } else {
         setInspectData(null);
@@ -55,6 +52,7 @@ const UserDataInspector = () => {
     }
   };
 
+  // บันทึกเฉพาะข้อมูลส่วนตัว (ไม่ส่ง account_id, role, is_active, village_id)
   const handleSaveEdit = async () => {
     setSaving(true);
     try {
@@ -105,6 +103,127 @@ const UserDataInspector = () => {
     } catch (err) {
       alert('❌ ลบไม่สำเร็จ: ' + err.message);
     }
+  };
+
+  // ✨ ฟังก์ชันส่งออกรายงาน PDF (จัดหน้า A4 รองรับภาษาไทย 100%)
+  const handleExportPDF = () => {
+    if (!inspectData) return;
+
+    const p = inspectData.tables.user_profiles[0] || {};
+    const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || query;
+    const nowStr = new Date().toLocaleString('th-TH');
+
+    const tableMeta = [
+      { key: 'user_profiles', desc: 'ข้อมูลส่วนตัวหลัก' },
+      { key: 'user_accounts', desc: 'บัญชีเข้าสู่ระบบ & สิทธิ์' },
+      { key: 'citizen_profiles_media', desc: 'รูปโปรไฟล์ Cloudflare' },
+      { key: 'user_positions', desc: 'ประวัติการดำรงตำแหน่งทั้งหมด' },
+      { key: 'villages', desc: 'หมู่บ้านที่สังกัด / เป็นผู้ใหญ่บ้าน' }
+    ];
+
+    const escapeHtml = (str) =>
+      String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const warningsHtml = inspectData.summary.warnings.length === 0
+      ? `<div class="ok-box">✅ ข้อมูลสมบูรณ์ ไม่พบความซ้ำซ้อน</div>`
+      : `<div class="warn-box">
+           <strong>⚠️ พบจุดที่ควรตรวจสอบ (${inspectData.summary.warnings.length} รายการ):</strong>
+           <ul>${inspectData.summary.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
+         </div>`;
+
+    const tablesHtml = tableMeta.map(({ key, desc }) => {
+      const rows = inspectData.tables[key] || [];
+      const rowsHtml = rows.length === 0
+        ? `<p class="empty">ไม่พบข้อมูลในตารางนี้</p>`
+        : rows.map((row, idx) => `
+            <div class="row-block">
+              ${rows.length > 1 ? `<div class="row-title">แถวที่ #${idx + 1}</div>` : ''}
+              <table>
+                <tbody>
+                  ${Object.entries(row).map(([col, val]) => {
+                    const isEmpty = val === null || val === undefined || val === '';
+                    return `
+                      <tr>
+                        <td class="col-name">${escapeHtml(col)}</td>
+                        <td class="col-val ${isEmpty ? 'null-val' : ''}">
+                          ${isEmpty ? 'NULL (ว่าง)' : escapeHtml(val)}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `).join('');
+
+      return `
+        <div class="section">
+          <div class="section-header">
+            <span><strong>${key}</strong> (${desc})</span>
+            <span class="badge">พบ ${rows.length} แถว</span>
+          </div>
+          ${rowsHtml}
+        </div>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Data_Inspector_${escapeHtml(query)}</title>
+        <style>
+          @page { size: A4; margin: 14mm; }
+          body { font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; color: #0f172a; font-size: 12px; margin: 0; }
+          .header { border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .header h1 { margin: 0; font-size: 18px; color: #1e1b4b; }
+          .header .meta { font-size: 11px; color: #475569; text-align: right; }
+          .ok-box { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: bold; }
+          .warn-box { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
+          .warn-box ul { margin: 6px 0 0 18px; padding: 0; }
+          .section { border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; overflow: hidden; }
+          .section-header { background: #f1f5f9; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; font-size: 13px; }
+          .badge { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+          .empty { padding: 10px 12px; color: #94a3b8; font-style: italic; margin: 0; }
+          .row-block { padding: 8px 12px; border-bottom: 1px dashed #e2e8f0; }
+          .row-block:last-child { border-bottom: none; }
+          .row-title { font-weight: bold; color: #6d28d9; margin-bottom: 4px; font-size: 11px; }
+          table { width: 100%; border-collapse: collapse; }
+          td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+          .col-name { width: 34%; font-family: monospace; font-weight: bold; color: #3730a3; }
+          .col-val { width: 66%; font-family: monospace; word-break: break-all; }
+          .null-val { color: #d97706; font-style: italic; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>รายงานตรวจสอบข้อมูลบุคคล (Ban Rao Data Inspector)</h1>
+            <div style="font-size:12px; color:#475569; margin-top:4px;">คำค้นหา: <strong>${escapeHtml(query)}</strong> | ชื่อ: <strong>${escapeHtml(fullName)}</strong></div>
+          </div>
+          <div class="meta">วันที่ส่งออก: ${nowStr}<br/>emp.banrao.life</div>
+        </div>
+        ${warningsHtml}
+        ${tablesHtml}
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWin = window.open('', '_blank', 'width=900,height=700');
+    if (!printWin) {
+      alert('กรุณาอนุญาต Pop-up เพื่อดาวน์โหลดไฟล์ PDF ครับ');
+      return;
+    }
+    printWin.document.open();
+    printWin.document.write(htmlContent);
+    printWin.document.close();
   };
 
   const inputStyle = {
@@ -270,7 +389,7 @@ const UserDataInspector = () => {
               ตรวจสอบและล้างข้อมูลบุคคล (Data Inspector)
             </h1>
             <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#475569' }}>
-              ดูความเชื่อมโยงทุกตาราง + ชื่อคอลัมน์จริง เพื่อแก้ไขหรือล้างขยะให้สะอาด
+              ดูความเชื่อมโยงทุกตาราง + ชื่อคอลัมน์จริง เพื่อแก้ไข ส่งออก PDF หรือล้างขยะให้สะอาด
             </p>
           </div>
         </div>
@@ -384,6 +503,19 @@ const UserDataInspector = () => {
                 >
                   <RefreshCw size={14} /> รีเฟรช
                 </button>
+                {/* ✨ ปุ่มดาวน์โหลด PDF */}
+                <button
+                  type="button"
+                  onClick={handleExportPDF}
+                  style={{
+                    padding: '9px 14px', borderRadius: '10px', border: 'none',
+                    background: 'linear-gradient(135deg, #059669, #0d9488)', color: '#ffffff',
+                    fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FileDown size={14} /> ดาวน์โหลด PDF
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsEditing(!isEditing)}
@@ -393,7 +525,7 @@ const UserDataInspector = () => {
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
                   }}
                 >
-                  <Edit3 size={14} /> แก้ไขข้อมูลให้ครบ
+                  <Edit3 size={14} /> แก้ไขข้อมูลพื้นฐาน
                 </button>
                 <button
                   type="button"
@@ -410,7 +542,7 @@ const UserDataInspector = () => {
               </div>
             </div>
 
-            {/* ฟอร์มแก้ไขด่วน */}
+            {/* ฟอร์มแก้ไขเฉพาะข้อมูลส่วนตัวที่ปลอดภัย (ล็อกพื้นที่และสิทธิ์ทั้งหมด) */}
             {isEditing && (
               <div style={{
                 backgroundColor: '#eff6ff',
@@ -419,9 +551,9 @@ const UserDataInspector = () => {
                 padding: '20px',
                 marginBottom: '20px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#1e3a8a' }}>
-                    ✏️ แก้ไขข้อมูลพื้นฐานให้ครบ
+                    ✏️ แก้ไขข้อมูลส่วนตัวพื้นฐาน (user_profiles)
                   </h3>
                   <button
                     onClick={() => setIsEditing(false)}
@@ -429,6 +561,16 @@ const UserDataInspector = () => {
                   >
                     <X size={18} />
                   </button>
+                </div>
+
+                {/* แจ้งเตือนการล็อกฟิลด์ที่มีผลกระทบ */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  fontSize: '12px', color: '#475569', backgroundColor: '#e0f2fe',
+                  padding: '8px 12px', borderRadius: '8px', marginBottom: '14px'
+                }}>
+                  <Lock size={14} color="#0369a1" />
+                  <span>ข้อมูลพื้นที่ปกครอง (หมู่บ้าน/ต.อ.จ.), เลขบัตรประชาชน, สิทธิ์ (role) และสถานะบัญชี ถูกล็อกไว้เพื่อป้องกันผลกระทบต่อระบบ</span>
                 </div>
 
                 <div style={{
@@ -463,21 +605,6 @@ const UserDataInspector = () => {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>บ้านเลขที่ (house_no)</label>
                     <input type="text" value={editForm.house_no} onChange={e => setEditForm({ ...editForm, house_no: e.target.value })} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>สิทธิ์หลัก (role)</label>
-                    <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} style={inputStyle}>
-                      <option value="CITIZEN">CITIZEN (ประชาชน)</option>
-                      <option value="HEADMAN">HEADMAN (ผู้ใหญ่บ้าน)</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>สถานะบัญชี (is_active)</label>
-                    <select value={String(editForm.is_active)} onChange={e => setEditForm({ ...editForm, is_active: e.target.value === 'true' })} style={inputStyle}>
-                      <option value="true">true (เปิดใช้งาน)</option>
-                      <option value="false">false (ระงับ)</option>
-                    </select>
                   </div>
                 </div>
 
