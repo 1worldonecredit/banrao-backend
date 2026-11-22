@@ -1,0 +1,371 @@
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Save, CheckSquare, Square, RefreshCw } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
+
+const PERM_COLS = [
+  { key: 'can_view', label: 'ดู (View)', color: '#0284c7' },
+  { key: 'can_create', label: 'เพิ่ม (Create)', color: '#059669' },
+  { key: 'can_edit', label: 'แก้ไข (Edit)', color: '#d97706' },
+  { key: 'can_delete', label: 'ลบ (Delete)', color: '#dc2626' },
+  { key: 'can_approve', label: 'อนุมัติ (Approve)', color: '#7c3aed' }
+];
+
+const PermissionMatrix = () => {
+  // ข้อมูลตัวกรอง 4 มิติ
+  const [apps, setApps] = useState([]);
+  const [orgs, setOrgs] = useState([]);
+  const [depts, setDepts] = useState([]);
+  const [positions, setPositions] = useState([]);
+
+  // ค่าที่เลือกปัจจุบัน
+  const [selectedApp, setSelectedApp] = useState('BANRAO_WEB');
+  const [selectedOrg, setSelectedOrg] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedPos, setSelectedPos] = useState('');
+
+  // ตาราง Matrix
+  const [matrixRows, setMatrixRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // 1. โหลดโครงสร้างองค์กร 4 มิติ (ใช้ API เดิมจากเฟส 2)
+  useEffect(() => {
+    fetch(`${API_URL}/api/admin/org-structure/overview`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setApps(data.apps || []);
+          setOrgs(data.organizations || []);
+          setDepts(data.departments || []);
+          setPositions(data.positions || []);
+        }
+      })
+      .catch((err) => console.error('Load org structure error:', err));
+  }, []);
+
+  // 2. โหลดตารางสิทธิ์ Matrix ทุกครั้งที่ตัวกรองเปลี่ยน
+  const fetchMatrix = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ app_code: selectedApp });
+      if (selectedOrg) params.append('org_id', selectedOrg);
+      if (selectedDept) params.append('dept_id', selectedDept);
+      if (selectedPos) params.append('position_id', selectedPos);
+
+      const res = await fetch(`${API_URL}/api/admin/permission-matrix?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setMatrixRows(data.data || []);
+      }
+    } catch (err) {
+      alert('โหลดตารางสิทธิ์ไม่สำเร็จ: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMatrix();
+  }, [selectedApp, selectedOrg, selectedDept, selectedPos]);
+
+  // กรอง Dropdown แบบลูกโซ่ (Cascading)
+  const filteredOrgs = orgs.filter((o) => !o.app_code || o.app_code === selectedApp);
+  const filteredDepts = selectedOrg
+    ? depts.filter((d) => String(d.org_id) === String(selectedOrg))
+    : depts;
+  const filteredPositions = positions.filter((p) => {
+    if (selectedDept) return String(p.dept_id) === String(selectedDept);
+    if (selectedOrg) return String(p.org_id) === String(selectedOrg);
+    return true;
+  });
+
+  // ติ๊กเปลี่ยนสิทธิ์รายช่อง
+  const toggleCell = (menuId, field) => {
+    setMatrixRows((prev) =>
+      prev.map((row) => {
+        if (row.menu_id !== menuId) return row;
+        const nextVal = !row[field];
+        // ถ้าติ๊ก เพิ่ม/แก้/ลบ/อนุมัติ ให้เปิด "ดู (can_view)" ให้อัตโนมัติ
+        const autoView = field !== 'can_view' && nextVal ? true : row.can_view;
+        return { ...row, [field]: nextVal, can_view: field === 'can_view' ? nextVal : autoView };
+      })
+    );
+  };
+
+  // ติ๊กทั้งแถว (ทุกสิทธิ์ของเมนูนั้น)
+  const toggleRowAll = (menuId) => {
+    setMatrixRows((prev) =>
+      prev.map((row) => {
+        if (row.menu_id !== menuId) return row;
+        const allChecked = row.can_view && row.can_create && row.can_edit && row.can_delete && row.can_approve;
+        const nextVal = !allChecked;
+        return {
+          ...row,
+          can_view: nextVal,
+          can_create: nextVal,
+          can_edit: nextVal,
+          can_delete: nextVal,
+          can_approve: nextVal
+        };
+      })
+    );
+  };
+
+  // ติ๊กทั้งตาราง (เปิดทั้งหมด / ล้างทั้งหมด)
+  const setAllMatrix = (value) => {
+    setMatrixRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        can_view: value,
+        can_create: value,
+        can_edit: value,
+        can_delete: value,
+        can_approve: value
+      }))
+    );
+  };
+
+  // บันทึกสิทธิ์ Matrix ลงฐานข้อมูล
+  const handleSaveMatrix = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/permission-matrix/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_code: selectedApp,
+          org_id: selectedOrg || null,
+          dept_id: selectedDept || null,
+          position_id: selectedPos || null,
+          permissions: matrixRows
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ ' + data.message);
+      } else {
+        alert('❌ ' + data.message);
+      }
+    } catch (err) {
+      alert('❌ บันทึกไม่สำเร็จ: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: '10px',
+    border: '1px solid #cbd5e1', backgroundColor: '#ffffff',
+    fontSize: '13px', fontWeight: 600, color: '#1e293b', boxSizing: 'border-box', outline: 'none'
+  };
+
+  const checkboxStyle = {
+    width: '18px', height: '18px', margin: 0, cursor: 'pointer', accentColor: '#2563eb'
+  };
+
+  return (
+    <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.88)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderRadius: '24px',
+        padding: '28px',
+        boxShadow: '0 10px 35px rgba(0, 0, 0, 0.12)',
+        border: '1px solid rgba(255, 255, 255, 0.6)',
+        color: '#1e293b'
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+          gap: '16px', paddingBottom: '20px', marginBottom: '20px',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '14px',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#ffffff', flexShrink: 0, boxShadow: '0 6px 16px rgba(79, 70, 229, 0.3)'
+            }}>
+              <ShieldCheck size={26} />
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>
+                กำหนดสิทธิ์การใช้งานแบบ Matrix (4 มิติ)
+              </h1>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#475569' }}>
+                ควบคุมสิทธิ์ ดู / เพิ่ม / แก้ไข / ลบ / อนุมัติ แยกตาม แอป → หน่วยงาน → แผนก → ตำแหน่ง
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveMatrix}
+            disabled={saving || loading}
+            style={{
+              padding: '11px 22px', borderRadius: '12px', border: 'none',
+              background: saving ? '#94a3b8' : 'linear-gradient(135deg, #059669, #10b981)',
+              color: '#ffffff', fontWeight: 800, fontSize: '14px', cursor: saving ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)'
+            }}
+          >
+            <Save size={17} /> {saving ? 'กำลังบันทึก...' : 'บันทึกตารางสิทธิ์นี้'}
+          </button>
+        </div>
+
+        {/* ตัวกรอง 4 มิติ */}
+        <div style={{
+          backgroundColor: '#f8fafc', padding: '18px', borderRadius: '16px',
+          border: '1px solid #e2e8f0', marginBottom: '20px',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px'
+        }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+              1. แอปพลิเคชัน (App) *
+            </label>
+            <select
+              value={selectedApp}
+              onChange={(e) => { setSelectedApp(e.target.value); setSelectedOrg(''); setSelectedDept(''); setSelectedPos(''); }}
+              style={selectStyle}
+            >
+              {apps.map((a) => (
+                <option key={a.app_code} value={a.app_code}>{a.app_name} ({a.app_code})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+              2. หน่วยงานหลัก (Organization)
+            </label>
+            <select
+              value={selectedOrg}
+              onChange={(e) => { setSelectedOrg(e.target.value); setSelectedDept(''); setSelectedPos(''); }}
+              style={selectStyle}
+            >
+              <option value="">-- ทุกหน่วยงาน (ส่วนกลาง) --</option>
+              {filteredOrgs.map((o) => <option key={o.org_id} value={o.org_id}>{o.org_name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+              3. แผนก (Department)
+            </label>
+            <select
+              value={selectedDept}
+              onChange={(e) => { setSelectedDept(e.target.value); setSelectedPos(''); }}
+              style={selectStyle}
+            >
+              <option value="">-- ทุกแผนก --</option>
+              {filteredDepts.map((d) => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+              4. ตำแหน่ง (Position)
+            </label>
+            <select
+              value={selectedPos}
+              onChange={(e) => setSelectedPos(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">-- ทุกตำแหน่ง (หรือสิทธิ์พื้นฐาน) --</option>
+              {filteredPositions.map((p) => (
+                <option key={p.position_id} value={p.position_id}>{p.position_name} ({p.position_level})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* แถบปุ่มลัด */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+            พบเมนูในแอป <span style={{ color: '#2563eb' }}>{selectedApp}</span> ทั้งหมด {matrixRows.length} รายการ
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="button" onClick={() => setAllMatrix(true)} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#059669', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <CheckSquare size={14} /> ติ๊กทั้งหมด
+            </button>
+            <button type="button" onClick={() => setAllMatrix(false)} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#dc2626', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Square size={14} /> ล้างทั้งหมด
+            </button>
+            <button type="button" onClick={fetchMatrix} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#334155', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <RefreshCw size={14} /> รีโหลด
+            </button>
+          </div>
+        </div>
+
+        {/* ตาราง Permission Matrix */}
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>กำลังโหลดตารางสิทธิ์...</div>
+        ) : matrixRows.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '14px', border: '1px dashed #cbd5e1' }}>
+            ยังไม่มีเมนูในแอปพลิเคชันนี้
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#334155' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left' }}>ชื่อเมนู / เส้นทาง</th>
+                  {PERM_COLS.map((col) => (
+                    <th key={col.key} style={{ padding: '12px 10px', textAlign: 'center', color: col.color, fontWeight: 800 }}>
+                      {col.label}
+                    </th>
+                  ))}
+                  <th style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>ทั้งแถว</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrixRows.map((row) => {
+                  const allRowChecked = row.can_view && row.can_create && row.can_edit && row.can_delete && row.can_approve;
+                  return (
+                    <tr key={row.menu_id} style={{ borderBottom: '1px solid #f1f5f9', opacity: row.menu_active === false ? 0.5 : 1 }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.menu_name}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          📁 {row.group_name || 'ทั่วไป'} &nbsp;|&nbsp; <span style={{ fontFamily: 'monospace', color: '#4338ca' }}>{row.route_path}</span>
+                        </div>
+                      </td>
+                      {PERM_COLS.map((col) => (
+                        <td key={col.key} style={{ padding: '12px 10px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(row[col.key])}
+                            onChange={() => toggleCell(row.menu_id, col.key)}
+                            style={checkboxStyle}
+                          />
+                        </td>
+                      ))}
+                      <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleRowAll(row.menu_id)}
+                          style={{
+                            padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1',
+                            backgroundColor: allRowChecked ? '#dbeafe' : '#f8fafc',
+                            color: allRowChecked ? '#1d4ed8' : '#64748b',
+                            fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          {allRowChecked ? 'ครบ' : 'เลือก'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PermissionMatrix;
