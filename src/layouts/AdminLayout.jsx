@@ -2,19 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, LogOut, Menu, X, User, Users,
-  Settings, MapPin, ShieldCheck, FileText, Circle
+  Settings, MapPin, ShieldCheck, FileText, Circle,
+  Search, Layers, Building2, Activity
 } from 'lucide-react';
 
-
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
-const ICON_MAP = { LayoutDashboard, Users, Settings, User, MapPin, ShieldCheck, FileText, Circle };
 
-
-const MENUS = [
-  { id: 1, title: 'ภาพรวมระบบ (Dashboard)', path: '/dashboard', icon: LayoutDashboard },
-  { id: 2, title: 'ข้อมูลส่วนตัว (Profile)', path: '/profile', icon: User },
-  { id: 3, title: 'จัดการผู้ใช้งาน (Users)', path: '/users', icon: Users },
-];
+const ICON_MAP = {
+  LayoutDashboard, Users, Settings, User, MapPin,
+  ShieldCheck, FileText, Circle, Search, Layers, Building2, Activity
+};
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -22,6 +19,7 @@ const AdminLayout = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+  const [menuGroups, setMenuGroups] = useState([]);
 
   const userData = JSON.parse(localStorage.getItem('userData') || '{}');
   const displayName = userData.full_name || userData.username || 'ผู้ดูแลระบบ';
@@ -43,6 +41,7 @@ const AdminLayout = () => {
   const handleLogout = () => {
     localStorage.removeItem('userData');
     localStorage.removeItem('token');
+    localStorage.removeItem('adminMenuPermissions');
     navigate('/login');
   };
 
@@ -51,44 +50,51 @@ const AdminLayout = () => {
     if (isMobile) setIsSidebarOpen(false);
   };
 
-const getMenuItemStyle = (path) => {
+  const getMenuItemStyle = (path) => {
     const isActive = location.pathname === path;
     return {
       display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '10px 16px', // ปรับความสูง-กว้างของปุ่มเมนูให้กระชับขึ้น
-      fontSize: '14px',     // ✨ เพิ่มตรงนี้ครับ (ลองปรับเป็น '13px' หรือ '14px' จะพอดี 1 บรรทัด)
+      padding: '10px 14px',
+      fontSize: '13.5px',
       cursor: 'pointer', transition: 'all 0.2s ease',
       backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.75)',
+      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.78)',
       borderLeft: isActive ? '4px solid #4ade80' : '4px solid transparent',
       fontWeight: isActive ? '600' : 'normal',
-      margin: '4px 8px', borderRadius: '8px'
+      margin: '3px 8px', borderRadius: '8px'
     };
   };
 
-    const [menus, setMenus] = useState([]);
+  const loadMyMenus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/my-menus`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-const loadMyMenus = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/admin/my-menus`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    if (data.success && Array.isArray(data.data)) {
-      setMenus(data.data);
+      // ถ้า Token หมดอายุ (401/403) ให้เด้งไปหน้า Login อัตโนมัติ
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
+
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setMenuGroups(data.data);
+        if (data.permissionsMap) {
+          localStorage.setItem('adminMenuPermissions', JSON.stringify(data.permissionsMap));
+        }
+      }
+    } catch (err) {
+      console.error('Load admin menus error:', err);
     }
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
-useEffect(() => {
-  loadMyMenus();
-  window.addEventListener('menuUpdated', loadMyMenus);
-  return () => window.removeEventListener('menuUpdated', loadMyMenus);
-}, []);
-
+  useEffect(() => {
+    loadMyMenus();
+    window.addEventListener('menuUpdated', loadMyMenus);
+    return () => window.removeEventListener('menuUpdated', loadMyMenus);
+  }, []);
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', fontFamily: 'var(--sans)', overflow: 'hidden' }}>
@@ -123,16 +129,36 @@ useEffect(() => {
           )}
         </div>
 
-        <div style={{ padding: '15px 0', flexGrow: 1, overflowY: 'auto' }}>
-          {menus.map(menu => {
-           const IconComponent = ICON_MAP[menu.icon_name] || Circle;
-          return (
-          <div key={menu.menu_id} style={getMenuItemStyle(menu.route_path)} onClick={() => handleNavigation(menu.route_path)}>
-         <IconComponent size={20} style={{ opacity: 0.85 }} />
-         <span>{menu.menu_name}</span>
-          </div>
-          );
-          })}
+        {/* รายการเมนูแยกตามกรุ๊ปเมนู */}
+        <div style={{ padding: '14px 0', flexGrow: 1, overflowY: 'auto' }}>
+          {menuGroups.map((group, gIdx) => (
+            <div key={group.group_id || gIdx} style={{ marginBottom: '14px' }}>
+              <div style={{
+                padding: '6px 18px',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'rgba(148, 163, 184, 0.9)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.8px'
+              }}>
+                {group.group_name}
+              </div>
+
+              {Array.isArray(group.menus) && group.menus.map((menu) => {
+                const IconComponent = ICON_MAP[menu.icon_name] || Circle;
+                return (
+                  <div
+                    key={menu.menu_id}
+                    style={getMenuItemStyle(menu.route_path)}
+                    onClick={() => handleNavigation(menu.route_path)}
+                  >
+                    <IconComponent size={18} style={{ opacity: 0.85, flexShrink: 0 }} />
+                    <span>{menu.menu_name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -174,8 +200,8 @@ useEffect(() => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ textAlign: 'right', display: isMobile ? 'none' : 'block' }}>
-              <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '10px' }}>{displayName}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{displayRole}</div>
+              <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '13px' }}>{displayName}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>{displayRole}</div>
             </div>
             <div style={{ width: '40px', height: '40px', backgroundColor: '#4ade80', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#000', fontWeight: 'bold', boxShadow: '0 0 15px rgba(74, 222, 128, 0.3)' }}>
               {avatarLetter}
