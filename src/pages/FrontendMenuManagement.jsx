@@ -13,10 +13,16 @@ const FrontendMenuManagement = () => {
   const [apps, setApps] = useState([]);
   const [groups, setGroups] = useState([]);
   const [menus, setMenus] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
 
   const [selectedApp, setSelectedApp] = useState('');
   const [filterGroupId, setFilterGroupId] = useState('ALL');
+
+  // ตัวกรอง หน่วยงาน -> แผนก ภายใน Modal เพิ่ม/แก้ไขเมนู
+  const [modalOrgId, setModalOrgId] = useState('');
+  const [modalDeptId, setModalDeptId] = useState('');
 
   // Form State สำหรับกรุ๊ปเมนู
   const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -47,9 +53,9 @@ const FrontendMenuManagement = () => {
         setApps(fetchedApps);
         setGroups(data.groups || []);
         setMenus(data.menus || []);
+        setOrganizations(data.organizations || []);
+        setDepartments(data.departments || []);
         setPositions(data.positions || []);
-
-        // ตั้งค่าแอปเริ่มต้นจากฐานข้อมูลจริง (ไม่ฝัง Mockup)
         setSelectedApp((prev) => prev || fetchedApps[0]?.app_code || '');
       }
     } catch (err) {
@@ -134,6 +140,8 @@ const FrontendMenuManagement = () => {
   // ==========================
   const openAddMenu = () => {
     setEditingMenuId(null);
+    setModalOrgId('');
+    setModalDeptId('');
     const activeGroups = appGroups.filter((g) => g.is_active !== false);
     setMenuForm({
       app_code: selectedApp,
@@ -150,6 +158,8 @@ const FrontendMenuManagement = () => {
 
   const openEditMenu = (m) => {
     setEditingMenuId(m.menu_id);
+    setModalOrgId('');
+    setModalDeptId('');
     const roles = Array.isArray(m.selected_roles) ? m.selected_roles : [];
     setMenuForm({
       app_code: m.app_code || selectedApp,
@@ -193,6 +203,7 @@ const FrontendMenuManagement = () => {
       if (data.success) {
         setMenuModalOpen(false);
         fetchOverview();
+        window.dispatchEvent(new Event('menuUpdated'));
       } else {
         alert('❌ ' + data.message);
       }
@@ -209,7 +220,10 @@ const FrontendMenuManagement = () => {
         body: JSON.stringify({ is_active: m.is_active === false })
       });
       const data = await res.json();
-      if (data.success) fetchOverview();
+      if (data.success) {
+        fetchOverview();
+        window.dispatchEvent(new Event('menuUpdated'));
+      }
     } catch (err) {
       alert('❌ เปลี่ยนสถานะเมนูไม่สำเร็จ');
     }
@@ -218,11 +232,24 @@ const FrontendMenuManagement = () => {
   const inputStyle = {
     width: '100%', padding: '10px 12px', borderRadius: '10px',
     border: '1px solid #cbd5e1', backgroundColor: '#ffffff',
-    fontSize: '14px', color: '#1e293b', boxSizing: 'border-box', outline: 'none'
+    fontSize: '13px', color: '#1e293b', boxSizing: 'border-box', outline: 'none'
   };
 
-  // กรุ๊ปเมนูเฉพาะแอปที่เลือกใน Modal
-  const modalAppGroups = groups.filter((g) => (g.app_code || 'BANRAO_WEB') === menuForm.app_code);
+  // กรองกรุ๊ปเมนูเฉพาะแอปที่เลือกใน Modal (แสดงเฉพาะกรุ๊ปที่เปิดใช้งาน)
+  const modalAppGroups = groups.filter(
+    (g) => (g.app_code || 'BANRAO_WEB') === menuForm.app_code && g.is_active !== false
+  );
+
+  // กรอง หน่วยงาน -> แผนก -> ตำแหน่ง แบบลูกโซ่ใน Modal
+  const modalOrgs = organizations.filter((o) => !o.app_code || o.app_code === menuForm.app_code);
+  const modalDepts = modalOrgId
+    ? departments.filter((d) => String(d.org_id) === String(modalOrgId))
+    : [];
+  const modalFilteredPositions = positions.filter((p) => {
+    if (modalDeptId) return String(p.dept_id) === String(modalDeptId);
+    if (modalOrgId) return String(p.org_id) === String(modalOrgId);
+    return false;
+  });
 
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '24px 16px' }}>
@@ -271,7 +298,7 @@ const FrontendMenuManagement = () => {
           </div>
         </div>
 
-        {/* แถบเลือกแอปพลิเคชัน (ดึงจาก sys_apps จริง) */}
+        {/* แถบเลือกแอปพลิเคชัน */}
         <div style={{
           backgroundColor: '#f8fafc', padding: '14px 18px', borderRadius: '16px',
           border: '1px solid #e2e8f0', marginBottom: '18px',
@@ -367,7 +394,7 @@ const FrontendMenuManagement = () => {
                     <th style={{ padding: '12px 16px' }}>ลำดับ</th>
                     <th style={{ padding: '12px 16px' }}>ชื่อเมนู / กรุ๊ป</th>
                     <th style={{ padding: '12px 16px' }}>เส้นทาง (Route)</th>
-                    <th style={{ padding: '12px 16px' }}>สิทธิ์พื้นฐาน</th>
+                    <th style={{ padding: '12px 16px' }}>สิทธิ์ระดับตำแหน่ง</th>
                     <th style={{ padding: '12px 16px', textAlign: 'center' }}>สถานะ (Soft Delete)</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right' }}>แก้ไข</th>
                   </tr>
@@ -388,7 +415,7 @@ const FrontendMenuManagement = () => {
                         <td style={{ padding: '12px 16px' }}>
                           {roles.length === 0 ? (
                             <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '999px', backgroundColor: '#e0f2fe', color: '#0369a1', fontSize: '11px', fontWeight: 700 }}>
-                              🌐 ทุกคน / กำหนดใน Matrix
+                              🛡️ กำหนดตาม Matrix / Tier
                             </span>
                           ) : (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -500,26 +527,36 @@ const FrontendMenuManagement = () => {
         </div>
       )}
 
-      {/* Modal เพิ่ม/แก้ไข เมนูย่อย */}
+      {/* Modal เพิ่ม/แก้ไข เมนูย่อย (กรอง แอป -> กรุ๊ปเมนู และ หน่วยงาน -> แผนก -> ตำแหน่ง) */}
       {menuModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <form onSubmit={handleSaveMenu} style={{ backgroundColor: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
-            <div style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0 }}>
+          <form onSubmit={handleSaveMenu} style={{ backgroundColor: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '620px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+            <div style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
               <span style={{ fontWeight: 800, fontSize: '16px' }}>{editingMenuId ? 'แก้ไขเมนูย่อย' : 'สร้างเมนูย่อยใหม่'}</span>
               <button type="button" onClick={() => setMenuModalOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>แอปพลิเคชัน *</label>
-                  <select required value={menuForm.app_code} onChange={(e) => setMenuForm({ ...menuForm, app_code: e.target.value, group_id: '' })} style={inputStyle}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>1. แอปพลิเคชัน (Frontend / Backend) *</label>
+                  <select
+                    required
+                    value={menuForm.app_code}
+                    onChange={(e) => {
+                      const nextApp = e.target.value;
+                      setMenuForm({ ...menuForm, app_code: nextApp, group_id: '' });
+                      setModalOrgId('');
+                      setModalDeptId('');
+                    }}
+                    style={inputStyle}
+                  >
                     {apps.map((a) => <option key={a.app_code} value={a.app_code}>{a.app_name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>กรุ๊ปเมนู *</label>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>2. กรุ๊ปเมนูของแอปนี้ *</label>
                   <select required value={menuForm.group_id} onChange={(e) => setMenuForm({ ...menuForm, group_id: e.target.value })} style={inputStyle}>
-                    <option value="">-- เลือกกรุ๊ปเมนู --</option>
+                    <option value="">-- เลือกกรุ๊ปเมนู ({modalAppGroups.length} กรุ๊ป) --</option>
                     {modalAppGroups.map((g) => <option key={g.group_id} value={g.group_id}>{g.group_name}</option>)}
                   </select>
                 </div>
@@ -545,27 +582,83 @@ const FrontendMenuManagement = () => {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              {/* กำหนดสิทธิ์แบบกรองตาม หน่วยงาน -> แผนก -> ตำแหน่ง */}
+              <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#ea580c', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Shield size={15} /> สิทธิ์พื้นฐาน (หรือไปกำหนดละเอียดในหน้า Matrix)
+                    <Shield size={15} /> กำหนดสิทธิ์ระดับตำแหน่ง (หน่วยงาน → แผนก → ตำแหน่ง)
                   </span>
-                  <button type="button" onClick={() => setMenuForm({ ...menuForm, selected_roles: [] })} style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #0284c7', backgroundColor: menuForm.selected_roles.length === 0 ? '#0284c7' : '#ffffff', color: menuForm.selected_roles.length === 0 ? '#ffffff' : '#0284c7', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Users size={12} /> ทุกคน / ใช้ Matrix
+                  <button
+                    type="button"
+                    onClick={() => setMenuForm({ ...menuForm, selected_roles: [] })}
+                    style={{
+                      padding: '4px 10px', borderRadius: '8px', border: '1px solid #0284c7',
+                      backgroundColor: menuForm.selected_roles.length === 0 ? '#0284c7' : '#ffffff',
+                      color: menuForm.selected_roles.length === 0 ? '#ffffff' : '#0284c7',
+                      fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                    }}
+                  >
+                    <Users size={12} /> ใช้สิทธิ์จาก Matrix / Tier
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '8px' }}>
-                  {positions.map((pos) => {
-                    const checked = menuForm.selected_roles.some((r) => String(r) === String(pos.position_id) || r === pos.position_name);
-                    return (
-                      <label key={pos.position_id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px', borderRadius: '10px', border: checked ? '1.5px solid #2563eb' : '1px solid #cbd5e1', backgroundColor: checked ? '#eff6ff' : '#ffffff', color: checked ? '#1e40af' : '#1e293b', fontSize: '12px', fontWeight: checked ? 700 : 600, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleRoleSelection(pos.position_id)} style={{ width: '16px', height: '16px', margin: 0, flexShrink: 0, accentColor: '#2563eb', cursor: 'pointer' }} />
-                        <span style={{ color: 'inherit' }}>{pos.position_name}</span>
-                      </label>
-                    );
-                  })}
+                {/* แสดงตำแหน่งที่เลือกไว้แล้ว */}
+                {menuForm.selected_roles.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px', padding: '8px', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid #dbeafe' }}>
+                    {menuForm.selected_roles.map((r, i) => {
+                      const posObj = positions.find((p) => String(p.position_id) === String(r) || p.position_name === r);
+                      return (
+                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '999px', backgroundColor: '#dbeafe', color: '#1e40af', fontSize: '11px', fontWeight: 700 }}>
+                          {posObj ? posObj.position_name : r}
+                          <button type="button" onClick={() => toggleRoleSelection(posObj ? posObj.position_id : r)} style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                            <X size={12} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown กรอง หน่วยงาน -> แผนก */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>เลือกหน่วยงานหลัก</label>
+                    <select value={modalOrgId} onChange={(e) => { setModalOrgId(e.target.value); setModalDeptId(''); }} style={inputStyle}>
+                      <option value="">-- เลือกหน่วยงานเพื่อดูตำแหน่ง --</option>
+                      {modalOrgs.map((o) => <option key={o.org_id} value={o.org_id}>{o.org_name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>เลือกแผนก</label>
+                    <select value={modalDeptId} onChange={(e) => setModalDeptId(e.target.value)} disabled={!modalOrgId} style={{ ...inputStyle, opacity: !modalOrgId ? 0.6 : 1 }}>
+                      <option value="">-- ทุกแผนกในหน่วยงานนี้ --</option>
+                      {modalDepts.map((d) => <option key={d.department_id} value={d.department_id}>{d.department_name}</option>)}
+                    </select>
+                  </div>
                 </div>
+
+                {/* รายการตำแหน่งเฉพาะที่กรองแล้ว */}
+                {!modalOrgId ? (
+                  <div style={{ textAlign: 'center', padding: '14px', fontSize: '12px', color: '#64748b', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                    เลือก <strong>หน่วยงาน</strong> และ <strong>แผนก</strong> ด้านบน เพื่อเลือกตำแหน่งที่มีสิทธิ์เห็นเมนูนี้
+                  </div>
+                ) : modalFilteredPositions.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '14px', fontSize: '12px', color: '#94a3b8', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                    ยังไม่มีตำแหน่งในหน่วยงาน/แผนกที่เลือก
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '8px' }}>
+                    {modalFilteredPositions.map((pos) => {
+                      const checked = menuForm.selected_roles.some((r) => String(r) === String(pos.position_id) || r === pos.position_name);
+                      return (
+                        <label key={pos.position_id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px', borderRadius: '10px', border: checked ? '1.5px solid #2563eb' : '1px solid #cbd5e1', backgroundColor: checked ? '#eff6ff' : '#ffffff', color: checked ? '#1e40af' : '#1e293b', fontSize: '12px', fontWeight: checked ? 700 : 600, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleRoleSelection(pos.position_id)} style={{ width: '16px', height: '16px', margin: 0, flexShrink: 0, accentColor: '#2563eb', cursor: 'pointer' }} />
+                          <span style={{ color: 'inherit' }}>{pos.position_name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
