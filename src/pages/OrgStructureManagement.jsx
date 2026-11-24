@@ -1,37 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2, AppWindow, Network, Briefcase, Plus, Edit3,
-  Save, X, CheckCircle2, XCircle, GitBranch, ChevronDown, ChevronRight
+  Save, X, CheckCircle2, XCircle, Columns3
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const LEVELS = [
   { value: 'SYSTEM', label: 'ระดับระบบส่วนกลาง (SYSTEM)' },
-  { value: 'NATIONAL', label: 'ระดับประเทศ / กระทรวง (NATIONAL)' },
+  { value: 'MINISTRY', label: 'ระดับกระทรวง (MINISTRY)' },
+  { value: 'DEPARTMENT', label: 'ระดับกรม (DEPARTMENT)' },
+  { value: 'NATIONAL', label: 'ระดับประเทศ (NATIONAL)' },
   { value: 'PROVINCE', label: 'ระดับจังหวัด (PROVINCE)' },
   { value: 'AMPHURE', label: 'ระดับอำเภอ (AMPHURE)' },
+  { value: 'MUNICIPALITY', label: 'ระดับเทศบาล (MUNICIPALITY)' },
   { value: 'TAMBON', label: 'ระดับตำบล / อปท. (TAMBON)' },
   { value: 'VILLAGE', label: 'ระดับหมู่บ้าน (VILLAGE)' }
 ];
 
 const OrgStructureManagement = () => {
-  const [activeTab, setActiveTab] = useState('tree'); // 'tree' | 'apps' | 'orgs' | 'depts' | 'positions'
   const [loading, setLoading] = useState(true);
-
   const [apps, setApps] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [depts, setDepts] = useState([]);
   const [positions, setPositions] = useState([]);
 
-  // State สำหรับพับ/กาง ในผังความเชื่อมโยง
-  const [expandedApps, setExpandedApps] = useState({});
-  const [expandedOrgs, setExpandedOrgs] = useState({});
+  // State สำหรับการเลือกเจาะลึก 4 ชั้น (App -> Org -> Dept -> Position)
+  const [selectedApp, setSelectedApp] = useState(null);   // app_code หรือ 'UNASSIGNED'
+  const [selectedOrg, setSelectedOrg] = useState(null);   // org_id
+  const [selectedDept, setSelectedDept] = useState(null); // department_id หรือ 'DIRECT' (ตำแหน่งกลาง)
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('orgs'); // 'apps' | 'orgs' | 'depts' | 'positions'
-  const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit'
+  const [modalMode, setModalMode] = useState('add');  // 'add' | 'edit'
   const [formData, setFormData] = useState({});
 
   const fetchAll = async () => {
@@ -45,10 +47,10 @@ const OrgStructureManagement = () => {
         setDepts(data.departments || []);
         setPositions(data.positions || []);
 
-        // กาง App ทั้งหมดไว้เป็นค่าเริ่มต้น
-        const initApps = { UNASSIGNED: true };
-        (data.apps || []).forEach((a) => { initApps[a.app_code] = true; });
-        setExpandedApps((prev) => (Object.keys(prev).length > 0 ? prev : initApps));
+        // เลือกแอปแรกให้อัตโนมัติตอนเปิดหน้าครั้งแรก
+        if (!selectedApp && data.apps?.length > 0) {
+          setSelectedApp(data.apps[0].app_code);
+        }
       }
     } catch (err) {
       alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
@@ -61,7 +63,30 @@ const OrgStructureManagement = () => {
     fetchAll();
   }, []);
 
-  // เปิด Modal โดยระบุประเภท (apps/orgs/depts/positions) และค่าเริ่มต้น (preset) ได้
+  // ข้อมูลที่กรองแล้วในแต่ละคอลัมน์
+  const filteredOrgs = selectedApp === 'UNASSIGNED'
+    ? orgs.filter((o) => !o.app_code)
+    : selectedApp
+      ? orgs.filter((o) => o.app_code === selectedApp)
+      : [];
+
+  const filteredDepts = selectedOrg
+    ? depts.filter((d) => String(d.org_id) === String(selectedOrg))
+    : [];
+
+  const directPositionsInOrg = selectedOrg
+    ? positions.filter((p) => String(p.org_id) === String(selectedOrg) && !p.dept_id)
+    : [];
+
+  const filteredPositions = !selectedOrg
+    ? []
+    : selectedDept === 'DIRECT'
+      ? directPositionsInOrg
+      : selectedDept
+        ? positions.filter((p) => String(p.dept_id) === String(selectedDept))
+        : [];
+
+  // เปิด Modal พร้อมใส่ค่าเริ่มต้นตามชั้นที่เลือกอยู่
   const openModal = (type, mode, item = null, preset = {}) => {
     setModalType(type);
     setModalMode(mode);
@@ -71,21 +96,21 @@ const OrgStructureManagement = () => {
       setFormData(
         item
           ? { ...item, app_code: item.app_code || '' }
-          : { org_name: '', org_type: 'GOVERNMENT', app_code: preset.app_code || '', is_active: true }
+          : { org_name: '', org_type: 'GOVERNMENT', app_code: preset.app_code === 'UNASSIGNED' ? '' : (preset.app_code || ''), is_active: true }
       );
     } else if (type === 'depts') {
       setFormData(
         item
           ? { ...item, org_id: item.org_id || '' }
-          : { org_id: preset.org_id || orgs[0]?.org_id || '', department_name: '', department_type: 'GENERAL', is_active: true }
+          : { org_id: preset.org_id || selectedOrg || '', department_name: '', department_type: 'GENERAL', is_active: true }
       );
     } else if (type === 'positions') {
       setFormData(
         item
           ? { ...item, org_id: item.org_id || '', dept_id: item.dept_id || '' }
           : {
-              org_id: preset.org_id || orgs[0]?.org_id || '',
-              dept_id: preset.dept_id || '',
+              org_id: preset.org_id || selectedOrg || '',
+              dept_id: preset.dept_id === 'DIRECT' ? '' : (preset.dept_id || (selectedDept === 'DIRECT' ? '' : selectedDept) || ''),
               position_name: '',
               position_level: 'VILLAGE',
               is_active: true
@@ -128,552 +153,287 @@ const OrgStructureManagement = () => {
     }
   };
 
+  // ป้ายตัวเลขบอกจำนวน (0 = สีเทา, >0 = สีฟ้า/เขียว)
+  const countBadge = (count, unit) => (
+    <span style={{
+      fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', whiteSpace: 'nowrap',
+      backgroundColor: count === 0 ? '#f1f5f9' : '#dbeafe',
+      color: count === 0 ? '#94a3b8' : '#1d4ed8'
+    }}>
+      {count} {unit}
+    </span>
+  );
+
+  const colBoxStyle = {
+    backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0',
+    display: 'flex', flexDirection: 'column', height: '540px', overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+  };
+
+  const colHeaderStyle = (bg) => ({
+    padding: '12px 14px', backgroundColor: bg, borderBottom: '1px solid #e2e8f0',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px'
+  });
+
+  const itemCardStyle = (isSelected) => ({
+    padding: '10px 12px', borderRadius: '12px', cursor: 'pointer',
+    border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+    backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+    transition: 'all 0.15s ease', display: 'flex', flexDirection: 'column', gap: '6px'
+  });
+
   const inputStyle = {
     width: '100%', padding: '10px 12px', borderRadius: '10px',
     border: '1px solid #cbd5e1', backgroundColor: '#ffffff',
     fontSize: '14px', color: '#1e293b', boxSizing: 'border-box', outline: 'none'
   };
 
-  const labelStyle = {
-    fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px'
-  };
-
-  const tabBtnStyle = (tabKey) => ({
-    padding: '10px 16px', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '13px',
-    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
-    backgroundColor: activeTab === tabKey ? '#2563eb' : '#e2e8f0',
-    color: activeTab === tabKey ? '#ffffff' : '#334155'
-  });
-
-  const renderStatus = (isActive) => (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px',
-      borderRadius: '999px', fontSize: '11px', fontWeight: 700,
-      backgroundColor: isActive !== false ? '#d1fae5' : '#fee2e2',
-      color: isActive !== false ? '#047857' : '#b91c1c'
-    }}>
-      {isActive !== false ? <><CheckCircle2 size={12} /> ใช้งาน</> : <><XCircle size={12} /> ปิดใช้งาน</>}
-    </span>
-  );
+  const labelStyle = { fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' };
 
   const filteredDeptsForModal = formData.org_id
     ? depts.filter((d) => String(d.org_id) === String(formData.org_id))
     : depts;
 
-  // ฟังก์ชันช่วยแสดงกิ่งของ หน่วยงาน -> แผนก -> ตำแหน่ง
-  const renderOrgNode = (org) => {
-    const orgDepts = depts.filter((d) => String(d.org_id) === String(org.org_id));
-    const orgPositions = positions.filter((p) => String(p.org_id) === String(org.org_id));
-    const directPositions = orgPositions.filter((p) => !p.dept_id);
-    const isExpanded = !!expandedOrgs[org.org_id];
+  const unassignedOrgsCount = orgs.filter((o) => !o.app_code).length;
 
-    return (
-      <div key={org.org_id} style={{
-        backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px',
-        marginBottom: '10px', overflow: 'hidden'
+  return (
+    <div style={{ maxWidth: '1380px', margin: '0 auto', padding: '20px 16px' }}>
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(14px)',
+        borderRadius: '22px', padding: '22px', boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+        border: '1px solid rgba(255,255,255,0.6)', color: '#0f172a'
       }}>
-        {/* แถวหัวหน่วยงาน */}
-        <div style={{
-          padding: '12px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-          justifyContent: 'space-between', gap: '10px', backgroundColor: '#f8fafc'
-        }}>
-          <div
-            onClick={() => setExpandedOrgs((prev) => ({ ...prev, [org.org_id]: !prev[org.org_id] }))}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}
-          >
-            {isExpanded ? <ChevronDown size={18} color="#2563eb" /> : <ChevronRight size={18} color="#64748b" />}
-            <Building2 size={17} color="#0284c7" />
-            <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{org.org_name}</span>
-            <span style={{ padding: '2px 8px', borderRadius: '999px', backgroundColor: '#e0f2fe', color: '#0369a1', fontSize: '11px', fontWeight: 700 }}>
-              {orgDepts.length} แผนก
-            </span>
-            <span style={{ padding: '2px 8px', borderRadius: '999px', backgroundColor: '#ede9fe', color: '#6d28d9', fontSize: '11px', fontWeight: 700 }}>
-              {orgPositions.length} ตำแหน่ง
-            </span>
+        {/* Header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'linear-gradient(135deg, #2563eb, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <Columns3 size={24} />
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+                จัดการโครงสร้างองค์กร 4 มิติ (เลือกเจาะลึกทีละชั้น)
+              </h1>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                คลิกเลือกจากซ้ายไปขวา: 1. แอปพลิเคชัน → 2. หน่วยงานหลัก → 3. แผนก → 4. ตำแหน่งงาน (แสดงจำนวนที่มีชัดเจน)
+              </p>
+            </div>
           </div>
-
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={() => openModal('depts', 'add', null, { org_id: org.org_id })}
-              style={{
-                padding: '5px 10px', borderRadius: '8px', border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff', color: '#0f766e', fontSize: '11px', fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              + แผนก
-            </button>
-            <button
-              onClick={() => openModal('positions', 'add', null, { org_id: org.org_id })}
-              style={{
-                padding: '5px 10px', borderRadius: '8px', border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff', color: '#4f46e5', fontSize: '11px', fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              + ตำแหน่ง
-            </button>
-            <button
-              onClick={() => openModal('orgs', 'edit', org)}
-              style={{ padding: '5px 8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#2563eb', cursor: 'pointer' }}
-              title="แก้ไขหน่วยงาน"
-            >
-              <Edit3 size={14} />
-            </button>
+          <div style={{ display: 'flex', gap: '8px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+            <span>แอป: {apps.length}</span> • <span>หน่วยงาน: {orgs.length}</span> • <span>แผนก: {depts.length}</span> • <span>ตำแหน่ง: {positions.length}</span>
           </div>
         </div>
 
-        {/* เนื้อหาด้านในหน่วยงาน (แผนก + ตำแหน่ง) */}
-        {isExpanded && (
-          <div style={{ padding: '12px 16px 14px 36px', borderTop: '1px solid #f1f5f9' }}>
-            {orgDepts.length === 0 && directPositions.length === 0 ? (
-              <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>ยังไม่มีแผนกหรือตำแหน่งเชื่อมโยงในหน่วยงานนี้</div>
-            ) : (
-              <>
-                {orgDepts.map((dept) => {
-                  const deptPositions = positions.filter((p) => String(p.dept_id) === String(dept.department_id));
-                  return (
-                    <div key={dept.department_id} style={{
-                      borderLeft: '3px solid #0d9488', paddingLeft: '12px', marginBottom: '12px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Network size={14} color="#0d9488" />
-                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b' }}>{dept.department_name}</span>
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>({deptPositions.length} ตำแหน่ง)</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            onClick={() => openModal('positions', 'add', null, { org_id: org.org_id, dept_id: dept.department_id })}
-                            style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#4f46e5', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            + ตำแหน่ง
-                          </button>
-                          <button
-                            onClick={() => openModal('depts', 'edit', dept)}
-                            style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}
-                            title="แก้ไขแผนก"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                        </div>
-                      </div>
+        {loading ? (
+          <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>กำลังโหลดโครงสร้างองค์กร...</div>
+        ) : (
+          /* ================= 4 คอลัมน์เจาะลึกทีละชั้น ================= */
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
 
-                      {/* รายชื่อตำแหน่งในแผนก */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingLeft: '6px' }}>
-                        {deptPositions.length === 0 ? (
-                          <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>ยังไม่มีตำแหน่ง</span>
-                        ) : (
-                          deptPositions.map((pos) => (
-                            <span
-                              key={pos.position_id}
-                              onClick={() => openModal('positions', 'edit', pos)}
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                                padding: '4px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9',
-                                border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 600,
-                                color: '#334155', cursor: 'pointer'
-                              }}
-                              title="คลิกเพื่อแก้ไขตำแหน่ง"
-                            >
-                              <Briefcase size={12} color="#6366f1" />
-                              {pos.position_name}
-                              <span style={{ fontSize: '10px', color: '#64748b' }}>({pos.position_level})</span>
-                            </span>
-                          ))
-                        )}
+            {/* คอลัมน์ 1: แอปพลิเคชัน */}
+            <div style={colBoxStyle}>
+              <div style={colHeaderStyle('#eff6ff')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13.5px', color: '#1e3a8a' }}>
+                  <AppWindow size={16} /> 1. แอปพลิเคชัน ({apps.length})
+                </div>
+                <button onClick={() => openModal('apps', 'add')} style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
+                  + เพิ่ม
+                </button>
+              </div>
+              <div style={{ padding: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                {apps.map((app) => {
+                  const orgCnt = orgs.filter((o) => o.app_code === app.app_code).length;
+                  const isSel = selectedApp === app.app_code;
+                  return (
+                    <div
+                      key={app.app_code}
+                      onClick={() => { setSelectedApp(app.app_code); setSelectedOrg(null); setSelectedDept(null); }}
+                      style={itemCardStyle(isSel)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>{app.app_name}</div>
+                          <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#4338ca' }}>{app.app_code}</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); openModal('apps', 'edit', app); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px' }}><Edit3 size={14} /></button>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {countBadge(orgCnt, 'หน่วยงาน')}
+                        {app.is_active === false && <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700 }}>ปิดใช้งาน</span>}
                       </div>
                     </div>
                   );
                 })}
 
-                {/* ตำแหน่งที่ผูกหน่วยงานตรงๆ (ไม่ได้ระบุแผนก) */}
-                {directPositions.length > 0 && (
-                  <div style={{ borderLeft: '3px solid #94a3b8', paddingLeft: '12px', marginTop: '8px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
-                      ตำแหน่งกลาง (ไม่ได้ระบุแผนก) ({directPositions.length})
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {directPositions.map((pos) => (
-                        <span
-                          key={pos.position_id}
-                          onClick={() => openModal('positions', 'edit', pos)}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                            padding: '4px 10px', borderRadius: '8px', backgroundColor: '#fef3c7',
-                            border: '1px solid #fde68a', fontSize: '12px', fontWeight: 600,
-                            color: '#92400e', cursor: 'pointer'
-                          }}
-                        >
-                          <Briefcase size={12} /> {pos.position_name} ({pos.position_level})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                {/* กลุ่มส่วนกลางที่ยังไม่ผูกแอป */}
+                <div
+                  onClick={() => { setSelectedApp('UNASSIGNED'); setSelectedOrg(null); setSelectedDept(null); }}
+                  style={{ ...itemCardStyle(selectedApp === 'UNASSIGNED'), borderStyle: 'dashed' }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#475569' }}>🌐 ส่วนกลาง (ยังไม่ระบุแอป)</div>
+                  <div>{countBadge(unassignedOrgsCount, 'หน่วยงาน')}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* คอลัมน์ 2: หน่วยงานหลัก */}
+            <div style={colBoxStyle}>
+              <div style={colHeaderStyle('#f0f9ff')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13.5px', color: '#0369a1' }}>
+                  <Building2 size={16} /> 2. หน่วยงาน ({filteredOrgs.length})
+                </div>
+                <button
+                  disabled={!selectedApp}
+                  onClick={() => openModal('orgs', 'add', null, { app_code: selectedApp })}
+                  style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', backgroundColor: selectedApp ? '#0284c7' : '#cbd5e1', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: selectedApp ? 'pointer' : 'not-allowed' }}
+                >
+                  + เพิ่ม
+                </button>
+              </div>
+              <div style={{ padding: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                {!selectedApp ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>← กรุณาเลือกแอปพลิเคชันก่อน</div>
+                ) : filteredOrgs.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>มี 0 หน่วยงานในแอปนี้<br />กด "+ เพิ่ม" ด้านบนได้เลย</div>
+                ) : (
+                  filteredOrgs.map((org) => {
+                    const deptCnt = depts.filter((d) => String(d.org_id) === String(org.org_id)).length;
+                    const posCnt = positions.filter((p) => String(p.org_id) === String(org.org_id)).length;
+                    const isSel = String(selectedOrg) === String(org.org_id);
+                    return (
+                      <div
+                        key={org.org_id}
+                        onClick={() => { setSelectedOrg(org.org_id); setSelectedDept(null); }}
+                        style={itemCardStyle(isSel)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>{org.org_name}</div>
+                            {org.org_code && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#0284c7' }}>{org.org_code}</div>}
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); openModal('orgs', 'edit', org); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px' }}><Edit3 size={14} /></button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {countBadge(deptCnt, 'แผนก')}
+                          {countBadge(posCnt, 'ตำแหน่ง')}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // รายการที่ยังไม่ผูกหน่วยงาน (เพื่อไม่ให้ตกหล่น)
-  const unassignedOrgs = orgs.filter((o) => !o.app_code);
-  const unassignedDepts = depts.filter((d) => !d.org_id);
-  const unassignedPositions = positions.filter((p) => !p.org_id);
-
-  return (
-    <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '24px 16px' }}>
-      <div style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderRadius: '24px',
-        padding: '28px',
-        boxShadow: '0 10px 35px rgba(0, 0, 0, 0.12)',
-        border: '1px solid rgba(255, 255, 255, 0.6)',
-        color: '#1e293b'
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-          gap: '16px', paddingBottom: '20px', marginBottom: '20px',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.3)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '14px',
-              background: 'linear-gradient(135deg, #0f766e, #0284c7)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#ffffff', flexShrink: 0, boxShadow: '0 6px 16px rgba(2, 132, 199, 0.3)'
-            }}>
-              <Building2 size={26} />
+              </div>
             </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>
-                โครงสร้างองค์กรและระบบแอป (Org Structure)
-              </h1>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#475569' }}>
-                จัดการและดูความเชื่อมโยง แอปพลิเคชัน → หน่วยงานหลัก → แผนก → ตำแหน่ง พร้อมจำนวนเชื่อมโยงทั้งหมด
-              </p>
+
+            {/* คอลัมน์ 3: แผนก */}
+            <div style={colBoxStyle}>
+              <div style={colHeaderStyle('#f0fdfa')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13.5px', color: '#0f766e' }}>
+                  <Network size={16} /> 3. แผนก ({filteredDepts.length})
+                </div>
+                <button
+                  disabled={!selectedOrg}
+                  onClick={() => openModal('depts', 'add', null, { org_id: selectedOrg })}
+                  style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', backgroundColor: selectedOrg ? '#0d9488' : '#cbd5e1', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: selectedOrg ? 'pointer' : 'not-allowed' }}
+                >
+                  + เพิ่ม
+                </button>
+              </div>
+              <div style={{ padding: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                {!selectedOrg ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>← กรุณาเลือกหน่วยงานหลักก่อน</div>
+                ) : (
+                  <>
+                    {filteredDepts.length === 0 && directPositionsInOrg.length === 0 && (
+                      <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>มี 0 แผนกในหน่วยงานนี้<br />กด "+ เพิ่ม" ด้านบนได้เลย</div>
+                    )}
+                    {filteredDepts.map((dept) => {
+                      const posCnt = positions.filter((p) => String(p.dept_id) === String(dept.department_id)).length;
+                      const isSel = String(selectedDept) === String(dept.department_id);
+                      return (
+                        <div
+                          key={dept.department_id}
+                          onClick={() => setSelectedDept(dept.department_id)}
+                          style={itemCardStyle(isSel)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>{dept.department_name}</div>
+                              {dept.dept_code && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#0d9488' }}>{dept.dept_code}</div>}
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); openModal('depts', 'edit', dept); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px' }}><Edit3 size={14} /></button>
+                          </div>
+                          <div>{countBadge(posCnt, 'ตำแหน่ง')}</div>
+                        </div>
+                      );
+                    })}
+
+                    {/* ตำแหน่งกลางที่ไม่ได้ระบุแผนก */}
+                    {directPositionsInOrg.length > 0 && (
+                      <div
+                        onClick={() => setSelectedDept('DIRECT')}
+                        style={{ ...itemCardStyle(selectedDept === 'DIRECT'), borderStyle: 'dashed' }}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#92400e' }}>📌 ตำแหน่งกลาง (ไม่ระบุแผนก)</div>
+                        <div>{countBadge(directPositionsInOrg.length, 'ตำแหน่ง')}</div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={() => openModal(activeTab === 'tree' ? 'orgs' : activeTab, 'add')}
-            style={{
-              padding: '10px 18px', borderRadius: '12px', border: 'none',
-              background: 'linear-gradient(135deg, #2563eb, #4f46e5)', color: '#ffffff',
-              fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
-            }}
-          >
-            <Plus size={16} /> เพิ่มรายการใหม่
-          </button>
-        </div>
-
-        {/* 5 Tabs */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-          <button onClick={() => setActiveTab('tree')} style={tabBtnStyle('tree')}>
-            <GitBranch size={16} /> ผังความเชื่อมโยง
-          </button>
-          <button onClick={() => setActiveTab('apps')} style={tabBtnStyle('apps')}>
-            <AppWindow size={16} /> 1. แอปพลิเคชัน ({apps.length})
-          </button>
-          <button onClick={() => setActiveTab('orgs')} style={tabBtnStyle('orgs')}>
-            <Building2 size={16} /> 2. หน่วยงานหลัก ({orgs.length})
-          </button>
-          <button onClick={() => setActiveTab('depts')} style={tabBtnStyle('depts')}>
-            <Network size={16} /> 3. แผนก ({depts.length})
-          </button>
-          <button onClick={() => setActiveTab('positions')} style={tabBtnStyle('positions')}>
-            <Briefcase size={16} /> 4. ตำแหน่ง ({positions.length})
-          </button>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>กำลังโหลดข้อมูล...</div>
-        ) : activeTab === 'tree' ? (
-          /* ================= แท็บผังความเชื่อมโยง (App -> Org -> Dept -> Pos) ================= */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {apps.map((app) => {
-              const appOrgs = orgs.filter((o) => o.app_code === app.app_code);
-              const appOrgIds = appOrgs.map((o) => String(o.org_id));
-              const appDeptCount = depts.filter((d) => appOrgIds.includes(String(d.org_id))).length;
-              const appPosCount = positions.filter((p) => appOrgIds.includes(String(p.org_id))).length;
-              const isOpen = !!expandedApps[app.app_code];
-
-              return (
-                <div key={app.app_code} style={{
-                  backgroundColor: 'rgba(255,255,255,0.9)', border: '1.5px solid #cbd5e1',
-                  borderRadius: '18px', overflow: 'hidden'
-                }}>
-                  <div style={{
-                    padding: '14px 18px', background: 'linear-gradient(90deg, #eff6ff, #f8fafc)',
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-                    borderBottom: isOpen ? '1px solid #e2e8f0' : 'none'
-                  }}>
-                    <div
-                      onClick={() => setExpandedApps((prev) => ({ ...prev, [app.app_code]: !prev[app.app_code] }))}
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
-                    >
-                      {isOpen ? <ChevronDown size={20} color="#1d4ed8" /> : <ChevronRight size={20} color="#64748b" />}
-                      <AppWindow size={20} color="#2563eb" />
-                      <div>
-                        <span style={{ fontWeight: 800, fontSize: '15px', color: '#1e3a8a' }}>{app.app_name}</span>
-                        <span style={{ marginLeft: '8px', fontFamily: 'monospace', fontSize: '12px', color: '#4338ca', fontWeight: 700 }}>
-                          ({app.app_code})
+            {/* คอลัมน์ 4: ตำแหน่งงาน */}
+            <div style={colBoxStyle}>
+              <div style={colHeaderStyle('#eef2ff')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13.5px', color: '#4338ca' }}>
+                  <Briefcase size={16} /> 4. ตำแหน่ง ({filteredPositions.length})
+                </div>
+                <button
+                  disabled={!selectedOrg || !selectedDept}
+                  onClick={() => openModal('positions', 'add', null, { org_id: selectedOrg, dept_id: selectedDept })}
+                  style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', backgroundColor: (selectedOrg && selectedDept) ? '#4f46e5' : '#cbd5e1', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: (selectedOrg && selectedDept) ? 'pointer' : 'not-allowed' }}
+                >
+                  + เพิ่ม
+                </button>
+              </div>
+              <div style={{ padding: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                {!selectedDept ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>← กรุณาเลือกแผนกก่อน</div>
+                ) : filteredPositions.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12.5px', marginTop: '40px' }}>มี 0 ตำแหน่งในแผนกนี้<br />กด "+ เพิ่ม" ด้านบนได้เลย</div>
+                ) : (
+                  filteredPositions.map((pos) => (
+                    <div key={pos.position_id} style={{ ...itemCardStyle(false), cursor: 'default' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>{pos.position_name}</div>
+                          {pos.pos_code && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#4f46e5' }}>{pos.pos_code}</div>}
+                        </div>
+                        <button onClick={() => openModal('positions', 'edit', pos)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '4px 6px', color: '#2563eb', cursor: 'pointer' }}><Edit3 size={14} /></button>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#334155' }}>
+                          {pos.position_level}
+                        </span>
+                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: pos.is_active !== false ? '#059669' : '#dc2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          {pos.is_active !== false ? <><CheckCircle2 size={12} /> ใช้งาน</> : <><XCircle size={12} /> ปิด</>}
                         </span>
                       </div>
-                      <span style={{ padding: '3px 10px', borderRadius: '999px', backgroundColor: '#dbeafe', color: '#1e40af', fontSize: '11px', fontWeight: 700 }}>
-                        {appOrgs.length} หน่วยงาน | {appDeptCount} แผนก | {appPosCount} ตำแหน่ง
-                      </span>
                     </div>
-
-                    <button
-                      onClick={() => openModal('orgs', 'add', null, { app_code: app.app_code })}
-                      style={{
-                        padding: '6px 12px', borderRadius: '8px', border: 'none',
-                        backgroundColor: '#2563eb', color: '#ffffff', fontSize: '12px', fontWeight: 700, cursor: 'pointer'
-                      }}
-                    >
-                      + เพิ่มหน่วยงานในแอปนี้
-                    </button>
-                  </div>
-
-                  {isOpen && (
-                    <div style={{ padding: '14px 18px' }}>
-                      {appOrgs.length === 0 ? (
-                        <div style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>ยังไม่มีหน่วยงานหลักผูกกับแอปนี้</div>
-                      ) : (
-                        appOrgs.map((org) => renderOrgNode(org))
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* หน่วยงานที่ยังไม่ได้ผูกกับแอปใด (ใช้ได้ทุกแอป) */}
-            {unassignedOrgs.length > 0 && (
-              <div style={{
-                backgroundColor: 'rgba(255,255,255,0.9)', border: '1.5px dashed #94a3b8',
-                borderRadius: '18px', overflow: 'hidden'
-              }}>
-                <div
-                  onClick={() => setExpandedApps((prev) => ({ ...prev, UNASSIGNED: !prev.UNASSIGNED }))}
-                  style={{
-                    padding: '14px 18px', backgroundColor: '#f8fafc', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {expandedApps.UNASSIGNED ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                    <span style={{ fontWeight: 800, fontSize: '14px', color: '#475569' }}>
-                      🌐 หน่วยงานส่วนกลาง / ยังไม่ได้ระบุแอป ({unassignedOrgs.length} หน่วยงาน)
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>คลิกปุ่มดินสอที่หน่วยงานเพื่อผูกกับแอปได้</span>
-                </div>
-                {expandedApps.UNASSIGNED && (
-                  <div style={{ padding: '14px 18px' }}>
-                    {unassignedOrgs.map((org) => renderOrgNode(org))}
-                  </div>
+                  ))
                 )}
               </div>
-            )}
+            </div>
 
-            {/* แผนกหรือตำแหน่งที่ยังไม่ได้ผูกหน่วยงานเลย */}
-            {(unassignedDepts.length > 0 || unassignedPositions.length > 0) && (
-              <div style={{
-                backgroundColor: '#fffbeb', border: '1px solid #fcd34d',
-                borderRadius: '16px', padding: '16px'
-              }}>
-                <div style={{ fontWeight: 800, fontSize: '14px', color: '#92400e', marginBottom: '10px' }}>
-                  ⚠️ รายการที่ยังไม่ได้ผูกหน่วยงานหลัก (คลิกเพื่อแก้ไขจับคู่)
-                </div>
-                {unassignedDepts.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309', marginBottom: '4px' }}>แผนก ({unassignedDepts.length}):</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {unassignedDepts.map((d) => (
-                        <span key={d.department_id} onClick={() => openModal('depts', 'edit', d)} style={{ padding: '4px 10px', borderRadius: '8px', backgroundColor: '#ffffff', border: '1px solid #fcd34d', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                          {d.department_name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {unassignedPositions.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309', marginBottom: '4px' }}>ตำแหน่ง ({unassignedPositions.length}):</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {unassignedPositions.map((p) => (
-                        <span key={p.position_id} onClick={() => openModal('positions', 'edit', p)} style={{ padding: '4px 10px', borderRadius: '8px', backgroundColor: '#ffffff', border: '1px solid #fcd34d', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                          {p.position_name} ({p.position_level})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* ================= ตารางแท็บ 1 - 4 เดิม (เพิ่มตัวนับจำนวนเชื่อมโยง) ================= */
-          <div style={{ overflowX: 'auto', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-            {activeTab === 'apps' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                    <th style={{ padding: '12px 16px' }}>รหัสแอป</th>
-                    <th style={{ padding: '12px 16px' }}>ชื่อแอปพลิเคชัน</th>
-                    <th style={{ padding: '12px 16px' }}>เชื่อมโยง</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>สถานะ</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>แก้ไข</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map((a) => {
-                    const orgCount = orgs.filter((o) => o.app_code === a.app_code).length;
-                    return (
-                      <tr key={a.app_code} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#4338ca' }}>{a.app_code}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{a.app_name}</td>
-                        <td style={{ padding: '12px 16px', color: '#2563eb', fontWeight: 700 }}>{orgCount} หน่วยงาน</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>{renderStatus(a.is_active)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <button onClick={() => openModal('apps', 'edit', a)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}><Edit3 size={16} /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'orgs' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                    <th style={{ padding: '12px 16px' }}>ID</th>
-                    <th style={{ padding: '12px 16px' }}>ชื่อหน่วยงานหลัก</th>
-                    <th style={{ padding: '12px 16px' }}>แอปที่ผูก</th>
-                    <th style={{ padding: '12px 16px' }}>เชื่อมโยง</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>สถานะ</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>แก้ไข</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orgs.map((o) => {
-                    const dCount = depts.filter((d) => String(d.org_id) === String(o.org_id)).length;
-                    const pCount = positions.filter((p) => String(p.org_id) === String(o.org_id)).length;
-                    return (
-                      <tr key={o.org_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#64748b' }}>#{o.org_id}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{o.org_name}</td>
-                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px', color: '#4338ca', fontWeight: 700 }}>
-                          {o.app_code || 'ทุกแอป (ส่วนกลาง)'}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: '#0f766e' }}>
-                          {dCount} แผนก / {pCount} ตำแหน่ง
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>{renderStatus(o.is_active)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <button onClick={() => openModal('orgs', 'edit', o)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}><Edit3 size={16} /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'depts' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                    <th style={{ padding: '12px 16px' }}>ID</th>
-                    <th style={{ padding: '12px 16px' }}>ชื่อแผนก</th>
-                    <th style={{ padding: '12px 16px' }}>สังกัดหน่วยงาน</th>
-                    <th style={{ padding: '12px 16px' }}>เชื่อมโยง</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>สถานะ</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>แก้ไข</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {depts.map((d) => {
-                    const pCount = positions.filter((p) => String(p.dept_id) === String(d.department_id)).length;
-                    return (
-                      <tr key={d.department_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#64748b' }}>#{d.department_id}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{d.department_name}</td>
-                        <td style={{ padding: '12px 16px', color: '#4338ca', fontWeight: 600 }}>{d.org_name || 'ยังไม่ผูกหน่วยงาน'}</td>
-                        <td style={{ padding: '12px 16px', color: '#6d28d9', fontWeight: 700 }}>{pCount} ตำแหน่ง</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>{renderStatus(d.is_active)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <button onClick={() => openModal('depts', 'edit', d)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}><Edit3 size={16} /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'positions' && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                    <th style={{ padding: '12px 16px' }}>ID</th>
-                    <th style={{ padding: '12px 16px' }}>ชื่อตำแหน่ง</th>
-                    <th style={{ padding: '12px 16px' }}>หน่วยงาน / แผนก</th>
-                    <th style={{ padding: '12px 16px' }}>ระดับพื้นที่</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>สถานะ</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>แก้ไข</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.map((p) => (
-                    <tr key={p.position_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#64748b' }}>#{p.position_id}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{p.position_name}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600, color: '#4338ca' }}>{p.org_name || 'ยังไม่ได้ผูกหน่วยงาน'}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>แผนก: {p.department_name || 'ตำแหน่งกลาง'}</div>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#334155', fontSize: '11px', fontWeight: 700 }}>
-                          {p.position_level}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>{renderStatus(p.is_active)}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <button onClick={() => openModal('positions', 'edit', p)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}><Edit3 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
           </div>
         )}
       </div>
 
       {/* ================= Modal เพิ่ม/แก้ไข ================= */}
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px'
-        }}>
-          <form onSubmit={handleSave} style={{
-            backgroundColor: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.25)'
-          }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <form onSubmit={handleSave} style={{ backgroundColor: '#ffffff', borderRadius: '20px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
             <div style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 800, fontSize: '16px' }}>
-                {modalMode === 'edit' ? 'แก้ไขข้อมูล' : 'เพิ่มรายการใหม่'}
-              </span>
+              <span style={{ fontWeight: 800, fontSize: '16px' }}>{modalMode === 'edit' ? 'แก้ไขข้อมูล' : 'เพิ่มรายการใหม่'}</span>
               <button type="button" onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
@@ -686,7 +446,7 @@ const OrgStructureManagement = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>ชื่อแอปพลิเคชัน *</label>
-                    <input required type="text" placeholder="เช่น บ้านเรา ร้านค้า" value={formData.app_name || ''} onChange={(e) => setFormData({ ...formData, app_name: e.target.value })} style={inputStyle} />
+                    <input required type="text" value={formData.app_name || ''} onChange={(e) => setFormData({ ...formData, app_name: e.target.value })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>รายละเอียด</label>
@@ -706,7 +466,7 @@ const OrgStructureManagement = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>ชื่อหน่วยงานหลัก *</label>
-                    <input required type="text" placeholder="เช่น กระทรวงมหาดไทย, บริษัท บ้านเรา" value={formData.org_name || ''} onChange={(e) => setFormData({ ...formData, org_name: e.target.value })} style={inputStyle} />
+                    <input required type="text" value={formData.org_name || ''} onChange={(e) => setFormData({ ...formData, org_name: e.target.value })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>ประเภทหน่วยงาน</label>
@@ -730,11 +490,11 @@ const OrgStructureManagement = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>ชื่อแผนก *</label>
-                    <input required type="text" placeholder="เช่น กองคลัง, กองช่าง, ฝ่ายตรวจสอบ KYC" value={formData.department_name || ''} onChange={(e) => setFormData({ ...formData, department_name: e.target.value })} style={inputStyle} />
+                    <input required type="text" value={formData.department_name || ''} onChange={(e) => setFormData({ ...formData, department_name: e.target.value })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>ประเภทแผนก</label>
-                    <input type="text" placeholder="เช่น GENERAL, ADMIN, FINANCE" value={formData.department_type || ''} onChange={(e) => setFormData({ ...formData, department_type: e.target.value })} style={inputStyle} />
+                    <input type="text" value={formData.department_type || ''} onChange={(e) => setFormData({ ...formData, department_type: e.target.value })} style={inputStyle} />
                   </div>
                 </>
               )}
@@ -757,7 +517,7 @@ const OrgStructureManagement = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>ชื่อตำแหน่ง *</label>
-                    <input required type="text" placeholder="เช่น ผู้ใหญ่บ้าน, เจ้าหน้าที่การเงิน" value={formData.position_name || ''} onChange={(e) => setFormData({ ...formData, position_name: e.target.value })} style={inputStyle} />
+                    <input required type="text" value={formData.position_name || ''} onChange={(e) => setFormData({ ...formData, position_name: e.target.value })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>ระดับขอบเขตพื้นที่</label>
