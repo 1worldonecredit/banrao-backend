@@ -38,6 +38,28 @@ const formatThaiId = (value) => {
   return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5, 10)}-${digits.slice(10, 12)}-${digits.slice(12, 13)}`;
 };
 
+// แปลงวันที่เป็นรูปแบบไทย (เช่น 24 พ.ย. 2569)
+const formatThaiDate = (dateStr) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+// คำนวณอายุจากวันเกิด (ปี เดือน)
+const calcAgeText = (birthDate) => {
+  if (!birthDate) return '-';
+  const dob = new Date(birthDate);
+  if (isNaN(dob.getTime())) return '-';
+  const now = new Date();
+  let years = now.getFullYear() - dob.getFullYear();
+  let months = now.getMonth() - dob.getMonth();
+  if (now.getDate() < dob.getDate()) months -= 1;
+  if (months < 0) { years -= 1; months += 12; }
+  return `${years} ปี ${months} เดือน`;
+};
+
+
 const StaffManagement = () => {
   const adminUser = JSON.parse(localStorage.getItem('userData') || '{}');
   const myAccountId = adminUser.account_id || adminUser.id || null;
@@ -79,6 +101,7 @@ const StaffManagement = () => {
   const [modalDepts, setModalDepts] = useState([]);
   const [modalPositions, setModalPositions] = useState([]);
   const [lookupStatus, setLookupStatus] = useState('');
+  const [lookupDetails, setLookupDetails] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -160,7 +183,7 @@ const StaffManagement = () => {
     try {
       const res = await fetch(`${API_URL}/api/hr/lookup-national-id/${clean}`).then((r) => r.json());
       if (res.success && res.data) {
-        const d = res.data;
+        const d = res.data; setLookupDetails(d);
         setForm((prev) => ({
           ...prev,
           national_id: formatThaiId(clean),
@@ -178,10 +201,11 @@ const StaffManagement = () => {
           setLookupStatus('✅ พบข้อมูลประชาชนในระบบ ดึงชื่อ-นามสกุลมาให้แล้ว');
         }
       } else {
-        setLookupStatus('ℹ️ ยังไม่พบเลขบัตรนี้ในระบบ สามารถกรอกข้อมูลเพื่อเพิ่มใหม่ได้เลย');
+        setLookupStatus('ℹ️ ยังไม่พบเลขบัตรนี้ในระบบ สามารถกรอกข้อมูลเพื่อเพิ่มใหม่ได้เลย'); setLookupDetails(null);
       }
     } catch (err) {
       setLookupStatus('❌ ค้นหาไม่สำเร็จ');
+      setLookupDetails(null);
     }
   };
 
@@ -355,49 +379,47 @@ const StaffManagement = () => {
     border: '1px solid #cbd5e1', backgroundColor: '#f8fafc',
     color: '#0f172a', fontSize: '13.5px', boxSizing: 'border-box', outline: 'none'
   };
-
-  return (
+return (
     <div style={{ padding: '20px', maxWidth: '1380px', margin: '0 auto', color: '#0f172a' }}>
       {/* ส่วนหัวหน้าจอ */}
-     {/* ส่วนหัวหน้าจอ */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
         marginBottom: '18px', backgroundColor: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(10px)',
         padding: '16px 20px', borderRadius: '16px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ backgroundColor: '#2563eb', color: '#fff', padding: '10px', borderRadius: '14px', display: 'flex' }}>
             <Users size={24} />
           </div>
-            {/* แถบแสดงสิทธิ์การใช้งานของบัญชีที่ล็อกอิน */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
-        backgroundColor: 'rgba(255,255,255,0.92)', padding: '10px 16px',
-        borderRadius: '12px', marginBottom: '14px', fontSize: '12px', fontWeight: 700,
-        border: '1px solid #e2e8f0'
-      }}>
-        <span style={{ color: '#475569' }}>สิทธิ์ของคุณในหน้านี้:</span>
-        {[
-          { label: 'ดูข้อมูล', ok: perms.canView },
-          { label: 'เพิ่มใหม่', ok: perms.canCreate },
-          { label: 'แก้ไข / ย้าย', ok: perms.canEdit },
-          { label: 'ลบ (Soft Delete)', ok: perms.canDelete },
-          { label: 'อนุมัติ (PIN)', ok: perms.canApprove }
-        ].map((item) => (
-          <span
-            key={item.label}
-            style={{
-              padding: '3px 10px', borderRadius: '999px',
-              backgroundColor: item.ok ? '#dcfce7' : '#f1f5f9',
-              color: item.ok ? '#15803d' : '#94a3b8',
-              border: item.ok ? '1px solid #86efac' : '1px solid #e2e8f0'
-            }}
-          >
-            {item.ok ? '✓' : '✕'} {item.label}
-          </span>
-        ))}
-      </div>
 
+          {/* แถบแสดงสิทธิ์การใช้งานของบัญชีที่ล็อกอิน */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
+            backgroundColor: 'rgba(255,255,255,0.92)', padding: '10px 16px',
+            borderRadius: '12px', fontSize: '12px', fontWeight: 700,
+            border: '1px solid #e2e8f0'
+          }}>
+            <span style={{ color: '#475569' }}>สิทธิ์ของคุณในหน้านี้:</span>
+            {[
+              { label: 'ดูข้อมูล', ok: perms.canView },
+              { label: 'เพิ่มใหม่', ok: perms.canCreate },
+              { label: 'แก้ไข / ย้าย', ok: perms.canEdit },
+              { label: 'ลบ (Soft Delete)', ok: perms.canDelete },
+              { label: 'อนุมัติ (PIN)', ok: perms.canApprove }
+            ].map((item) => (
+              <span
+                key={item.label}
+                style={{
+                  padding: '3px 10px', borderRadius: '999px',
+                  backgroundColor: item.ok ? '#dcfce7' : '#f1f5f9',
+                  color: item.ok ? '#15803d' : '#94a3b8',
+                  border: item.ok ? '1px solid #86efac' : '1px solid #e2e8f0'
+                }}
+              >
+                {item.ok ? '✓' : '✕'} {item.label}
+              </span>
+            ))}
+          </div>
 
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>จัดการบุคลากรและตำแหน่งงาน (7 ระดับ)</h2>
@@ -413,7 +435,7 @@ const StaffManagement = () => {
           >
             <KeyRound size={16} color="#d97706" /> เปลี่ยนรหัส PIN อนุมัติ
           </button>
-            <button
+          <button
             type="button"
             disabled={!perms.canCreate}
             onClick={openAddModal}
@@ -556,7 +578,7 @@ const StaffManagement = () => {
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                       {row.status === 'PENDING' && perms.canApprove && (
+                        {row.status === 'PENDING' && perms.canApprove && (
                           <button type="button" onClick={() => setApproveModal({ open: true, row, pin: '' })} title="อนุมัติด้วยรหัส PIN" style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <CheckCircle size={14} /> อนุมัติ
                           </button>
@@ -574,20 +596,6 @@ const StaffManagement = () => {
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => openTransferModal(row)}
-                          title="ย้าย / ปรับตำแหน่ง"
-                          style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          <ArrowRightLeft size={14} /> ย้าย/ปรับ
-                        </button>
-                        <button type="button" onClick={() => openEditModal(row)} title="แก้ไข" style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#334155', cursor: 'pointer' }}>
-                          <Edit3 size={14} />
-                        </button>
-                        <button type="button" onClick={() => handleSoftDelete(row)} title="ปิดใช้งาน (Soft Delete)" style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>
-                          <Trash2 size={14} />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -617,21 +625,104 @@ const StaffManagement = () => {
                 <div style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af', display: 'block', marginBottom: '6px' }}>เลขบัตรประชาชน 13 หลัก * (ห้ามซ้ำซ้อน)</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
-  required
-  maxLength={17}
-  type="text"
-  inputMode="numeric"
-  placeholder="X-XXXX-XXXXX-XX-X"
-  value={form.national_id}
-  onChange={(e) => setForm({ ...form, national_id: formatThaiId(e.target.value) })}
-  style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }}
-/>
+                    <input
+                      required
+                      maxLength={17}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="X-XXXX-XXXXX-XX-X"
+                      value={form.national_id}
+                      onChange={(e) => setForm({ ...form, national_id: formatThaiId(e.target.value) })}
+                      style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }}
+                    />
                     <button type="button" onClick={handleLookupNationalId} style={{ padding: '0 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       ค้นหา
                     </button>
                   </div>
                   {lookupStatus && <div style={{ fontSize: '11.5px', color: '#1e3a8a', marginTop: '6px', fontWeight: 600 }}>{lookupStatus}</div>}
+
+                  {/* การ์ดแสดงรูปโปรไฟล์ ข้อมูลส่วนตัว และประวัติตำแหน่งงาน */}
+                  {lookupDetails && (
+                    <div style={{
+                      marginTop: '12px', padding: '12px', borderRadius: '12px',
+                      backgroundColor: '#ffffff', border: '1px solid #cbd5e1',
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.05)'
+                    }}>
+                      {/* ส่วนบน: รูปโปรไฟล์ชัดๆ + ข้อมูลส่วนตัว */}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div style={{
+                          width: '72px', height: '72px', borderRadius: '12px', flexShrink: 0,
+                          overflow: 'hidden', border: '2px solid #bfdbfe', backgroundColor: '#eff6ff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '24px', fontWeight: 800, color: '#2563eb'
+                        }}>
+                          {lookupDetails.profile_details?.avatar_url ? (
+                            <img
+                              src={lookupDetails.profile_details.avatar_url}
+                              alt="Profile"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            (lookupDetails.first_name || '?').charAt(0)
+                          )}
+                        </div>
+
+                        <div style={{ flex: 1, fontSize: '12px', color: '#334155', lineHeight: '1.6' }}>
+                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>
+                            {lookupDetails.first_name} {lookupDetails.last_name}
+                            {lookupDetails.nickname ? ` (${lookupDetails.nickname})` : ''}
+                            {lookupDetails.emp_code && (
+                              <span style={{ marginLeft: '6px', fontSize: '11px', color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '2px 7px', borderRadius: '6px' }}>
+                                {lookupDetails.emp_code}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: '4px' }}>
+                            <span><b>เกิด:</b> {formatThaiDate(lookupDetails.profile_details?.birth_date)}</span>
+                            <span><b>อายุ:</b> {calcAgeText(lookupDetails.profile_details?.birth_date)}</span>
+                            <span><b>เพศ:</b> {lookupDetails.profile_details?.gender || '-'}</span>
+                          </div>
+                          <div>
+                            <b>การศึกษา:</b> {lookupDetails.profile_details?.education || <span style={{ color: '#94a3b8' }}>ยังไม่มีข้อมูลในระบบ</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ส่วนล่าง: ประวัติตำแหน่งงาน (ล่าสุด & ที่ผ่านมา) */}
+                      {Array.isArray(lookupDetails.assignment_history) && lookupDetails.assignment_history.length > 0 && (
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
+                          <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e3a8a', marginBottom: '6px' }}>
+                            ประวัติตำแหน่งงาน ({lookupDetails.assignment_history.length} รายการ)
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+                            {lookupDetails.assignment_history.map((h) => (
+                              <div key={h.assignment_id} style={{
+                                padding: '7px 10px', borderRadius: '8px', fontSize: '11.5px',
+                                backgroundColor: h.is_current ? '#f0fdf4' : '#f8fafc',
+                                border: h.is_current ? '1px solid #86efac' : '1px solid #e2e8f0'
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                                    {h.position_name || '-'} ({h.org_name || '-'} • {h.department_name || '-'})
+                                  </span>
+                                  <span style={{
+                                    fontSize: '10.5px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px',
+                                    backgroundColor: h.is_current ? '#dcfce7' : h.status === 'PENDING' ? '#fef3c7' : '#e2e8f0',
+                                    color: h.is_current ? '#15803d' : h.status === 'PENDING' ? '#b45309' : '#475569'
+                                  }}>
+                                    {h.is_current ? 'ปัจจุบัน' : h.status === 'PENDING' ? 'รออนุมัติ' : 'ผ่านมาแล้ว'}
+                                  </span>
+                                </div>
+                                <div style={{ color: '#64748b', marginTop: '2px' }}>
+                                  พื้นที่: {h.area_name || 'ส่วนกลาง'} ({h.scope_level}) • ระยะเวลา: {formatThaiDate(h.start_date || h.created_at)} – {h.end_date ? formatThaiDate(h.end_date) : (h.is_current ? 'ปัจจุบัน' : '-')}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
