@@ -45,10 +45,6 @@ const StaffManagement = () => {
   // ดึงสิทธิ์ของหน้านี้ตั้งแต่ตอน Login
   const perms = getPagePermissions('/staff-management');
 
-  // เช็กว่าใน Modal ปัจจุบันสามารถพิมพ์แก้ไข Text Box ได้หรือไม่
-  const isFormReadOnly =
-    (modalMode === 'ADD' && !perms.canCreate) ||
-    ((modalMode === 'EDIT' || modalMode === 'TRANSFER') && !perms.canEdit);
 
   // =========================================================================
   // 1. State ตัวกรอง Dropdown 4 ชั้น (หน่วยงาน -> แผนก -> ตำแหน่ง -> รายชื่อ)
@@ -72,6 +68,12 @@ const StaffManagement = () => {
   // =========================================================================
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('ADD'); // 'ADD' | 'EDIT' | 'TRANSFER'
+    // เช็กว่าใน Modal ปัจจุบันสามารถพิมพ์แก้ไข Text Box ได้หรือไม่
+  const isFormReadOnly =
+    (modalMode === 'ADD' && !perms.canCreate) ||
+    ((modalMode === 'EDIT' || modalMode === 'TRANSFER') && !perms.canEdit);
+
+
   const [targetRow, setTargetRow] = useState(null);
 
   const [modalDepts, setModalDepts] = useState([]);
