@@ -336,7 +336,12 @@ const StaffManagement = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '1380px', margin: '0 auto', color: '#0f172a' }}>
       {/* ส่วนหัวหน้าจอ */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+     {/* ส่วนหัวหน้าจอ */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
+        marginBottom: '18px', backgroundColor: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(10px)',
+        padding: '16px 20px', borderRadius: '16px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ backgroundColor: '#2563eb', color: '#fff', padding: '10px', borderRadius: '14px', display: 'flex' }}>
             <Users size={24} />
