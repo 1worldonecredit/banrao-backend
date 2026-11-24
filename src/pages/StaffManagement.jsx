@@ -4,6 +4,8 @@ import {
   Edit3, Trash2, KeyRound, X, Building2, ShieldCheck, RefreshCw
 } from 'lucide-react';
 
+import { getPagePermissions } from '../utils/permissions';
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 // แท็บ 7 ระดับการปกครอง / องค์กร
@@ -39,6 +41,14 @@ const formatThaiId = (value) => {
 const StaffManagement = () => {
   const adminUser = JSON.parse(localStorage.getItem('userData') || '{}');
   const myAccountId = adminUser.account_id || adminUser.id || null;
+
+  // ดึงสิทธิ์ของหน้านี้ตั้งแต่ตอน Login
+  const perms = getPagePermissions('/staff-management');
+
+  // เช็กว่าใน Modal ปัจจุบันสามารถพิมพ์แก้ไข Text Box ได้หรือไม่
+  const isFormReadOnly =
+    (modalMode === 'ADD' && !perms.canCreate) ||
+    ((modalMode === 'EDIT' || modalMode === 'TRANSFER') && !perms.canEdit);
 
   // =========================================================================
   // 1. State ตัวกรอง Dropdown 4 ชั้น (หน่วยงาน -> แผนก -> ตำแหน่ง -> รายชื่อ)
@@ -151,7 +161,7 @@ const StaffManagement = () => {
         const d = res.data;
         setForm((prev) => ({
           ...prev,
-          national_id: clean,
+          national_id: formatThaiId(clean),
           first_name: d.first_name || prev.first_name,
           last_name: d.last_name || prev.last_name,
           nickname: d.nickname || prev.nickname,
@@ -357,6 +367,36 @@ const StaffManagement = () => {
           <div style={{ backgroundColor: '#2563eb', color: '#fff', padding: '10px', borderRadius: '14px', display: 'flex' }}>
             <Users size={24} />
           </div>
+            {/* แถบแสดงสิทธิ์การใช้งานของบัญชีที่ล็อกอิน */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
+        backgroundColor: 'rgba(255,255,255,0.92)', padding: '10px 16px',
+        borderRadius: '12px', marginBottom: '14px', fontSize: '12px', fontWeight: 700,
+        border: '1px solid #e2e8f0'
+      }}>
+        <span style={{ color: '#475569' }}>สิทธิ์ของคุณในหน้านี้:</span>
+        {[
+          { label: 'ดูข้อมูล', ok: perms.canView },
+          { label: 'เพิ่มใหม่', ok: perms.canCreate },
+          { label: 'แก้ไข / ย้าย', ok: perms.canEdit },
+          { label: 'ลบ (Soft Delete)', ok: perms.canDelete },
+          { label: 'อนุมัติ (PIN)', ok: perms.canApprove }
+        ].map((item) => (
+          <span
+            key={item.label}
+            style={{
+              padding: '3px 10px', borderRadius: '999px',
+              backgroundColor: item.ok ? '#dcfce7' : '#f1f5f9',
+              color: item.ok ? '#15803d' : '#94a3b8',
+              border: item.ok ? '1px solid #86efac' : '1px solid #e2e8f0'
+            }}
+          >
+            {item.ok ? '✓' : '✕'} {item.label}
+          </span>
+        ))}
+      </div>
+
+
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>จัดการบุคลากรและตำแหน่งงาน (7 ระดับ)</h2>
             <div style={{ fontSize: '12.5px', color: '#64748b' }}>โครงสร้างเชื่อมโยง หน่วยงาน → แผนก → ตำแหน่ง → บุคลากร (เลขบัตรไม่ซ้ำซ้อน)</div>
@@ -371,10 +411,18 @@ const StaffManagement = () => {
           >
             <KeyRound size={16} color="#d97706" /> เปลี่ยนรหัส PIN อนุมัติ
           </button>
-          <button
+            <button
             type="button"
+            disabled={!perms.canCreate}
             onClick={openAddModal}
-            style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}
+            title={perms.canCreate ? 'เพิ่มบุคลากรใหม่' : 'คุณไม่มีสิทธิ์เพิ่มข้อมูล'}
+            style={{
+              padding: '9px 18px', borderRadius: '10px', border: 'none',
+              backgroundColor: perms.canCreate ? '#2563eb' : '#cbd5e1',
+              color: '#fff', fontWeight: 700, fontSize: '13.5px',
+              cursor: perms.canCreate ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', gap: '6px'
+            }}
           >
             <Plus size={18} /> เพิ่มบุคลากร / บรรจุตำแหน่ง
           </button>
@@ -506,14 +554,22 @@ const StaffManagement = () => {
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        {row.status === 'PENDING' && (
-                          <button
-                            type="button"
-                            onClick={() => setApproveModal({ open: true, row, pin: '' })}
-                            title="อนุมัติด้วยรหัส PIN"
-                            style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
+                       {row.status === 'PENDING' && perms.canApprove && (
+                          <button type="button" onClick={() => setApproveModal({ open: true, row, pin: '' })} title="อนุมัติด้วยรหัส PIN" style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: '#fff', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <CheckCircle size={14} /> อนุมัติ
+                          </button>
+                        )}
+                        {perms.canEdit && (
+                          <button type="button" onClick={() => openTransferModal(row)} title="ย้าย / ปรับตำแหน่ง" style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <ArrowRightLeft size={14} /> ย้าย/ปรับ
+                          </button>
+                        )}
+                        <button type="button" onClick={() => openEditModal(row)} title={perms.canEdit ? 'แก้ไข' : 'ดูรายละเอียด (อ่านอย่างเดียว)'} style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#334155', cursor: 'pointer' }}>
+                          <Edit3 size={14} />
+                        </button>
+                        {perms.canDelete && (
+                          <button type="button" onClick={() => handleSoftDelete(row)} title="ปิดใช้งาน (Soft Delete)" style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>
+                            <Trash2 size={14} />
                           </button>
                         )}
                         <button
