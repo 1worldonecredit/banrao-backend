@@ -25,6 +25,17 @@ const STATUS_BADGE = {
   INACTIVE: { label: 'พ้นสภาพ', bg: '#fee2e2', color: '#b91c1c' }
 };
 
+
+// จัดรูปแบบเลขบัตรประชาชนไทยอัตโนมัติ: X-XXXX-XXXXX-XX-X
+const formatThaiId = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 13);
+  if (digits.length <= 1) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 1)}-${digits.slice(1)}`;
+  if (digits.length <= 10) return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5)}`;
+  if (digits.length <= 12) return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5, 10)}-${digits.slice(10)}`;
+  return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5, 10)}-${digits.slice(10, 12)}-${digits.slice(12, 13)}`;
+};
+
 const StaffManagement = () => {
   const adminUser = JSON.parse(localStorage.getItem('userData') || '{}');
   const myAccountId = adminUser.account_id || adminUser.id || null;
@@ -474,7 +485,7 @@ const StaffManagement = () => {
                   <tr key={row.assignment_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 800, color: '#2563eb', fontFamily: 'monospace' }}>{row.emp_code}</div>
-                      <div style={{ fontSize: '11.5px', color: '#64748b', fontFamily: 'monospace' }}>{row.national_id}</div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b', fontFamily: 'monospace' }}>{formatThaiId(row.national_id)}</div>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a' }}>{row.first_name} {row.last_name} {row.nickname ? `(${row.nickname})` : ''}</div>
@@ -548,7 +559,16 @@ const StaffManagement = () => {
                 <div style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#1e40af', display: 'block', marginBottom: '6px' }}>เลขบัตรประชาชน 13 หลัก * (ห้ามซ้ำซ้อน)</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <input required maxLength={13} type="text" placeholder="กรอกเลขบัตร 13 หลักแล้วกดค้นหา" value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} style={inputStyle} />
+                      <input
+  required
+  maxLength={17}
+  type="text"
+  inputMode="numeric"
+  placeholder="X-XXXX-XXXXX-XX-X"
+  value={form.national_id}
+  onChange={(e) => setForm({ ...form, national_id: formatThaiId(e.target.value) })}
+  style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }}
+/>
                     <button type="button" onClick={handleLookupNationalId} style={{ padding: '0 14px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       ค้นหา
                     </button>
