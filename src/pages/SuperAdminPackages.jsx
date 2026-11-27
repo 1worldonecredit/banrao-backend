@@ -1,3 +1,4 @@
+// [SA-1.1] Imports และค่าคงที่หลักของหน้า SuperAdminPackages (Admin Portal)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +13,10 @@ import {
     ArrowLeft,
     CheckCircle2,
     AlertTriangle,
-    Loader2
+    Loader2,
+    BarChart3,
+    BellRing,
+    Sparkles
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
@@ -27,6 +31,9 @@ const EMPTY_FORM = {
     billing_cycle: 'YEARLY',
     duration_days: 365,
     max_shop_products: '',
+    target_audience: 'ALL',
+    visibility_boost_level: 2,
+    chat_tier: 'PRO',
     sort_order: 10,
     features: [{ title_th: '', description_th: '' }]
 };
@@ -64,20 +71,30 @@ export default function SuperAdminPackages() {
     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
     const adminAccountId = userData.account_id || userData.id || null;
 
-    const [activeTab, setActiveTab] = useState('PACKAGES'); // 'PACKAGES' | 'USERS' | 'SETTINGS'
+    // [SA-1.2] State แท็บหลัก: 'PACKAGES' | 'USERS' | 'REPORTS' | 'SETTINGS'
+    const [activeTab, setActiveTab] = useState('PACKAGES');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [autoSyncing, setAutoSyncing] = useState(false);
 
+    // [SA-1.3] State จัดการแพ็กเกจและบริการ
     const [packages, setPackages] = useState([]);
     const [form, setForm] = useState(EMPTY_FORM);
 
+    // [SA-1.4] State การตั้งค่าแจ้งเตือนล่วงหน้า (Asia/Bangkok) + การตลาด User Free
     const [notifyDaysBefore, setNotifyDaysBefore] = useState(30);
     const [freeVillageYearsDefault, setFreeVillageYearsDefault] = useState(1);
+    const [freeUpsellIntervalDays, setFreeUpsellIntervalDays] = useState(7);
+    const [freeUpsellHeadline, setFreeUpsellHeadline] = useState('');
+    const [freeUpsellMessage, setFreeUpsellMessage] = useState('');
     const [qrPromptInfo, setQrPromptInfo] = useState('');
     const [lastUpdatedText, setLastUpdatedText] = useState('');
 
+    // [SA-1.5] State รายชื่อผู้ใช้งาน + รายงาน + Notification การปรับสถานะอัตโนมัติ
     const [usersList, setUsersList] = useState([]);
     const [searchUser, setSearchUser] = useState('');
+    const [autoSyncReport, setAutoSyncReport] = useState(null);
+    const [adminNotifications, setAdminNotifications] = useState([]);
 
     const formatThaiNow = () =>
         new Date().toLocaleString('th-TH', {
@@ -90,6 +107,20 @@ export default function SuperAdminPackages() {
             second: '2-digit'
         });
 
+    const pushAdminNotification = useCallback((title, detail, updatedCount = 0) => {
+        const item = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            title,
+            detail,
+            updatedCount,
+            timeTh: formatThaiNow(),
+            futureChannel: 'CHAT_SYSTEM_READY' // เตรียมเชื่อมส่งเข้าสู่ระบบ Chat ในอนาคต
+        };
+        setAdminNotifications((prev) => [item, ...prev].slice(0, 20));
+        window.dispatchEvent(new CustomEvent('adminPackageNotification', { detail: item }));
+    }, []);
+
+    // [SA-1.6] โหลดข้อมูลภาพรวมแพ็กเกจและรายชื่อผู้ใช้งาน
     const loadAll = useCallback(async () => {
         setLoading(true);
         try {
@@ -104,6 +135,9 @@ export default function SuperAdminPackages() {
                 if (ovJson.settings) {
                     setNotifyDaysBefore(Number(ovJson.settings.notify_days_before ?? 30));
                     setFreeVillageYearsDefault(Number(ovJson.settings.free_village_years_default ?? 1));
+                    setFreeUpsellIntervalDays(Number(ovJson.settings.free_upsell_interval_days ?? 7));
+                    setFreeUpsellHeadline(ovJson.settings.free_upsell_headline || '');
+                    setFreeUpsellMessage(ovJson.settings.free_upsell_message || '');
                     setQrPromptInfo(ovJson.settings.qr_prompt_info || '');
                     if (ovJson.settings.updated_at) {
                         setLastUpdatedText(
@@ -122,7 +156,7 @@ export default function SuperAdminPackages() {
                 setUsersList(uJson.users || []);
             }
         } catch (err) {
-            console.error('Load SuperAdmin Packages Error:', err);
+            console.error('[SA-1.6] Load SuperAdmin Packages Error:', err);
         } finally {
             setLoading(false);
         }
@@ -132,6 +166,75 @@ export default function SuperAdminPackages() {
         loadAll();
     }, [loadAll]);
 
+    // [SA-1.7] ฟังก์ชันปรับสถานะอัตโนมัติไปที่ Database + รายงานจำนวน User ที่ถูกปรับ + แจ้ง Notification
+    const handleAutoSyncStatuses = async () => {
+        setAutoSyncing(true);
+        try {
+            const res = await fetch(`${API_URL}/api/super-admin/package-users/auto-sync`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ triggered_by: adminAccountId })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const updatedCount = Number(data.updated_count || 0);
+                const expiredCount = Number(data.expired_updated || 0);
+                const expiringSoonCount = Number(data.expiring_soon_flagged || 0);
+                const reportObj = {
+                    updated_count: updatedCount,
+                    expired_updated: expiredCount,
+                    expiring_soon_flagged: expiringSoonCount,
+                    synced_at_th: formatThaiNow(),
+                    details: data.details || []
+                };
+                setAutoSyncReport(reportObj);
+                pushAdminNotification(
+                    `ปรับสถานะอัตโนมัติวันนี้: ${updatedCount} User`,
+                    `หมดอายุอัปเดต ${expiredCount} รายการ | ใกล้หมดอายุแจ้งเตือน ${expiringSoonCount} รายการ (เตรียมส่งเข้า Chat ในอนาคต)`,
+                    updatedCount
+                );
+                await loadAll();
+                alert(`ปรับสถานะอัตโนมัติสำเร็จ วันนี้ปรับไปทั้งหมด ${updatedCount} User ครับ`);
+            } else {
+                // สำรองคำนวณและอัปเดตสถานะรายตัวผ่าน API ที่มีอยู่หากยังไม่ได้เพิ่มเส้น /auto-sync
+                let localUpdated = 0;
+                for (const u of usersList) {
+                    const meta = u.status_meta || {};
+                    if (u.subscription_id && meta.is_expired && u.payment_status !== 'EXPIRED') {
+                        const r2 = await fetch(`${API_URL}/api/super-admin/package-users/${u.subscription_id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ payment_status: 'EXPIRED' })
+                        });
+                        const j2 = await r2.json();
+                        if (j2.success) localUpdated += 1;
+                    }
+                }
+                const reportObj = {
+                    updated_count: localUpdated,
+                    expired_updated: localUpdated,
+                    expiring_soon_flagged: usersList.filter((u) => u.status_meta?.is_expiring_soon).length,
+                    synced_at_th: formatThaiNow(),
+                    details: []
+                };
+                setAutoSyncReport(reportObj);
+                pushAdminNotification(
+                    `ปรับสถานะอัตโนมัติวันนี้: ${localUpdated} User`,
+                    `อัปเดตสถานะหมดอายุลง Database แล้ว ${localUpdated} User (เตรียมส่งเข้า Chat ในอนาคต)`,
+                    localUpdated
+                );
+                await loadAll();
+                alert(`ตรวจสอบและปรับสถานะอัตโนมัติแล้ว ${localUpdated} User ครับ`);
+            }
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดระหว่างปรับสถานะอัตโนมัติ');
+        } finally {
+            setAutoSyncing(false);
+        }
+    };
+
+    // [SA-1.8] ฟังก์ชันจัดการฟอร์มแพ็กเกจ บริการ และราคา
     const handleFeatureChange = (idx, field, value) => {
         setForm((prev) => {
             const next = [...prev.features];
@@ -165,6 +268,9 @@ export default function SuperAdminPackages() {
             billing_cycle: pkg.billing_cycle || 'YEARLY',
             duration_days: Number(pkg.duration_days || 365),
             max_shop_products: pkg.max_shop_products ?? '',
+            target_audience: pkg.target_audience || 'ALL',
+            visibility_boost_level: Number(pkg.visibility_boost_level || 1),
+            chat_tier: pkg.chat_tier || 'STANDARD',
             sort_order: Number(pkg.sort_order || 10),
             features:
                 Array.isArray(pkg.features) && pkg.features.length > 0
@@ -193,6 +299,9 @@ export default function SuperAdminPackages() {
                 billing_cycle: form.billing_cycle,
                 duration_days: Number(form.duration_days || 365),
                 max_shop_products: form.max_shop_products === '' ? null : Number(form.max_shop_products),
+                target_audience: form.target_audience,
+                visibility_boost_level: Number(form.visibility_boost_level || 1),
+                chat_tier: form.chat_tier,
                 sort_order: Number(form.sort_order || 10),
                 features: form.features.filter((f) => f.title_th && f.title_th.trim() !== '')
             };
@@ -241,6 +350,7 @@ export default function SuperAdminPackages() {
         }
     };
 
+    // [SA-1.9] ฟังก์ชัน Update การตั้งค่าแจ้งเตือนล่วงหน้า + การตลาด User Free
     const handleUpdateSettings = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -251,6 +361,9 @@ export default function SuperAdminPackages() {
                 body: JSON.stringify({
                     notify_days_before: Number(notifyDaysBefore || 30),
                     free_village_years_default: Number(freeVillageYearsDefault || 1),
+                    free_upsell_interval_days: Number(freeUpsellIntervalDays || 7),
+                    free_upsell_headline: freeUpsellHeadline,
+                    free_upsell_message: freeUpsellMessage,
                     qr_prompt_info: qrPromptInfo,
                     updated_by: adminAccountId
                 })
@@ -258,8 +371,13 @@ export default function SuperAdminPackages() {
             const data = await res.json();
             if (data.success) {
                 setLastUpdatedText(formatThaiNow());
+                pushAdminNotification(
+                    'Update การตั้งค่าแพ็กเกจและการตลาดสำเร็จ',
+                    `เตือนล่วงหน้า ${notifyDaysBefore} วัน | ชวน User Free ทุก ${freeUpsellIntervalDays} วัน`,
+                    0
+                );
                 await loadAll();
-                alert('Update การตั้งค่าแจ้งเตือนล่วงหน้าเรียบร้อยแล้วครับ');
+                alert('Update การตั้งค่าเรียบร้อยแล้วครับ');
             } else {
                 alert('Update ไม่สำเร็จ: ' + (data.message || ''));
             }
@@ -283,6 +401,7 @@ export default function SuperAdminPackages() {
             });
             const data = await res.json();
             if (data.success) {
+                pushAdminNotification('อัปเดตวันใช้งานให้ผู้ใช้ 1 ราย', `ต่ออายุ +${daysToAdd} วัน สถานะ ${paymentStatus}`, 1);
                 await loadAll();
                 alert('อัปเดตสถานะและวันหมดอายุเรียบร้อยแล้ว');
             }
@@ -300,6 +419,14 @@ export default function SuperAdminPackages() {
         return fullName.includes(kw) || phone.includes(kw) || village.includes(kw);
     });
 
+    const summaryStats = {
+        totalUsers: usersList.length,
+        activePaid: usersList.filter((u) => ['PAID', 'FREE_GRANTED'].includes(String(u.status_meta?.payment_status || '')) && !u.status_meta?.is_expired).length,
+        expiringSoon: usersList.filter((u) => u.status_meta?.is_expiring_soon).length,
+        expired: usersList.filter((u) => u.status_meta?.is_expired).length,
+        unselected: usersList.filter((u) => !u.subscription_id).length
+    };
+
     const getTabBtnStyle = (tabKey) => ({
         display: 'inline-flex',
         alignItems: 'center',
@@ -313,10 +440,9 @@ export default function SuperAdminPackages() {
         fontWeight: 700,
         cursor: 'pointer'
     });
-
-    return (
+return (
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* Header Banner */}
+            {/* [SA-2.1] Header Banner + ปุ่มปรับสถานะอัตโนมัติไปที่ Database */}
             <div
                 style={{
                     background: 'linear-gradient(135deg, #0f172a 0%, #312e81 60%, #1e293b 100%)',
@@ -373,28 +499,72 @@ export default function SuperAdminPackages() {
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={loadAll}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '9px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(255,255,255,0.25)',
-                        backgroundColor: 'rgba(255,255,255,0.12)',
-                        color: '#ffffff',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                    }}
-                >
-                    <RefreshCw size={14} /> รีเฟรชข้อมูล
-                </button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                    <button
+                        type="button"
+                        disabled={autoSyncing}
+                        onClick={handleAutoSyncStatuses}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '9px 14px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            backgroundColor: '#10b981',
+                            color: '#ffffff',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {autoSyncing ? <Loader2 size={14} /> : <Sparkles size={14} />}
+                        ปรับสถานะอัตโนมัติ (DB)
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={loadAll}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '9px 14px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            backgroundColor: 'rgba(255,255,255,0.12)',
+                            color: '#ffffff',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <RefreshCw size={14} /> รีเฟรชข้อมูล
+                    </button>
+                </div>
             </div>
 
-            {/* แท็บเมนู */}
+            {/* [SA-2.2] กล่องแจ้งเตือน (Notification) ว่าวันนี้ปรับไปกี่ User + เตรียมเชื่อมระบบ Chat ในอนาคต */}
+            {adminNotifications.length > 0 && (
+                <div style={{ ...cardStyle, border: '1px solid #a7f3d0', backgroundColor: '#f0fdf4' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, color: '#065f46' }}>
+                            <BellRing size={16} /> Notification การปรับสถานะอัตโนมัติ (รอเชื่อมระบบ Chat ในอนาคต)
+                        </div>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857' }}>
+                            {adminNotifications[0].timeTh}
+                        </span>
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                        {adminNotifications[0].title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#334155', marginTop: '2px' }}>
+                        {adminNotifications[0].detail}
+                    </div>
+                </div>
+            )}
+
+            {/* [SA-2.3] แท็บเมนูแยกชัดเจน: แพ็กเกจ / รายชื่อผู้ใช้ / รายงาน / ตั้งค่า */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 <button type="button" onClick={() => setActiveTab('PACKAGES')} style={getTabBtnStyle('PACKAGES')}>
                     <PackageIcon size={15} /> จัดการแพ็กเกจ / บริการ / ราคา
@@ -402,8 +572,11 @@ export default function SuperAdminPackages() {
                 <button type="button" onClick={() => setActiveTab('USERS')} style={getTabBtnStyle('USERS')}>
                     <Users size={15} /> รายชื่อผู้ใช้งาน & นับถอยหลังหมดอายุ ({usersList.length})
                 </button>
+                <button type="button" onClick={() => setActiveTab('REPORTS')} style={getTabBtnStyle('REPORTS')}>
+                    <BarChart3 size={15} /> รายงานสถานะ & การปรับอัตโนมัติ
+                </button>
                 <button type="button" onClick={() => setActiveTab('SETTINGS')} style={getTabBtnStyle('SETTINGS')}>
-                    <Clock size={15} /> ตั้งค่าแจ้งเตือนล่วงหน้า (เวลาไทย)
+                    <Clock size={15} /> ตั้งค่าแจ้งเตือน & การตลาด Free
                 </button>
             </div>
 
@@ -413,8 +586,8 @@ export default function SuperAdminPackages() {
                     <div style={{ fontSize: '14px', fontWeight: 600 }}>กำลังโหลดข้อมูลหลังบ้าน...</div>
                 </div>
             ) : activeTab === 'PACKAGES' ? (
+                /* [SA-2.4] แท็บจัดการแพ็กเกจ บริการ กลุ่มเป้าหมาย และราคา */
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                    {/* ฟอร์มเพิ่ม / แก้ไขแพ็กเกจ */}
                     <form onSubmit={handleSavePackage} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
                             <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
@@ -456,6 +629,34 @@ export default function SuperAdminPackages() {
                                     <option value="DIAMOND">Diamond</option>
                                     <option value="VIP">VIP</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div>
+                                <label style={labelStyle}>กลุ่มเป้าหมายแพ็กเกจ</label>
+                                <select
+                                    value={form.target_audience}
+                                    onChange={(e) => setForm({ ...form, target_audience: e.target.value })}
+                                    style={inputStyle}
+                                >
+                                    <option value="ALL">ทั้งหมด (หมู่บ้าน & ผู้ใช้)</option>
+                                    <option value="VILLAGE">หมู่บ้าน (VILLAGE)</option>
+                                    <option value="USER">ผู้ใช้งานทั่วไป (USER)</option>
+                                    <option value="SHOP">ร้านค้า (SHOP)</option>
+                                    <option value="BUSINESS">ธุรกิจ (BUSINESS)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>ระดับการดันการมองเห็น (1-10)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={form.visibility_boost_level}
+                                    onChange={(e) => setForm({ ...form, visibility_boost_level: e.target.value })}
+                                    style={inputStyle}
+                                />
                             </div>
                         </div>
 
@@ -507,7 +708,6 @@ export default function SuperAdminPackages() {
                             </div>
                         </div>
 
-                        {/* รายการบริการในแพ็กเกจ */}
                         <div style={{ paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                                 <label style={{ ...labelStyle, marginBottom: 0 }}>รายการบริการ / สิทธิ์ที่แสดงหน้า Parkgate</label>
@@ -588,15 +788,17 @@ export default function SuperAdminPackages() {
                         </button>
                     </form>
 
-                    {/* รายการแพ็กเกจปัจจุบัน */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         {packages.map((pkg) => (
                             <div key={pkg.package_id} style={cardStyle}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                                             <span style={{ fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', backgroundColor: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
                                                 {pkg.badge_tier}
+                                            </span>
+                                            <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#334155' }}>
+                                                กลุ่ม: {pkg.target_audience || 'ALL'}
                                             </span>
                                             <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#64748b' }}>{pkg.code}</span>
                                         </div>
@@ -642,6 +844,7 @@ export default function SuperAdminPackages() {
                     </div>
                 </div>
             ) : activeTab === 'USERS' ? (
+                /* [SA-2.5] แท็บรายชื่อผู้ใช้งาน & นับถอยหลังวันหมดอายุ */
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
@@ -737,11 +940,87 @@ export default function SuperAdminPackages() {
                         </table>
                     </div>
                 </div>
+            ) : activeTab === 'REPORTS' ? (
+                /* [SA-2.6] แท็บรายงานสถานะผู้ใช้งาน + รายงานการปรับอัตโนมัติวันนี้ + ประวัติ Notification */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                        <div style={cardStyle}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>ผู้ใช้ทั้งหมด</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{summaryStats.totalUsers}</div>
+                        </div>
+                        <div style={cardStyle}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#047857' }}>ใช้งานปกติ</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#059669', marginTop: '4px' }}>{summaryStats.activePaid}</div>
+                        </div>
+                        <div style={cardStyle}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>ใกล้หมดอายุ</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#d97706', marginTop: '4px' }}>{summaryStats.expiringSoon}</div>
+                        </div>
+                        <div style={cardStyle}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>หมดอายุแล้ว</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#dc2626', marginTop: '4px' }}>{summaryStats.expired}</div>
+                        </div>
+                        <div style={cardStyle}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#4f46e5' }}>ปรับอัตโนมัติวันนี้</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#4f46e5', marginTop: '4px' }}>
+                                {autoSyncReport ? autoSyncReport.updated_count : 0} User
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '12px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                                    รายงานการปรับสถานะอัตโนมัติ & Notification
+                                </h2>
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                                    {autoSyncReport
+                                        ? `ล่าสุดเมื่อ: ${autoSyncReport.synced_at_th} (ปรับสถานะ ${autoSyncReport.updated_count} User)`
+                                        : 'กดปุ่ม "ปรับสถานะอัตโนมัติ (DB)" ด้านบนเพื่อซิงค์สถานะลงฐานข้อมูลและบันทึกแจ้งเตือน'}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={autoSyncing}
+                                onClick={handleAutoSyncStatuses}
+                                style={{
+                                    padding: '9px 14px',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    backgroundColor: '#10b981',
+                                    color: '#ffffff',
+                                    fontSize: '12px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                รันปรับสถานะอัตโนมัติตอนนี้
+                            </button>
+                        </div>
+
+                        {adminNotifications.length === 0 ? (
+                            <div style={{ fontSize: '13px', color: '#64748b' }}>ยังไม่มีรายการแจ้งเตือนการปรับสถานะในรอบนี้</div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {adminNotifications.map((n) => (
+                                    <div key={n.id} style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                                            <span>{n.title}</span>
+                                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{n.timeTh}</span>
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>{n.detail}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             ) : (
-                /* แท็บตั้งค่าแจ้งเตือนล่วงหน้า (เวลาไทย Asia/Bangkok + ปุ่ม Update) */
-                <form onSubmit={handleUpdateSettings} style={{ ...cardStyle, maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                /* [SA-2.7] แท็บตั้งค่าแจ้งเตือนล่วงหน้า (เวลาไทย) + การตลาดเชิญชวน User Free + ปุ่ม Update */
+                <form onSubmit={handleUpdateSettings} style={{ ...cardStyle, maxWidth: '620px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                        ตั้งค่าแจ้งเตือนล่วงหน้าก่อนหมดอายุ (เขตเวลา Asia/Bangkok)
+                        ตั้งค่าแจ้งเตือนล่วงหน้า & การตลาดเชิญชวน User Free (Asia/Bangkok)
                     </h2>
 
                     <div>
@@ -754,9 +1033,6 @@ export default function SuperAdminPackages() {
                             onChange={(e) => setNotifyDaysBefore(e.target.value)}
                             style={inputStyle}
                         />
-                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                            เมื่อผู้ใช้เหลือวันใช้งานน้อยกว่าหรือเท่ากับจำนวนวันที่กำหนด ระบบจะเด้งแจ้งเตือนและเปิดหน้าแพ็กเกจให้อัตโนมัติ
-                        </p>
                     </div>
 
                     <div>
@@ -767,6 +1043,40 @@ export default function SuperAdminPackages() {
                             max="5"
                             value={freeVillageYearsDefault}
                             onChange={(e) => setFreeVillageYearsDefault(e.target.value)}
+                            style={inputStyle}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={labelStyle}>การตลาด User Free: เชิญชวนให้ Update ทุกกี่วัน (เช่น 7 = 1 สัปดาห์)</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="180"
+                            value={freeUpsellIntervalDays}
+                            onChange={(e) => setFreeUpsellIntervalDays(e.target.value)}
+                            style={inputStyle}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={labelStyle}>พาดหัวเชิญชวน User Free อัปเกรดแพ็กเกจ</label>
+                        <input
+                            type="text"
+                            value={freeUpsellHeadline}
+                            onChange={(e) => setFreeUpsellHeadline(e.target.value)}
+                            placeholder="เช่น อัปเกรดแพ็กเกจเพื่อปลดล็อกสิทธิ์และเพิ่มการมองเห็น!"
+                            style={inputStyle}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={labelStyle}>ข้อความชวนอัปเกรด (โพสต์สินค้ามากขึ้น / ดันการมองเห็น / แชท)</label>
+                        <input
+                            type="text"
+                            value={freeUpsellMessage}
+                            onChange={(e) => setFreeUpsellMessage(e.target.value)}
+                            placeholder="เช่น เพิ่มโควตาสินค้า ดันการมองเห็นโพสต์ และแชทประสิทธิภาพสูงขึ้น"
                             style={inputStyle}
                         />
                     </div>
