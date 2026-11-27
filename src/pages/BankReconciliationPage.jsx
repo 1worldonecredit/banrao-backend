@@ -10,7 +10,6 @@ import {
     Landmark
 } from 'lucide-react';
 
-
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
 const cardBox = {
@@ -30,12 +29,73 @@ const inpStyle = {
     fontSize: '12px'
 };
 
+function LocalBankLogo({ bankCode = '', logoUrl = '', brandColor = '#059669', size = 44 }) {
+    const [imgError, setImgError] = useState(false);
+    const code = String(bankCode || 'BANK').toUpperCase();
+    const showImage = Boolean(logoUrl) && !imgError;
+
+    return (
+        <div
+            style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                borderRadius: '10px',
+                backgroundColor: showImage ? '#ffffff' : brandColor || '#059669',
+                border: '1px solid #cbd5e1',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)'
+            }}
+        >
+            {showImage ? (
+                <img
+                    src={logoUrl}
+                    alt={code}
+                    onError={() => setImgError(true)}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        padding: '4px',
+                        boxSizing: 'border-box'
+                    }}
+                />
+            ) : (
+                <span
+                    style={{
+                        color: '#ffffff',
+                        fontSize: size >= 36 ? '10px' : '9px',
+                        fontWeight: 900,
+                        letterSpacing: '0.3px',
+                        textAlign: 'center',
+                        lineHeight: 1.1,
+                        padding: '0 2px'
+                    }}
+                >
+                    {code.slice(0, 6)}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function getStoredAdminId() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem('userData') || '{}');
+        return parsed?.account_id || parsed?.id || null;
+    } catch {
+        return null;
+    }
+}
+
 export default function BankReconciliationPage() {
-    const adminUser = JSON.parse(localStorage.getItem('userData') || '{}');
-    const adminId = adminUser.account_id || adminUser.id || null;
+    const adminId = getStoredAdminId();
 
     const [bankOptions, setBankOptions] = useState([]);
-    const [selectedBankId, setSelectedBankId] = useState('');
+    const [selectedBankId] = useState('');
     const [summary, setSummary] = useState(null);
     const [items, setItems] = useState([]);
     const [matchedMap, setMatchedMap] = useState({});
@@ -61,6 +121,8 @@ export default function BankReconciliationPage() {
                 });
                 setMatchedMap(nextMatched);
             }
+        } catch (err) {
+            console.error('[RECON-UI-01] Load error:', err);
         } finally {
             setLoading(false);
         }
@@ -98,7 +160,10 @@ export default function BankReconciliationPage() {
         }
     };
 
-    const currentBank = bankOptions.find((b) => String(b.bank_id || b.bank_code) === String(selectedBankId)) || bankOptions[0] || null;
+    const currentBank =
+        bankOptions.find((b) => String(b.bank_id || b.bank_code) === String(selectedBankId)) ||
+        bankOptions[0] ||
+        null;
 
     return (
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -106,7 +171,7 @@ export default function BankReconciliationPage() {
             <div style={cardBox}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <BankLogoBadge
+                        <LocalBankLogo
                             bankCode={currentBank?.bank_code || 'BANK'}
                             logoUrl={currentBank?.logo_url || ''}
                             brandColor={currentBank?.brand_color || '#059669'}
