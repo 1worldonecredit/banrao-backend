@@ -1,4 +1,4 @@
-// [EMP-RECON-01] หน้าหลังบ้านตรวจสลิป + ส่งแก้ไขแบบมาร์คจุดผิด + คีย์ Statement เงินเข้า + กระทบยอดอัตโนมัติ + สรุปรายวัน/เดือน/ปี
+// [EMP-RECON-02] หน้าหลังบ้านตรวจสลิป + ส่งแก้ไขแบบมาร์คจุดผิด + คีย์ Statement + กระทบยอดอัตโนมัติ + สรุปรายวัน/เดือน/ปี (Inline Style 100%)
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     CheckCircle2,
@@ -29,12 +29,12 @@ const FIELD_LABELS = {
 };
 
 const STATUS_BADGE = {
-    PENDING: { label: 'รอตรวจสลิป', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
-    RESUBMITTED: { label: 'ส่งแก้ไขกลับมาแล้ว', cls: 'bg-purple-100 text-purple-800 border-purple-300' },
-    NEED_FIX: { label: 'ส่งกลับให้แก้ไข', cls: 'bg-orange-100 text-orange-800 border-orange-300' },
-    SLIP_VERIFIED: { label: 'สลิปถูกต้อง (รอกระทบยอด)', cls: 'bg-cyan-100 text-cyan-800 border-cyan-300' },
-    APPROVED: { label: 'กระทบยอดสำเร็จ', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-    REJECTED: { label: 'ไม่สำเร็จ / ปฏิเสธ', cls: 'bg-red-100 text-red-800 border-red-300' }
+    PENDING: { label: 'รอตรวจสลิป', bg: '#fef3c7', color: '#92400e', border: '#fcd34d' },
+    RESUBMITTED: { label: 'ส่งแก้ไขกลับมาแล้ว', bg: '#f3e8ff', color: '#6b21a8', border: '#d8b4fe' },
+    NEED_FIX: { label: 'ส่งกลับให้แก้ไข', bg: '#ffedd5', color: '#9a3412', border: '#fdba74' },
+    SLIP_VERIFIED: { label: 'สลิปถูกต้อง (รอกระทบยอด)', bg: '#cffafe', color: '#155e75', border: '#67e8f9' },
+    APPROVED: { label: 'กระทบยอดสำเร็จ', bg: '#d1fae5', color: '#065f46', border: '#6ee7b7' },
+    REJECTED: { label: 'ไม่สำเร็จ / ปฏิเสธ', bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' }
 };
 
 function formatThaiDate(isoStr) {
@@ -66,8 +66,109 @@ function getBangkokNowParts() {
     };
 }
 
+const S = {
+    page: {
+        padding: '20px',
+        maxWidth: '1280px',
+        margin: '0 auto',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: '#0f172a'
+    },
+    card: {
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        padding: '20px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        marginBottom: '20px'
+    },
+    headerFlex: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px'
+    },
+    title: {
+        fontSize: '20px',
+        fontWeight: 800,
+        margin: 0,
+        color: '#0f172a'
+    },
+    subtitle: {
+        fontSize: '13px',
+        color: '#64748b',
+        margin: '4px 0 0 0'
+    },
+    tabBtn: (active) => ({
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '10px 16px',
+        borderRadius: '12px',
+        fontSize: '13px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        border: active ? '1px solid #059669' : '1px solid #cbd5e1',
+        backgroundColor: active ? '#059669' : '#ffffff',
+        color: active ? '#ffffff' : '#334155'
+    }),
+    filterBtn: (active) => ({
+        padding: '6px 12px',
+        borderRadius: '8px',
+        fontSize: '12px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        border: active ? '1px solid #0f172a' : '1px solid #cbd5e1',
+        backgroundColor: active ? '#0f172a' : '#f8fafc',
+        color: active ? '#ffffff' : '#334155'
+    }),
+    twoCol: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+        gap: '20px',
+        alignItems: 'start'
+    },
+    input: {
+        width: '100%',
+        padding: '9px 12px',
+        borderRadius: '10px',
+        border: '1px solid #cbd5e1',
+        fontSize: '13px',
+        fontWeight: 600,
+        color: '#0f172a',
+        backgroundColor: '#ffffff',
+        boxSizing: 'border-box'
+    },
+    label: {
+        display: 'block',
+        fontSize: '12px',
+        fontWeight: 700,
+        color: '#475569',
+        marginBottom: '6px'
+    },
+    table: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '13px'
+    },
+    th: {
+        textAlign: 'left',
+        padding: '10px 12px',
+        backgroundColor: '#f8fafc',
+        borderBottom: '2px solid #e2e8f0',
+        color: '#475569',
+        fontWeight: 700
+    },
+    td: {
+        padding: '10px 12px',
+        borderBottom: '1px solid #f1f5f9',
+        color: '#1e293b'
+    }
+};
+
 export default function SlipReconcileManager() {
-    const [activeTab, setActiveTab] = useState('SLIPS'); // SLIPS | STATEMENTS | SUMMARY
+    const [activeTab, setActiveTab] = useState('SLIPS');
     const [loading, setLoading] = useState(false);
 
     // Tab 1: สลิปรอตรวจ
@@ -254,77 +355,58 @@ export default function SlipReconcileManager() {
     const minSecOptions = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
     return (
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 font-sans">
-            {/* หัวข้อ + ปุ่มสลับ 3 แท็บ */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-xl font-extrabold text-slate-900 m-0">
-                        ศูนย์ตรวจสลิปและกระทบยอดเงินอัตโนมัติ
-                    </h1>
-                    <p className="text-xs text-slate-500 m-0 mt-1">
-                        แยกหน้าที่แอดมินตรวจสลิป (มาร์คจุดผิดส่งแก้ไข) และแอดมินคีย์ยอดเงินเข้า Statement เพื่อกระทบยอดอัตโนมัติ
-                    </p>
-                </div>
+        <div style={S.page}>
+            {/* หัวข้อหลัก + แท็บเมนู */}
+            <div style={S.card}>
+                <div style={S.headerFlex}>
+                    <div>
+                        <h1 style={S.title}>ศูนย์ตรวจสลิปและกระทบยอดเงินอัตโนมัติ</h1>
+                        <p style={S.subtitle}>
+                            แยกหน้าที่แอดมินตรวจสลิป (มาร์คจุดผิดส่งแก้ไข) และแอดมินคีย์ยอดเงินเข้า Statement เพื่อกระทบยอดอัตโนมัติ
+                        </p>
+                    </div>
 
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('SLIPS')}
-                        className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border ${
-                            activeTab === 'SLIPS' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'
-                        }`}
-                    >
-                        <FileSearch size={15} /> 1. ตรวจสลิปแจ้งโอน
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('STATEMENTS')}
-                        className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border ${
-                            activeTab === 'STATEMENTS' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'
-                        }`}
-                    >
-                        <Landmark size={15} /> 2. คีย์ยอดเงินเข้า & กระทบยอด
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('SUMMARY')}
-                        className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border ${
-                            activeTab === 'SUMMARY' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200'
-                        }`}
-                    >
-                        <BarChart3 size={15} /> 3. สรุปยอดรายวัน/เดือน/ปี
-                    </button>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <button type="button" onClick={() => setActiveTab('SLIPS')} style={S.tabBtn(activeTab === 'SLIPS')}>
+                            <FileSearch size={16} /> 1. ตรวจสลิปแจ้งโอน
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('STATEMENTS')} style={S.tabBtn(activeTab === 'STATEMENTS')}>
+                            <Landmark size={16} /> 2. คีย์ยอดเงินเข้า & กระทบยอด
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('SUMMARY')} style={S.tabBtn(activeTab === 'SUMMARY')}>
+                            <BarChart3 size={16} /> 3. สรุปยอดรายวัน/เดือน/ปี
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* ================= TAB 1: ตรวจสลิป & ส่งกลับแก้ไข ================= */}
+            {/* ================= TAB 1: ตรวจสลิป ================= */}
             {activeTab === 'SLIPS' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    {/* รายการแจ้งโอนฝั่งซ้าย */}
-                    <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex flex-wrap gap-1.5">
+                <div style={S.twoCol}>
+                    {/* ฝั่งซ้าย: รายการแจ้งโอน */}
+                    <div style={S.card}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                 {['ALL', 'PENDING', 'RESUBMITTED', 'SLIP_VERIFIED', 'NEED_FIX', 'APPROVED'].map((st) => (
-                                    <button
-                                        key={st}
-                                        type="button"
-                                        onClick={() => setSlipFilter(st)}
-                                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border ${
-                                            slipFilter === st ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-700 border-slate-200'
-                                        }`}
-                                    >
+                                    <button key={st} type="button" onClick={() => setSlipFilter(st)} style={S.filterBtn(slipFilter === st)}>
                                         {st === 'ALL' ? 'ทั้งหมด' : STATUS_BADGE[st]?.label || st}
                                     </button>
                                 ))}
                             </div>
-                            <button type="button" onClick={loadSlips} className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
-                                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                            <button
+                                type="button"
+                                onClick={loadSlips}
+                                style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}
+                            >
+                                <RefreshCw size={15} />
                             </button>
                         </div>
 
-                        <div className="space-y-2.5 max-h-[65vh] overflow-y-auto">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '65vh', overflowY: 'auto' }}>
                             {slips.length === 0 ? (
-                                <div className="py-12 text-center text-xs text-slate-400">ไม่พบรายการแจ้งโอน</div>
+                                <div style={{ padding: '48px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: '#f8fafc', borderRadius: '12px' }}>
+                                    ไม่พบรายการแจ้งโอนในหมวดนี้
+                                </div>
                             ) : (
                                 slips.map((s) => {
                                     const badge = STATUS_BADGE[s.status] || STATUS_BADGE.PENDING;
@@ -337,33 +419,46 @@ export default function SlipReconcileManager() {
                                                 setWrongFields(Array.isArray(s.wrong_fields) ? s.wrong_fields : []);
                                                 setAdminNote(s.admin_note || '');
                                             }}
-                                            className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-center justify-between gap-3 ${
-                                                isSelected ? 'border-emerald-500 bg-emerald-50/40' : 'border-slate-100 hover:border-slate-300'
-                                            }`}
+                                            style={{
+                                                padding: '12px',
+                                                borderRadius: '12px',
+                                                border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                                                backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                gap: '12px'
+                                            }}
                                         >
-                                            <div className="space-y-1 min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${badge.cls}`}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                    <span style={{
+                                                        padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 700,
+                                                        backgroundColor: badge.bg, color: badge.color, border: `1px solid ${badge.border}`
+                                                    }}>
                                                         {badge.label}
                                                     </span>
                                                     {s.revision_count > 0 && (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-600 text-white">
+                                                        <span style={{ padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, backgroundColor: '#7e22ce', color: '#fff' }}>
                                                             งานส่งแก้ไขรอบที่ {s.revision_count}
                                                         </span>
                                                     )}
-                                                    <span className="text-xs font-mono font-bold text-slate-600">{s.qr_reference}</span>
+                                                    <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: '#475569' }}>
+                                                        {s.qr_reference}
+                                                    </span>
                                                 </div>
-                                                <div className="text-xs font-extrabold text-slate-800 truncate">
-                                                    ผู้โอน: {s.payer_name || s.payer_account_id} • ฿{Number(s.amount).toLocaleString()}
+                                                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                                                    ผู้โอน: {s.payer_name || s.payer_account_id} • <span style={{ color: '#059669' }}>฿{Number(s.amount).toLocaleString()}</span>
                                                 </div>
-                                                <div className="text-[11px] text-slate-500">
-                                                    โอนเข้า: {s.receiver_bank_name} ({s.receiver_account_number}) • วันที่ {formatThaiDate(s.transfer_date)} เวลา {s.transfer_time_hms} น.
+                                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                                                    โอนเข้า: {s.receiver_bank_name} ({s.receiver_account_number}) • {formatThaiDate(s.transfer_date)} เวลา {s.transfer_time_hms} น.
                                                 </div>
                                             </div>
                                             <img
                                                 src={s.slip_image_url}
                                                 alt="slip"
-                                                className="w-12 h-14 object-cover rounded-lg border border-slate-200 flex-shrink-0"
+                                                style={{ width: '48px', height: '58px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0 }}
                                             />
                                         </div>
                                     );
@@ -372,30 +467,31 @@ export default function SlipReconcileManager() {
                         </div>
                     </div>
 
-                    {/* พื้นที่ตรวจสลิป + มาร์คจุดผิดฝั่งขวา */}
-                    <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4">
+                    {/* ฝั่งขวา: พื้นที่ตรวจสลิป */}
+                    <div style={S.card}>
                         {!selectedSlip ? (
-                            <div className="py-20 text-center text-xs text-slate-400">
-                                คลิกเลือกรายการทางซ้ายเพื่อตรวจสอบรูปสลิปและยืนยัน/ส่งกลับแก้ไข
+                            <div style={{ padding: '64px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: '#f8fafc', borderRadius: '12px' }}>
+                                คลิกเลือกรายการทางซ้ายเพื่อตรวจสอบรูปสลิปและยืนยัน / ส่งกลับแก้ไข
                             </div>
                         ) : (
-                            <div className="space-y-3.5">
-                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                    <div className="text-sm font-extrabold text-slate-900">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                                    <div style={{ fontSize: '15px', fontWeight: 800 }}>
                                         ตรวจสลิป #{selectedSlip.submission_id} ({selectedSlip.qr_reference})
                                     </div>
-                                    <span className="text-base font-black text-emerald-700">
+                                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#059669' }}>
                                         ฿{Number(selectedSlip.amount).toLocaleString()}
-                                    </span>
+                                    </div>
                                 </div>
 
-                                {/* มาร์คแจ้งแอดมินกรณีเป็นงานส่งแก้ไขกลับมา */}
                                 {selectedSlip.revision_count > 0 && Array.isArray(selectedSlip.fixed_fields) && selectedSlip.fixed_fields.length > 0 && (
-                                    <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-300 text-xs text-purple-900">
-                                        <div className="font-extrabold">งานส่งแก้ไขรอบที่ {selectedSlip.revision_count} — จุดที่ผู้ฝากเงินแก้กลับมา:</div>
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                    <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#faf5ff', border: '1px solid #d8b4fe', fontSize: '12px', color: '#581c87' }}>
+                                        <div style={{ fontWeight: 800, marginBottom: '6px' }}>
+                                            งานส่งแก้ไขรอบที่ {selectedSlip.revision_count} — จุดที่ผู้ฝากเงินแก้กลับมา:
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                             {selectedSlip.fixed_fields.map((f) => (
-                                                <span key={f} className="px-2 py-0.5 rounded-md bg-purple-600 text-white text-[11px] font-bold">
+                                                <span key={f} style={{ padding: '2px 8px', borderRadius: '6px', backgroundColor: '#7e22ce', color: '#fff', fontWeight: 700 }}>
                                                     ✓ {FIELD_LABELS[f] || f}
                                                 </span>
                                             ))}
@@ -403,34 +499,36 @@ export default function SlipReconcileManager() {
                                     </div>
                                 )}
 
-                                <a href={selectedSlip.slip_image_url} target="_blank" rel="noreferrer" className="block bg-slate-50 rounded-xl p-2 border border-slate-200 text-center">
+                                <a
+                                    href={selectedSlip.slip_image_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ display: 'block', padding: '10px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', textAlign: 'center', textDecoration: 'none' }}
+                                >
                                     <img
                                         src={selectedSlip.slip_image_url}
                                         alt="สลิปโอนเงิน"
-                                        className="max-h-72 mx-auto object-contain rounded-lg"
+                                        style={{ maxHeight: '300px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }}
                                     />
-                                    <div className="text-[11px] text-blue-600 font-bold mt-1">คลิกเพื่อเปิดดูรูปสลิปขนาดเต็ม</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', marginTop: '6px' }}>
+                                        คลิกเพื่อเปิดดูรูปสลิปขนาดเต็ม
+                                    </div>
                                 </a>
 
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                                <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', lineHeight: 1.6 }}>
                                     <div><strong>ผู้โอน:</strong> {selectedSlip.payer_name} ({selectedSlip.payer_account_id})</div>
                                     <div><strong>บัญชีรับเงิน:</strong> {selectedSlip.receiver_name} • {selectedSlip.receiver_bank_name} ({selectedSlip.receiver_account_number})</div>
-                                    <div><strong>วันเวลาที่แจ้ง:</strong> {formatThaiDate(selectedSlip.transfer_date)} เวลา <span className="font-mono font-bold text-emerald-700">{selectedSlip.transfer_time_hms}</span> น.</div>
+                                    <div><strong>วันเวลาที่แจ้ง:</strong> {formatThaiDate(selectedSlip.transfer_date)} เวลา <strong style={{ color: '#059669' }}>{selectedSlip.transfer_time_hms}</strong> น.</div>
                                 </div>
 
-                                {/* ติ๊กมาร์คจุดที่ผิดกรณีต้องส่งกลับแก้ไข */}
-                                <div className="p-3 rounded-xl bg-orange-50/70 border border-orange-200 space-y-2">
-                                    <div className="text-xs font-extrabold text-orange-900">
+                                <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412', marginBottom: '8px' }}>
                                         หากข้อมูลไม่ถูกต้อง: ติ๊กมาร์คจุดที่ผิด (จุดที่ไม่ติ๊กจะถูกล็อกไม่ให้ผู้ส่งแก้ไข)
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
                                         {Object.entries(FIELD_LABELS).map(([key, label]) => (
-                                            <label key={key} className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={wrongFields.includes(key)}
-                                                    onChange={() => toggleWrongField(key)}
-                                                />
+                                            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={wrongFields.includes(key)} onChange={() => toggleWrongField(key)} />
                                                 {label}
                                             </label>
                                         ))}
@@ -439,35 +537,35 @@ export default function SlipReconcileManager() {
                                         rows={2}
                                         value={adminNote}
                                         onChange={(e) => setAdminNote(e.target.value)}
-                                        placeholder="หมายเหตุถึงผู้ฝากเงิน (เช่น เวลาในสลิปคือ 17:19:49 ไม่ใช่ 17:10:00)"
-                                        className="w-full p-2 rounded-lg border border-orange-200 bg-white text-xs"
+                                        placeholder="หมายเหตุถึงผู้ฝากเงิน (เช่น เวลาในสลิปคือ 17:19:49)"
+                                        style={S.input}
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                                     <button
                                         type="button"
                                         disabled={savingReview}
                                         onClick={() => handleReviewSlip('SLIP_VERIFIED')}
-                                        className="py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-extrabold hover:bg-emerald-700 flex items-center justify-center gap-1"
+                                        style={{ padding: '10px', borderRadius: '10px', border: 'none', backgroundColor: '#059669', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                                     >
-                                        <CheckCircle2 size={14} /> สลิปถูกต้อง
+                                        <CheckCircle2 size={15} /> สลิปถูกต้อง
                                     </button>
                                     <button
                                         type="button"
                                         disabled={savingReview}
                                         onClick={() => handleReviewSlip('NEED_FIX')}
-                                        className="py-2.5 rounded-xl bg-orange-500 text-white text-xs font-extrabold hover:bg-orange-600 flex items-center justify-center gap-1"
+                                        style={{ padding: '10px', borderRadius: '10px', border: 'none', backgroundColor: '#f97316', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                                     >
-                                        <AlertTriangle size={14} /> ส่งกลับแก้ไข
+                                        <AlertTriangle size={15} /> ส่งกลับแก้ไข
                                     </button>
                                     <button
                                         type="button"
                                         disabled={savingReview}
                                         onClick={() => handleReviewSlip('REJECTED')}
-                                        className="py-2.5 rounded-xl bg-red-600 text-white text-xs font-extrabold hover:bg-red-700 flex items-center justify-center gap-1"
+                                        style={{ padding: '10px', borderRadius: '10px', border: 'none', backgroundColor: '#dc2626', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                                     >
-                                        <XCircle size={14} /> ปฏิเสธ
+                                        <XCircle size={15} /> ปฏิเสธ
                                     </button>
                                 </div>
                             </div>
@@ -476,21 +574,17 @@ export default function SlipReconcileManager() {
                 </div>
             )}
 
-            {/* ================= TAB 2: คีย์ Statement เงินเข้า + กระทบยอดอัตโนมัติ ================= */}
+            {/* ================= TAB 2: คีย์ Statement + กระทบยอดอัตโนมัติ ================= */}
             {activeTab === 'STATEMENTS' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    <form onSubmit={handleAddStatement} className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4 space-y-3 h-fit">
-                        <div className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                            <PlusCircle size={16} className="text-emerald-600" /> คีย์ยอดเงินเข้าบัญชีจริง (Statement)
+                <div style={S.twoCol}>
+                    <form onSubmit={handleAddStatement} style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <PlusCircle size={18} color="#059669" /> คีย์ยอดเงินเข้าบัญชีจริง (Statement)
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">เลือกบัญชีรับเงินของระบบ *</label>
-                            <select
-                                value={stmtChannelId}
-                                onChange={(e) => setStmtChannelId(e.target.value)}
-                                className="w-full p-2 rounded-xl border border-slate-300 text-xs font-bold"
-                            >
+                            <label style={S.label}>เลือกบัญชีรับเงินของระบบ *</label>
+                            <select value={stmtChannelId} onChange={(e) => setStmtChannelId(e.target.value)} style={S.input}>
                                 {channels.map((ch) => (
                                     <option key={ch.channel_id} value={ch.channel_id}>
                                         {ch.channel_name_th} • {ch.bank_name_th} ({ch.account_number || ch.promptpay_id})
@@ -500,99 +594,85 @@ export default function SlipReconcileManager() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">ยอดเงินเข้า (บาท) *</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={stmtAmount}
-                                onChange={(e) => setStmtAmount(e.target.value)}
-                                placeholder="เช่น 20.00"
-                                className="w-full p-2 rounded-xl border border-slate-300 text-sm font-black text-emerald-700"
-                            />
+                            <label style={S.label}>ยอดเงินเข้า (บาท) *</label>
+                            <input type="number" step="0.01" value={stmtAmount} onChange={(e) => setStmtAmount(e.target.value)} placeholder="เช่น 20.00" style={S.input} />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">วันที่เงินเข้า (วัน / เดือน / พ.ศ.) *</label>
-                            <div className="grid grid-cols-12 gap-1.5">
-                                <select value={stmtDay} onChange={(e) => setStmtDay(e.target.value)} className="col-span-3 p-2 rounded-lg border border-slate-300 text-xs font-bold text-center">
+                            <label style={S.label}>วันที่เงินเข้า (วัน / เดือน / พ.ศ.) *</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.3fr', gap: '6px' }}>
+                                <select value={stmtDay} onChange={(e) => setStmtDay(e.target.value)} style={S.input}>
                                     {dayOptions.map((d) => <option key={d} value={d}>{Number(d)}</option>)}
                                 </select>
-                                <select value={stmtMonth} onChange={(e) => setStmtMonth(e.target.value)} className="col-span-5 p-2 rounded-lg border border-slate-300 text-xs font-bold">
+                                <select value={stmtMonth} onChange={(e) => setStmtMonth(e.target.value)} style={S.input}>
                                     {THAI_MONTHS.map((m, idx) => <option key={m} value={String(idx + 1).padStart(2, '0')}>{m}</option>)}
                                 </select>
-                                <select value={stmtYearBE} onChange={(e) => setStmtYearBE(e.target.value)} className="col-span-4 p-2 rounded-lg border border-slate-300 text-xs font-bold text-center">
+                                <select value={stmtYearBE} onChange={(e) => setStmtYearBE(e.target.value)} style={S.input}>
                                     {yearBEOptions.map((y) => <option key={y} value={y}>พ.ศ. {y}</option>)}
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">เวลาเงินเข้า (ชม : นาที : วินาที) *</label>
-                            <div className="grid grid-cols-3 gap-1.5">
-                                <select value={stmtHour} onChange={(e) => setStmtHour(e.target.value)} className="p-2 rounded-lg border border-slate-300 text-xs font-bold text-center">
+                            <label style={S.label}>เวลาเงินเข้า (ชม : นาที : วินาที) *</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                                <select value={stmtHour} onChange={(e) => setStmtHour(e.target.value)} style={S.input}>
                                     {hourOptions.map((h) => <option key={h} value={h}>{h} น.</option>)}
                                 </select>
-                                <select value={stmtMin} onChange={(e) => setStmtMin(e.target.value)} className="p-2 rounded-lg border border-slate-300 text-xs font-bold text-center">
+                                <select value={stmtMin} onChange={(e) => setStmtMin(e.target.value)} style={S.input}>
                                     {minSecOptions.map((m) => <option key={m} value={m}>{m} นาที</option>)}
                                 </select>
-                                <select value={stmtSec} onChange={(e) => setStmtSec(e.target.value)} className="p-2 rounded-lg border border-slate-300 text-xs font-bold text-center">
+                                <select value={stmtSec} onChange={(e) => setStmtSec(e.target.value)} style={S.input}>
                                     {minSecOptions.map((s) => <option key={s} value={s}>{s} วินาที</option>)}
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">หมายเหตุ (ถ้ามี)</label>
-                            <input
-                                type="text"
-                                value={stmtNote}
-                                onChange={(e) => setStmtNote(e.target.value)}
-                                placeholder="เช่น โอนเข้าผ่านพร้อมเพย์"
-                                className="w-full p-2 rounded-xl border border-slate-300 text-xs"
-                            />
+                            <label style={S.label}>หมายเหตุ (ถ้ามี)</label>
+                            <input type="text" value={stmtNote} onChange={(e) => setStmtNote(e.target.value)} placeholder="เช่น โอนเข้าผ่านพร้อมเพย์" style={S.input} />
                         </div>
 
-                        <button type="submit" className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-extrabold hover:bg-slate-800">
+                        <button type="submit" style={{ padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
                             + บันทึกยอดเงินเข้า Statement
                         </button>
                     </form>
 
-                    <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="text-sm font-extrabold text-slate-900">รายการยอดเงินเข้าที่คีย์ไว้ ({statements.length})</div>
+                    <div style={S.card}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                            <div style={{ fontSize: '15px', fontWeight: 800 }}>รายการยอดเงินเข้าที่คีย์ไว้ ({statements.length})</div>
                             <button
                                 type="button"
                                 disabled={reconciling}
                                 onClick={handleAutoReconcile}
-                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-extrabold shadow-sm hover:opacity-95 flex items-center gap-1.5"
+                                style={{ padding: '9px 16px', borderRadius: '10px', border: 'none', backgroundColor: '#059669', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                             >
-                                {reconciling ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                                รันกระทบยอดอัตโนมัติทันที
+                                {reconciling ? <Loader2 size={15} /> : <Zap size={15} />} รันกระทบยอดอัตโนมัติทันที
                             </button>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-xs text-left border-collapse">
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={S.table}>
                                 <thead>
-                                    <tr className="border-b border-slate-200 text-slate-500">
-                                        <th className="py-2 pr-2">วันเวลาเงินเข้า</th>
-                                        <th className="py-2 pr-2">บัญชี</th>
-                                        <th className="py-2 pr-2 text-right">ยอดเงิน</th>
-                                        <th className="py-2 text-center">สถานะ</th>
+                                    <tr>
+                                        <th style={S.th}>วันเวลาเงินเข้า</th>
+                                        <th style={S.th}>บัญชี</th>
+                                        <th style={{ ...S.th, textAlign: 'right' }}>ยอดเงิน</th>
+                                        <th style={{ ...S.th, textAlign: 'center' }}>สถานะ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {statements.map((st) => (
-                                        <tr key={st.statement_id} className="border-b border-slate-100">
-                                            <td className="py-2.5 pr-2 font-semibold">
-                                                {formatThaiDate(st.received_date)} <span className="font-mono text-emerald-700">{st.received_time_hms}</span>
-                                            </td>
-                                            <td className="py-2.5 pr-2 text-slate-600">{st.bank_name_th} ({st.account_number})</td>
-                                            <td className="py-2.5 pr-2 text-right font-black text-slate-900">฿{Number(st.amount).toLocaleString()}</td>
-                                            <td className="py-2.5 text-center">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                                    st.match_status === 'MATCHED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                                }`}>
+                                        <tr key={st.statement_id}>
+                                            <td style={S.td}>{formatThaiDate(st.received_date)} <strong style={{ color: '#059669' }}>{st.received_time_hms}</strong></td>
+                                            <td style={S.td}>{st.bank_name_th} ({st.account_number})</td>
+                                            <td style={{ ...S.td, textAlign: 'right', fontWeight: 800 }}>฿{Number(st.amount).toLocaleString()}</td>
+                                            <td style={{ ...S.td, textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 700,
+                                                    backgroundColor: st.match_status === 'MATCHED' ? '#d1fae5' : '#fef3c7',
+                                                    color: st.match_status === 'MATCHED' ? '#065f46' : '#92400e'
+                                                }}>
                                                     {st.match_status === 'MATCHED' ? `จับคู่แล้ว (#${st.matched_submission_id})` : 'รอจับคู่'}
                                                 </span>
                                             </td>
@@ -605,50 +685,43 @@ export default function SlipReconcileManager() {
                 </div>
             )}
 
-            {/* ================= TAB 3: สรุปยอดรายวัน / รายเดือน / รายปี ================= */}
+            {/* ================= TAB 3: สรุปยอดรายวัน / เดือน / ปี ================= */}
             {activeTab === 'SUMMARY' && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-extrabold text-slate-900">รายงานสรุปยอดการโอนและกระทบยอด</div>
-                        <div className="flex gap-1.5">
+                <div style={S.card}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 800 }}>รายงานสรุปยอดการโอนและกระทบยอด</div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
                             {[
                                 { key: 'DAILY', label: 'รายวัน' },
                                 { key: 'MONTHLY', label: 'รายเดือน' },
                                 { key: 'YEARLY', label: 'รายปี (พ.ศ.)' }
                             ].map((m) => (
-                                <button
-                                    key={m.key}
-                                    type="button"
-                                    onClick={() => setSummaryMode(m.key)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold border ${
-                                        summaryMode === m.key ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-200'
-                                    }`}
-                                >
+                                <button key={m.key} type="button" onClick={() => setSummaryMode(m.key)} style={S.tabBtn(summaryMode === m.key)}>
                                     {m.label}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs text-left border-collapse">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={S.table}>
                             <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                                    <th className="p-2.5">ช่วงเวลา</th>
-                                    <th className="p-2.5 text-right">ทั้งหมด (รายการ / บาท)</th>
-                                    <th className="p-2.5 text-right text-emerald-700">สำเร็จ (รายการ / บาท)</th>
-                                    <th className="p-2.5 text-right text-amber-700">รอตรวจ/รอกระทบยอด</th>
-                                    <th className="p-2.5 text-right text-red-700">ส่งแก้ไข/ไม่สำเร็จ</th>
+                                <tr>
+                                    <th style={S.th}>ช่วงเวลา</th>
+                                    <th style={{ ...S.th, textAlign: 'right' }}>ทั้งหมด (รายการ / บาท)</th>
+                                    <th style={{ ...S.th, textAlign: 'right', color: '#059669' }}>สำเร็จ</th>
+                                    <th style={{ ...S.th, textAlign: 'right', color: '#b45309' }}>รอตรวจ/รอกระทบยอด</th>
+                                    <th style={{ ...S.th, textAlign: 'right', color: '#dc2626' }}>ส่งแก้ไข/ไม่สำเร็จ</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {summaryRows.map((r) => (
-                                    <tr key={r.period_key} className="border-b border-slate-100">
-                                        <td className="p-2.5 font-extrabold text-slate-800">{formatPeriodThai(r.period_key, summaryMode)}</td>
-                                        <td className="p-2.5 text-right font-bold">{r.total_count} รายการ • ฿{Number(r.total_amount).toLocaleString()}</td>
-                                        <td className="p-2.5 text-right font-extrabold text-emerald-700">{r.approved_count} รายการ • ฿{Number(r.approved_amount).toLocaleString()}</td>
-                                        <td className="p-2.5 text-right font-semibold text-amber-700">{r.pending_count} รายการ • ฿{Number(r.pending_amount).toLocaleString()}</td>
-                                        <td className="p-2.5 text-right font-semibold text-red-600">{r.failed_count} รายการ • ฿{Number(r.failed_amount).toLocaleString()}</td>
+                                    <tr key={r.period_key}>
+                                        <td style={{ ...S.td, fontWeight: 800 }}>{formatPeriodThai(r.period_key, summaryMode)}</td>
+                                        <td style={{ ...S.td, textAlign: 'right', fontWeight: 700 }}>{r.total_count} รายการ • ฿{Number(r.total_amount).toLocaleString()}</td>
+                                        <td style={{ ...S.td, textAlign: 'right', fontWeight: 800, color: '#059669' }}>{r.approved_count} รายการ • ฿{Number(r.approved_amount).toLocaleString()}</td>
+                                        <td style={{ ...S.td, textAlign: 'right', fontWeight: 700, color: '#b45309' }}>{r.pending_count} รายการ • ฿{Number(r.pending_amount).toLocaleString()}</td>
+                                        <td style={{ ...S.td, textAlign: 'right', fontWeight: 700, color: '#dc2626' }}>{r.failed_count} รายการ • ฿{Number(r.failed_amount).toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
