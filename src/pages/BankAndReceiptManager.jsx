@@ -1,7 +1,6 @@
 // [EMP-QR-CH-01] กล่องเพิ่ม/ดู/เปิด-ปิด ช่องทางรับเงิน & รูป QR ลงตาราง system_payment_channels (หลังบ้าน)
 import React, { useState, useEffect, useCallback } from 'react';
-import { QrCode, Plus, CheckCircle2, Power, Upload } from 'lucide-react';
-import { uploadToR2 } from '../utils/uploadToR2';
+import { QrCode, Plus, CheckCircle2, Power } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
@@ -38,11 +37,11 @@ export function SystemQrChannelBox() {
     const [qrImageUrl, setQrImageUrl] = useState('/images/bkk-promptpay-qr.jpg');
     const [warnCount, setWarnCount] = useState(350);
     const [saving, setSaving] = useState(false);
-    const [uploadingQr, setUploadingQr] = useState(false);
 
     const loadChannels = useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/api/payment-channels?include_inactive=true`);
+            if (!res.ok) return;
             const data = await res.json();
             if (data.success && Array.isArray(data.channels)) {
                 setChannels(data.channels);
@@ -55,21 +54,6 @@ export function SystemQrChannelBox() {
     useEffect(() => {
         loadChannels();
     }, [loadChannels]);
-
-    const handleQrFileChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploadingQr(true);
-        try {
-            const url = await uploadToR2(file, 'payment-qr');
-            if (url) setQrImageUrl(url);
-        } catch (err) {
-            console.error('[EMP-QR-CH-01] Upload QR error:', err);
-            alert('อัปโหลดรูป QR ไม่สำเร็จ สามารถกรอก URL หรือพาธ /images/... แทนได้ครับ');
-        } finally {
-            setUploadingQr(false);
-        }
-    };
 
     const handleSaveChannel = async (e) => {
         e.preventDefault();
@@ -105,6 +89,9 @@ export function SystemQrChannelBox() {
                 await loadChannels();
                 alert('บันทึกบัญชีรับเงิน & รูป QR ลงตารางเรียบร้อยแล้วครับ');
             }
+        } catch (err) {
+            console.error('[EMP-QR-CH-01] Save error:', err);
+            alert('เกิดข้อผิดพลาดในการบันทึกช่องทางรับเงิน');
         } finally {
             setSaving(false);
         }
@@ -190,27 +177,25 @@ export function SystemQrChannelBox() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', alignItems: 'end' }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>URL รูปภาพ QR Code *</label>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>URL / พาธรูปภาพ QR Code *</label>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                             <input required value={qrImageUrl} onChange={(e) => setQrImageUrl(e.target.value)} placeholder="/images/bkk-promptpay-qr.jpg หรือลิงก์ R2" style={inputStyle} />
-                            <label
+                            <button
+                                type="button"
+                                onClick={() => setQrImageUrl('/images/bkk-promptpay-qr.jpg')}
                                 style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
                                     padding: '9px 10px',
                                     borderRadius: '10px',
                                     border: '1px solid #cbd5e1',
                                     backgroundColor: '#f1f5f9',
-                                    fontSize: '12px',
+                                    fontSize: '11px',
                                     fontWeight: 700,
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap'
                                 }}
                             >
-                                <Upload size={14} /> {uploadingQr ? '...' : 'อัปโหลด'}
-                                <input type="file" accept="image/*" onChange={handleQrFileChange} style={{ display: 'none' }} />
-                            </label>
+                                ใช้รูป BKK
+                            </button>
                         </div>
                     </div>
                     <div>
@@ -225,7 +210,7 @@ export function SystemQrChannelBox() {
 
                 <button
                     type="submit"
-                    disabled={saving || uploadingQr}
+                    disabled={saving}
                     style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '10px', border: 'none', backgroundColor: '#059669', color: '#ffffff', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
                 >
                     <Plus size={16} /> {saving ? 'กำลังบันทึก...' : 'บันทึกช่องทางรับเงิน & QR ลงตาราง'}
@@ -254,6 +239,8 @@ export function SystemQrChannelBox() {
                                 <img
                                     src={ch.qr_image_url}
                                     alt={ch.channel_name_th}
+                                    loading="lazy"
+                                    decoding="async"
                                     style={{ width: '44px', height: '44px', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff', border: '1px solid #cbd5e1', padding: '2px' }}
                                 />
                             )}
