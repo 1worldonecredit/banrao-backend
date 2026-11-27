@@ -13,6 +13,7 @@ import OrgStructureManagement from './pages/OrgStructureManagement';
 import AdminVillageMaster from './pages/AdminVillageMaster';
 import PermissionMatrix from './pages/PermissionMatrix';
 import StaffManagement from './pages/StaffManagement';
+import SuperAdminPackages from './pages/SuperAdminPackages';
 
 // เช็กว่าล็อกอินแล้วหรือยัง
 const ProtectedRoute = ({ children }) => {
@@ -46,6 +47,7 @@ function App() {
           <Route path="/village-master" element={<AdminVillageMaster />} />
           <Route path="/permission-matrix" element={<PermissionMatrix />} />
           <Route path="/staff-management" element={<StaffManagement />} />
+          <Route path="packages" element={<SuperAdminPackages/>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
