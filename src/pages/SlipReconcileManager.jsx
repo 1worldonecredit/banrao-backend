@@ -521,18 +521,53 @@ export default function SlipReconcileManager() {
                                     <div><strong>วันเวลาที่แจ้ง:</strong> {formatThaiDate(selectedSlip.transfer_date)} เวลา <strong style={{ color: '#059669' }}>{selectedSlip.transfer_time_hms}</strong> น.</div>
                                 </div>
 
-                                <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412', marginBottom: '8px' }}>
+                                    <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412', marginBottom: '10px', lineHeight: 1.5 }}>
                                         หากข้อมูลไม่ถูกต้อง: ติ๊กมาร์คจุดที่ผิด (จุดที่ไม่ติ๊กจะถูกล็อกไม่ให้ผู้ส่งแก้ไข)
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-                                        {Object.entries(FIELD_LABELS).map(([key, label]) => (
-                                            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                                                <input type="checkbox" checked={wrongFields.includes(key)} onChange={() => toggleWrongField(key)} />
-                                                {label}
-                                            </label>
-                                        ))}
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                        {Object.entries(FIELD_LABELS).map(([key, label]) => {
+                                            const checked = wrongFields.includes(key);
+                                            return (
+                                                <label
+                                                    key={key}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'flex-start',
+                                                        gap: '10px',
+                                                        padding: '9px 12px',
+                                                        borderRadius: '10px',
+                                                        border: checked ? '1.5px solid #ea580c' : '1px solid #fed7aa',
+                                                        backgroundColor: checked ? '#ffedd5' : '#ffffff',
+                                                        cursor: 'pointer',
+                                                        textAlign: 'left',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => toggleWrongField(key)}
+                                                        style={{
+                                                            width: '16px',
+                                                            height: '16px',
+                                                            minWidth: '16px',
+                                                            margin: 0,
+                                                            accentColor: '#ea580c',
+                                                            cursor: 'pointer',
+                                                            flexShrink: 0
+                                                        }}
+                                                    />
+                                                    <span style={{ fontSize: '13px', fontWeight: checked ? 700 : 600, color: checked ? '#9a3412' : '#1e293b', lineHeight: 1.4 }}>
+                                                        {label}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
                                     </div>
+
                                     <textarea
                                         rows={2}
                                         value={adminNote}
