@@ -16,6 +16,7 @@ import StaffManagement from './pages/StaffManagement';
 import SuperAdminPackages from './pages/SuperAdminPackages';
 import BankAndReceiptManager from './pages/BankAndReceiptManager';
 import BankReconciliationPage from './pages/BankReconciliationPage';
+import SlipReconcileManager from './pages/SlipReconcileManager';
 
 
 // เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
@@ -53,6 +54,7 @@ function App() {
           <Route path="/packages" element={<SuperAdminPackages />} />
            <Route path="/bank-and-receipt-manager" element={<BankAndReceiptManager />} />
            <Route path="bank-reconciliation" element={<BankReconciliationPage/>} />
+           <Route path="/slip-reconcile-manager" element={<SlipReconcileManager />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
