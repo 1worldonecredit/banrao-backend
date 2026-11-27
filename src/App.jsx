@@ -15,7 +15,7 @@ import PermissionMatrix from './pages/PermissionMatrix';
 import StaffManagement from './pages/StaffManagement';
 import SuperAdminPackages from './pages/SuperAdminPackages';
 import BankAndReceiptManager from './pages/BankAndReceiptManager';
-
+import BankReconciliationPage from './pages/BankReconciliationPage';
 // เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -50,6 +50,7 @@ function App() {
           <Route path="/staff-management" element={<StaffManagement />} />
           <Route path="/packages" element={<SuperAdminPackages />} />
            <Route path="/bank-and-receipt-manager" element={<BankAndReceiptManager />} />
+           <Route path="bank-reconciliation" element={<BankReconciliationPage/>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
