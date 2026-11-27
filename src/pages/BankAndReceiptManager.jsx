@@ -1,6 +1,14 @@
-// [PAY-UI-01] คอมโพเนนต์ผูกบัญชีธนาคาร + รหัสยืนยัน PIN + ใบเสร็จ/QR Code (หน้าบ้าน & หลังบ้าน)
+// [BE-BANK-01] หน้าหลังบ้านผูกบัญชีธนาคารรับเงิน + รหัสยืนยัน PIN + ใบเสร็จ/QR (banrao_emp / AdminLayout)
 import React, { useState, useEffect, useCallback } from 'react';
-import { Landmark, KeyRound, QrCode, Plus, CheckCircle2, ShieldAlert, Receipt } from 'lucide-react';
+import {
+    Landmark,
+    KeyRound,
+    QrCode,
+    Plus,
+    CheckCircle2,
+    ShieldAlert,
+    Receipt
+} from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
@@ -9,7 +17,7 @@ const boxStyle = {
     borderRadius: '16px',
     border: '1px solid #e2e8f0',
     padding: '20px',
-    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)'
+    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)'
 };
 
 const inpStyle = {
@@ -24,51 +32,77 @@ const inpStyle = {
     outline: 'none'
 };
 
+const lblStyle = {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#475569',
+    marginBottom: '4px'
+};
+
 export default function BankAndReceiptManager({
     targetAccountId = null,
-    isAdminMode = false,
+    isAdminMode = true,
     receiptPreviewData = null
 }) {
     const localUser = JSON.parse(localStorage.getItem('userData') || '{}');
     const accountId = targetAccountId || localUser.account_id || localUser.id || '';
 
+    // [BE-BANK-02] รายชื่อธนาคารดึงจาก Database (/api/banks -> bank_master) ไม่ฝังในโค้ด
+    const [bankOptions, setBankOptions] = useState([]);
     const [accountInfo, setAccountInfo] = useState(null);
     const [bankAccounts, setBankAccounts] = useState([]);
-    const [defaultPinHint, setDefaultPinHint] = useState('000000');
+    const [defaultPinHint, setDefaultPinHint] = useState('123456');
 
-    // [PAY-UI-02] ฟอร์มผูกบัญชีธนาคารรับเงิน
-    const [ownerType, setOwnerType] = useState('USER'); // 'USER' | 'VILLAGE' | 'SHOP' | 'BUSINESS'
-    const [bankCode, setBankCode] = useState('KBANK');
-    const [bankNameTh, setBankNameTh] = useState('ธนาคารกสิกรไทย');
+    // [BE-BANK-03] ฟอร์มผูกบัญชีธนาคารรับเงิน
+    const [ownerType, setOwnerType] = useState('BUSINESS');
+    const [bankCode, setBankCode] = useState('');
+    const [bankNameTh, setBankNameTh] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [accountHolderName, setAccountHolderName] = useState('');
     const [pinInput, setPinInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    // [PAY-UI-03] ฟอร์มตั้งรหัสยืนยัน PIN ใหม่
+    // [BE-BANK-04] ฟอร์มตั้ง / เปลี่ยนรหัสยืนยัน PIN
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
 
-    // [PAY-UI-04] ใบเสร็จและ QR Payload สำหรับสแกนดูผู้รับเงิน/รายการจ่าย/รองรับ Scan จ่ายสินค้า
+    // [BE-BANK-05] ใบเสร็จและ QR Code
     const [activeReceipt, setActiveReceipt] = useState(receiptPreviewData);
 
     const loadPaymentMethods = useCallback(async () => {
-        if (!accountId) return;
         try {
-            const res = await fetch(`${API_URL}/api/payment-methods/my?account_id=${encodeURIComponent(accountId)}`);
-            const data = await res.json();
-            if (data.success) {
-                setAccountInfo(data.account_info || null);
-                setBankAccounts(data.bank_accounts || []);
-                setDefaultPinHint(data.pin_status?.default_pin_hint || '000000');
-                if (data.account_info?.full_name && ownerType === 'USER') {
-                    setAccountHolderName((prev) => prev || data.account_info.full_name);
+            const [bRes, pmRes] = await Promise.all([
+                fetch(`${API_URL}/api/banks`),
+                accountId
+                    ? fetch(`${API_URL}/api/payment-methods/my?account_id=${encodeURIComponent(accountId)}`)
+                    : Promise.resolve(null)
+            ]);
+
+            const bJson = await bRes.json();
+            if (bJson.success && Array.isArray(bJson.banks)) {
+                setBankOptions(bJson.banks);
+                if (bJson.banks.length > 0) {
+                    setBankCode((prev) => prev || bJson.banks[0].bank_code);
+                    setBankNameTh((prev) => prev || bJson.banks[0].bank_name_th);
+                }
+            }
+
+            if (pmRes) {
+                const pmJson = await pmRes.json();
+                if (pmJson.success) {
+                    setAccountInfo(pmJson.account_info || null);
+                    setBankAccounts(pmJson.bank_accounts || []);
+                    setDefaultPinHint(pmJson.pin_status?.default_pin_hint || '123456');
+                    if (pmJson.account_info?.full_name) {
+                        setAccountHolderName((prev) => prev || pmJson.account_info.full_name);
+                    }
                 }
             }
         } catch (err) {
-            console.error('[PAY-UI-02] Load payment methods error:', err);
+            console.error('[BE-BANK-02] Load payment methods error:', err);
         }
-    }, [accountId, ownerType]);
+    }, [accountId]);
 
     useEffect(() => {
         loadPaymentMethods();
@@ -77,6 +111,12 @@ export default function BankAndReceiptManager({
     useEffect(() => {
         if (receiptPreviewData) setActiveReceipt(receiptPreviewData);
     }, [receiptPreviewData]);
+
+    const handleSelectBank = (code) => {
+        setBankCode(code);
+        const found = bankOptions.find((b) => b.bank_code === code);
+        setBankNameTh(found ? found.bank_name_th : code);
+    };
 
     const handleAddBankAccount = async (e) => {
         e.preventDefault();
@@ -96,12 +136,12 @@ export default function BankAndReceiptManager({
                     account_holder_name: accountHolderName,
                     pin: pinInput,
                     is_default: bankAccounts.length === 0,
-                    bypass_pin_for_admin: false // บังคับใช้รหัสยืนยันทุกครั้งตามเงื่อนไข
+                    bypass_pin_for_admin: false
                 })
             });
             const data = await res.json();
             if (!data.success) {
-                alert(data.message || 'ผูกบัญชีไม่สำเร็จ');
+                alert(data.message || 'ผูกบัญชีธนาคารไม่สำเร็จ');
             } else {
                 setAccountNumber('');
                 setPinInput('');
@@ -133,16 +173,18 @@ export default function BankAndReceiptManager({
             } else {
                 setCurrentPin('');
                 setNewPin('');
-                alert('อัปเดตรหัสยืนยัน (PIN) ใหม่เรียบร้อยแล้วครับ');
+                alert('บันทึกรหัสยืนยัน (PIN) ใหม่เรียบร้อยแล้วครับ');
             }
         } finally {
             setSubmitting(false);
         }
     };
 
+    const selectedBankObj = bankOptions.find((b) => b.bank_code === bankCode) || null;
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* [PAY-UI-05] ส่วนผูกบัญชีธนาคารรับเงิน + รหัสยืนยัน PIN */}
+        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* [BE-BANK-06] โครงสร้าง 2 คอลัมน์: ซ้ายฟอร์มผูกบัญชี / ขวารายการบัญชี + ตั้ง PIN */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '18px', alignItems: 'start' }}>
                 <form onSubmit={handleAddBankAccount} style={{ ...boxStyle, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -156,13 +198,11 @@ export default function BankAndReceiptManager({
 
                     <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '12px', color: '#166534' }}>
                         <ShieldAlert size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        ชื่อบัญชีธนาคารต้องตรงกับชื่อผู้ใช้งาน (<strong>{accountInfo?.full_name || '-'}</strong>) ยกเว้นบัญชี <strong>หมู่บ้าน</strong>, <strong>ร้านค้า</strong> หรือ <strong>เจ้าของกิจการ</strong> ที่เป็นบัญชีเจ้าของ Account ได้
+                        ชื่อบัญชีธนาคารต้องตรงกับชื่อผู้ใช้งาน (<strong>{accountInfo?.full_name || localUser.full_name || '-'}</strong>) ยกเว้นบัญชี <strong>หมู่บ้าน</strong>, <strong>ร้านค้า</strong> หรือ <strong>เจ้าของกิจการ</strong> ที่เป็นบัญชีเจ้าของ Account ได้
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                            ประเภทบัญชีรับเงิน
-                        </label>
+                        <label style={lblStyle}>ประเภทบัญชีรับเงิน</label>
                         <select
                             value={ownerType}
                             onChange={(e) => {
@@ -183,38 +223,26 @@ export default function BankAndReceiptManager({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                                เลือกธนาคาร
-                            </label>
+                            <label style={lblStyle}>เลือกธนาคาร (จากฐานข้อมูล)</label>
                             <select
                                 value={bankCode}
-                                onChange={(e) => {
-                                    const code = e.target.value;
-                                    setBankCode(code);
-                                    const mapName = {
-                                        KBANK: 'ธนาคารกสิกรไทย',
-                                        SCB: 'ธนาคารไทยพาณิชย์',
-                                        KTB: 'ธนาคารกรุงไทย',
-                                        BBL: 'ธนาคารกรุงเทพ',
-                                        GSB: 'ธนาคารออมสิน',
-                                        PROMPTPAY: 'พร้อมเพย์ (PromptPay)'
-                                    };
-                                    setBankNameTh(mapName[code] || code);
-                                }}
+                                onChange={(e) => handleSelectBank(e.target.value)}
                                 style={inpStyle}
                             >
-                                <option value="KBANK">KBANK — กสิกรไทย</option>
-                                <option value="SCB">SCB — ไทยพาณิชย์</option>
-                                <option value="KTB">KTB — กรุงไทย</option>
-                                <option value="BBL">BBL — กรุงเทพ</option>
-                                <option value="GSB">GSB — ออมสิน</option>
-                                <option value="PROMPTPAY">PROMPTPAY — พร้อมเพย์</option>
+                                {bankOptions.length === 0 ? (
+                                    <option value="">กำลังโหลดธนาคาร...</option>
+                                ) : (
+                                    bankOptions.map((b) => (
+                                        <option key={b.bank_code} value={b.bank_code}>
+                                            {b.short_label || `${b.bank_code} — ${b.bank_name_th}`}
+                                        </option>
+                                    ))
+                                )}
                             </select>
                         </div>
+
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                                เลขที่บัญชี / เบอร์พร้อมเพย์ *
-                            </label>
+                            <label style={lblStyle}>เลขที่บัญชี / เบอร์พร้อมเพย์ *</label>
                             <input
                                 type="text"
                                 required
@@ -226,10 +254,14 @@ export default function BankAndReceiptManager({
                         </div>
                     </div>
 
+                    {selectedBankObj && (
+                        <div style={{ padding: '8px 12px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '12px', color: '#334155' }}>
+                            ธนาคารที่เลือก: <strong>{selectedBankObj.bank_name_th}</strong> ({selectedBankObj.bank_code})
+                        </div>
+                    )}
+
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                            ชื่อบัญชีธนาคาร *
-                        </label>
+                        <label style={lblStyle}>ชื่อบัญชีธนาคาร *</label>
                         <input
                             type="text"
                             required
@@ -241,7 +273,7 @@ export default function BankAndReceiptManager({
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        <label style={lblStyle}>
                             รหัสยืนยัน (PIN) เพื่อผูกบัญชี * (เริ่มต้น: {defaultPinHint})
                         </label>
                         <input
@@ -277,7 +309,7 @@ export default function BankAndReceiptManager({
                     </button>
                 </form>
 
-                {/* [PAY-UI-06] รายการบัญชีที่ผูกไว้ + ตั้ง/เปลี่ยนรหัสยืนยัน PIN */}
+                {/* คอลัมน์ขวา: บัญชีที่ผูกไว้ + ตั้ง / เปลี่ยน PIN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={boxStyle}>
                         <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
@@ -346,7 +378,7 @@ export default function BankAndReceiptManager({
                 </div>
             </div>
 
-            {/* [PAY-UI-07] ใบเสร็จและ QR Code (สแกนดูผู้รับเงิน / รายการที่จ่าย / รองรับ Scan จ่ายสินค้าในอนาคต) */}
+            {/* [BE-BANK-07] ใบเสร็จและ QR Code */}
             {activeReceipt && (
                 <div style={{ ...boxStyle, border: '1px solid #cbd5e1', backgroundColor: '#ffffff' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
