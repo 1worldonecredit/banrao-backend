@@ -9,7 +9,7 @@ import {
     Calendar,
     Landmark
 } from 'lucide-react';
-import BankLogoBadge from '../components/BankLogoBadge';
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
 
