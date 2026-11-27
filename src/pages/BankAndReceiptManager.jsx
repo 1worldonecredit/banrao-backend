@@ -285,3 +285,5 @@ export function SystemQrChannelBox() {
         </div>
     );
 }
+
+export default BankAndReceiptManager;
