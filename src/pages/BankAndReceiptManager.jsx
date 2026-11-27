@@ -286,4 +286,12 @@ export function SystemQrChannelBox() {
     );
 }
 
+function BankAndReceiptManager() {
+    return (
+        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '16px' }}>
+            <SystemQrChannelBox />
+        </div>
+    );
+}
+
 export default BankAndReceiptManager;
