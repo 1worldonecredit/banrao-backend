@@ -14,8 +14,9 @@ import AdminVillageMaster from './pages/AdminVillageMaster';
 import PermissionMatrix from './pages/PermissionMatrix';
 import StaffManagement from './pages/StaffManagement';
 import SuperAdminPackages from './pages/SuperAdminPackages';
+import BankAndReceiptManager from './pages/BankAndReceiptManager';
 
-// เช็กว่าล็อกอินแล้วหรือยัง
+// เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/login" replace />;
@@ -48,6 +49,7 @@ function App() {
           <Route path="/permission-matrix" element={<PermissionMatrix />} />
           <Route path="/staff-management" element={<StaffManagement />} />
           <Route path="/packages" element={<SuperAdminPackages />} />
+           <Route path="/bank-and-receipt-manager" element={<BankAndReceiptManager />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
