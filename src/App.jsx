@@ -19,7 +19,7 @@ import BankReconciliationPage from './pages/BankReconciliationPage';
 import SlipReconcileManager from './pages/SlipReconcileManager';
 import CompanyProfileManager from './pages/CompanyProfileManager';
 import LegalDocumentManager from './pages/LegalDocumentManager';
-
+import PremiumNumberManager from './pages/PremiumNumberManagerr';
 // เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -58,6 +58,7 @@ function App() {
            <Route path="/slip-reconcile-manager" element={<SlipReconcileManager />} />
            <Route path="/company-profile" element={<CompanyProfileManager />} />
            <Route path="/legal-documents" element={<LegalDocumentManager/>} />
+           <Route path="/premium-numbers" element={<PremiumNumberManager/>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
