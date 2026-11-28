@@ -30,21 +30,39 @@ function formatThaiDateTime(isoStr) {
     return `${bkk.getDate()} ${THAI_MONTHS[bkk.getMonth()]} ${bkk.getFullYear() + 543} ${String(bkk.getHours()).padStart(2, '0')}:${String(bkk.getMinutes()).padStart(2, '0')} น.`;
 }
 
-// ดึง account_id ของผู้ที่ Login อยู่ในระบบหลังบ้าน
 function getLoggedInAccountId() {
-    const keys = ['user', 'emp_user', 'admin_user', 'banrao_user', 'account'];
-    for (const k of keys) {
+    // 1. ค้นหาจากทุก key ใน localStorage ที่เก็บ JSON
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        if (k === 'account_id' || k === 'accountId') return String(raw).trim();
         try {
-            const raw = localStorage.getItem(k);
-            if (!raw) continue;
             const parsed = JSON.parse(raw);
-            const id = parsed?.account_id || parsed?.id || parsed?.user_id || parsed?.user?.account_id;
-            if (id) return String(id);
+            if (parsed && typeof parsed === 'object') {
+                const id =
+                    parsed.account_id ||
+                    parsed.accountId ||
+                    parsed.user?.account_id ||
+                    parsed.admin?.account_id ||
+                    parsed.employee?.account_id ||
+                    parsed.id;
+                if (id && String(id).length > 5) return String(id);
+            }
         } catch {
-            // ข้าม
+            // 2. ถ้าเป็น JWT Token ให้ถอด Payload หา account_id
+            if (raw.split('.').length === 3) {
+                try {
+                    const payload = JSON.parse(atob(raw.split('.')[1]));
+                    const id = payload.account_id || payload.accountId || payload.id || payload.sub;
+                    if (id) return String(id);
+                } catch {
+                    // ข้าม
+                }
+            }
         }
     }
-    return localStorage.getItem('account_id') || '';
+    return '';
 }
 
 // แยกเนื้อหาเอกสารเป็นข้อย่อยด้วยบรรทัดว่าง (\n\n)
