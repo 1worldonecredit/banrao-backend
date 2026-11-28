@@ -9,7 +9,10 @@ import {
     RefreshCw,
     Clock,
     Globe,
-    KeyRound
+    KeyRound,
+    Edit3,
+    Plus,
+    X
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.banrao.life';
@@ -27,14 +30,33 @@ function formatThaiDateTime(isoStr) {
     return `${bkk.getDate()} ${THAI_MONTHS[bkk.getMonth()]} ${bkk.getFullYear() + 543} ${String(bkk.getHours()).padStart(2, '0')}:${String(bkk.getMinutes()).padStart(2, '0')} น.`;
 }
 
+// ดึง account_id ของผู้ที่ Login อยู่ในระบบหลังบ้าน
+function getLoggedInAccountId() {
+    const keys = ['user', 'emp_user', 'admin_user', 'banrao_user', 'account'];
+    for (const k of keys) {
+        try {
+            const raw = localStorage.getItem(k);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const id = parsed?.account_id || parsed?.id || parsed?.user_id || parsed?.user?.account_id;
+            if (id) return String(id);
+        } catch {
+            // ข้าม
+        }
+    }
+    return localStorage.getItem('account_id') || '';
+}
+
+// แยกเนื้อหาเอกสารเป็นข้อย่อยด้วยบรรทัดว่าง (\n\n)
+function splitClauses(content) {
+    return String(content || '')
+        .split(/\n\s*\n/)
+        .map((c) => c.trim())
+        .filter(Boolean);
+}
+
 const styles = {
-    page: {
-        padding: '20px',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        fontFamily: 'inherit',
-        color: '#0f172a'
-    },
+    page: { padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'inherit', color: '#0f172a' },
     headerCard: {
         background: 'rgba(255, 255, 255, 0.96)',
         borderRadius: '16px',
@@ -47,27 +69,9 @@ const styles = {
         justifyContent: 'space-between',
         gap: '12px'
     },
-    title: {
-        margin: 0,
-        fontSize: '20px',
-        fontWeight: 800,
-        color: '#0f172a',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        background: 'transparent'
-    },
-    subtitle: {
-        margin: '4px 0 0 0',
-        fontSize: '12px',
-        color: '#64748b'
-    },
-    tabBar: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '10px',
-        marginBottom: '18px'
-    },
+    title: { margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' },
+    subtitle: { margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' },
+    tabBar: { display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' },
     tabBtn: (active) => ({
         padding: '10px 18px',
         borderRadius: '12px',
@@ -101,19 +105,8 @@ const styles = {
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
         border: '1px solid #e2e8f0'
     },
-    grid2: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-        gap: '18px',
-        alignItems: 'start'
-    },
-    label: {
-        display: 'block',
-        fontSize: '12px',
-        fontWeight: 700,
-        color: '#475569',
-        marginBottom: '6px'
-    },
+    grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px', alignItems: 'start' },
+    label: { display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' },
     input: {
         width: '100%',
         padding: '10px 12px',
@@ -139,41 +132,38 @@ const styles = {
         background: '#ffffff',
         borderRadius: '14px',
         padding: '16px',
-        marginBottom: '12px',
+        marginBottom: '14px',
         border: isActive ? '2px solid #10b981' : '1px solid #e2e8f0',
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)'
     }),
-    docContentBox: {
+    clauseRow: {
         background: '#f8fafc',
         border: '1px solid #e2e8f0',
         borderRadius: '10px',
-        padding: '12px',
-        fontSize: '12px',
-        color: '#334155',
-        whiteSpace: 'pre-line',
-        maxHeight: '160px',
-        overflowY: 'auto',
-        lineHeight: 1.6,
-        margin: '10px 0'
-    },
-    table: {
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontSize: '12px'
-    },
-    th: {
-        textAlign: 'left',
         padding: '10px 12px',
-        borderBottom: '2px solid #e2e8f0',
-        color: '#475569',
-        fontWeight: 700
+        marginBottom: '8px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: '10px'
     },
-    td: {
-        padding: '12px',
-        borderBottom: '1px solid #f1f5f9',
-        color: '#1e293b',
-        verticalAlign: 'top'
-    }
+    clauseEditBtn: {
+        padding: '5px 10px',
+        borderRadius: '8px',
+        border: '1px solid #cbd5e1',
+        background: '#ffffff',
+        color: '#0f172a',
+        fontSize: '11px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        flexShrink: 0
+    },
+    table: { width: '100%', borderCollapse: 'collapse', fontSize: '12px' },
+    th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: 700 },
+    td: { padding: '12px', borderBottom: '1px solid #f1f5f9', color: '#1e293b', verticalAlign: 'top' }
 };
 
 export default function LegalDocumentManager() {
@@ -184,11 +174,17 @@ export default function LegalDocumentManager() {
     const [searchQ, setSearchQ] = useState('');
     const [feedback, setFeedback] = useState(null);
 
+    // ฟอร์มเพิ่มฉบับใหม่
     const [version, setVersion] = useState('1.1');
     const [titleTh, setTitleTh] = useState('คำขอเปิดบัญชีกระเป๋าเงินอิเล็กทรอนิกส์และข้อตกลงการใช้บริการ (BAN RAO WALLET)');
     const [contentTh, setContentTh] = useState('');
     const [setActiveNow, setSetActiveNow] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // Modal แก้ไข/เพิ่มข้อย่อย + ยืนยัน PIN
+    const [editModal, setEditModal] = useState(null); // { doc, clauseIndex (null = เพิ่มข้อใหม่), text }
+    const [confirmPin, setConfirmPin] = useState('');
+    const [savingClause, setSavingClause] = useState(false);
 
     const loadAll = useCallback(async () => {
         setLoading(true);
@@ -263,6 +259,58 @@ export default function LegalDocumentManager() {
         }
     };
 
+    const handleSaveClauseWithPin = async (e) => {
+        e.preventDefault();
+        if (!editModal) return;
+        if (!editModal.text.trim()) {
+            setFeedback({ type: 'error', text: 'กรุณากรอกข้อความของข้อย่อย' });
+            return;
+        }
+        if (!/^\d{6}$/.test(confirmPin)) {
+            setFeedback({ type: 'error', text: 'กรุณากรอกรหัส PIN 6 หลักของผู้ Login เพื่อยืนยัน' });
+            return;
+        }
+
+        const accountId = getLoggedInAccountId();
+        if (!accountId) {
+            setFeedback({ type: 'error', text: 'ไม่พบข้อมูลผู้ Login กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่' });
+            return;
+        }
+
+        const clauses = splitClauses(editModal.doc.content_th);
+        if (editModal.clauseIndex === null) {
+            clauses.push(editModal.text.trim());
+        } else {
+            clauses[editModal.clauseIndex] = editModal.text.trim();
+        }
+        const mergedContent = clauses.join('\n\n');
+
+        setSavingClause(true);
+        setFeedback(null);
+        try {
+            const res = await fetch(`${API_URL}/api/admin/legal/documents/${editModal.doc.doc_id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content_th: mergedContent,
+                    account_id: accountId,
+                    pin: confirmPin
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                setFeedback({ type: 'error', text: data.message || 'บันทึกการแก้ไขไม่สำเร็จ' });
+                return;
+            }
+            setFeedback({ type: 'success', text: data.message });
+            setEditModal(null);
+            setConfirmPin('');
+            await loadAll();
+        } finally {
+            setSavingClause(false);
+        }
+    };
+
     return (
         <div style={styles.page}>
             {/* หัวข้อหน้า */}
@@ -273,7 +321,7 @@ export default function LegalDocumentManager() {
                         จัดการเอกสารทางกฎหมายขอเปิดบัญชี (BAN RAO WALLET)
                     </h2>
                     <p style={styles.subtitle}>
-                        บันทึกแบบ Append-Only ห้ามลบ เพื่อเก็บหลักฐานการยินยอมเปิดบัญชีและยืนยัน PIN 6 หลักของลูกค้า
+                        คลิกแก้ไขหรือเพิ่มข้อย่อยได้ทีละข้อ (บังคับยืนยันด้วยรหัส PIN 6 หลักของผู้ Login ทุกครั้ง)
                     </p>
                 </div>
                 <button type="button" onClick={loadAll} style={styles.refreshBtn}>
@@ -333,7 +381,7 @@ export default function LegalDocumentManager() {
                         </div>
 
                         <div style={{ marginBottom: '12px' }}>
-                            <label style={styles.label}>เนื้อหาข้อตกลงทางกฎหมาย *</label>
+                            <label style={styles.label}>เนื้อหาข้อตกลงทางกฎหมาย * (เว้น 1 บรรทัดว่างเพื่อแยกข้อย่อย)</label>
                             <textarea
                                 rows={10}
                                 required
@@ -355,38 +403,85 @@ export default function LegalDocumentManager() {
                     </form>
 
                     <div>
-                        {documents.map((doc) => (
-                            <div key={doc.doc_id} style={styles.docItem(doc.is_active)}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#0f172a', color: '#fbbf24', fontSize: '11px', fontWeight: 800 }}>
-                                            v{doc.version}
-                                        </span>
-                                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{doc.title_th}</span>
+                        {documents.map((doc) => {
+                            const clauses = splitClauses(doc.content_th);
+                            return (
+                                <div key={doc.doc_id} style={styles.docItem(doc.is_active)}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#0f172a', color: '#fbbf24', fontSize: '11px', fontWeight: 800 }}>
+                                                v{doc.version}
+                                            </span>
+                                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{doc.title_th}</span>
+                                        </div>
+                                        {doc.is_active ? (
+                                            <span style={{ padding: '4px 10px', borderRadius: '99px', background: '#d1fae5', color: '#065f46', fontSize: '11px', fontWeight: 800 }}>
+                                                ✓ ใช้งานอยู่ปัจจุบัน
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleActivateDoc(doc.doc_id)}
+                                                style={{ padding: '5px 10px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                                            >
+                                                ตั้งเป็นฉบับใช้งานปัจจุบัน
+                                            </button>
+                                        )}
                                     </div>
-                                    {doc.is_active ? (
-                                        <span style={{ padding: '4px 10px', borderRadius: '99px', background: '#d1fae5', color: '#065f46', fontSize: '11px', fontWeight: 800 }}>
-                                            ✓ ใช้งานอยู่ปัจจุบัน
-                                        </span>
-                                    ) : (
+
+                                    {/* แสดงทีละข้อย่อยพร้อมปุ่มแก้ไข */}
+                                    <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+                                        {clauses.map((clause, idx) => (
+                                            <div key={idx} style={styles.clauseRow}>
+                                                <div style={{ fontSize: '12px', color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.6, flex: 1 }}>
+                                                    {clause}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFeedback(null);
+                                                        setConfirmPin('');
+                                                        setEditModal({ doc, clauseIndex: idx, text: clause });
+                                                    }}
+                                                    style={styles.clauseEditBtn}
+                                                >
+                                                    <Edit3 size={12} color="#059669" /> แก้ไขข้อนี้
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                                         <button
                                             type="button"
-                                            onClick={() => handleActivateDoc(doc.doc_id)}
-                                            style={{ padding: '5px 10px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                                            onClick={() => {
+                                                setFeedback(null);
+                                                setConfirmPin('');
+                                                setEditModal({ doc, clauseIndex: null, text: `${clauses.length + 1}. ` });
+                                            }}
+                                            style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px dashed #059669',
+                                                background: '#ecfdf5',
+                                                color: '#065f46',
+                                                fontSize: '11px',
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
                                         >
-                                            ตั้งเป็นฉบับใช้งานปัจจุบัน
+                                            <Plus size={13} /> เพิ่มข้อย่อยใหม่ต่อท้าย
                                         </button>
-                                    )}
+                                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                            อัปเดตล่าสุด: {formatThaiDateTime(doc.updated_at || doc.created_at)}
+                                        </span>
+                                    </div>
                                 </div>
-
-                                <div style={styles.docContentBox}>{doc.content_th}</div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
-                                    <span>รหัสเอกสาร: {doc.doc_code} (#{doc.doc_id})</span>
-                                    <span>บันทึกเมื่อ: {formatThaiDateTime(doc.created_at)}</span>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -462,6 +557,100 @@ export default function LegalDocumentManager() {
                             </tbody>
                         </table>
                     </div>
+                </div>
+            )}
+
+            {/* ================= MODAL แก้ไข/เพิ่มข้อย่อย + ยืนยันรหัส PIN ผู้ Login ================= */}
+            {editModal && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        background: 'rgba(15, 23, 42, 0.72)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}
+                >
+                    <form
+                        onSubmit={handleSaveClauseWithPin}
+                        style={{
+                            background: '#ffffff',
+                            borderRadius: '16px',
+                            maxWidth: '560px',
+                            width: '100%',
+                            padding: '22px',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Edit3 size={18} color="#059669" />
+                                {editModal.clauseIndex === null
+                                    ? `เพิ่มข้อย่อยใหม่ (เอกสาร v${editModal.doc.version})`
+                                    : `แก้ไขข้อย่อยที่ ${editModal.clauseIndex + 1} (เอกสาร v${editModal.doc.version})`}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setEditModal(null)}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '14px' }}>
+                            <label style={styles.label}>ข้อความข้อย่อย *</label>
+                            <textarea
+                                rows={6}
+                                required
+                                value={editModal.text}
+                                onChange={(e) => setEditModal({ ...editModal, text: e.target.value })}
+                                style={{ ...styles.input, resize: 'vertical', lineHeight: 1.6 }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '12px', background: '#fffbeb', border: '1px solid #fde68a' }}>
+                            <label style={{ ...styles.label, color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <KeyRound size={14} /> กรอกรหัส PIN 6 หลักของผู้ Login เพื่อยืนยันการแก้ไข *
+                            </label>
+                            <input
+                                type="password"
+                                maxLength={6}
+                                inputMode="numeric"
+                                required
+                                value={confirmPin}
+                                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                                placeholder="••••••"
+                                style={{
+                                    ...styles.input,
+                                    textAlign: 'center',
+                                    fontFamily: 'monospace',
+                                    fontSize: '18px',
+                                    letterSpacing: '0.5em'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                onClick={() => setEditModal(null)}
+                                style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingClause}
+                                style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#059669', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer', opacity: savingClause ? 0.6 : 1 }}
+                            >
+                                {savingClause ? 'กำลังตรวจสอบ PIN และบันทึก...' : 'ยืนยัน PIN และบันทึกการแก้ไข'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>
