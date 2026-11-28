@@ -27,15 +27,163 @@ function formatThaiDateTime(isoStr) {
     return `${bkk.getDate()} ${THAI_MONTHS[bkk.getMonth()]} ${bkk.getFullYear() + 543} ${String(bkk.getHours()).padStart(2, '0')}:${String(bkk.getMinutes()).padStart(2, '0')} น.`;
 }
 
+const styles = {
+    page: {
+        padding: '20px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        fontFamily: 'inherit',
+        color: '#0f172a'
+    },
+    headerCard: {
+        background: 'rgba(255, 255, 255, 0.96)',
+        borderRadius: '16px',
+        padding: '20px 24px',
+        marginBottom: '18px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px'
+    },
+    title: {
+        margin: 0,
+        fontSize: '20px',
+        fontWeight: 800,
+        color: '#0f172a',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: 'transparent'
+    },
+    subtitle: {
+        margin: '4px 0 0 0',
+        fontSize: '12px',
+        color: '#64748b'
+    },
+    tabBar: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px',
+        marginBottom: '18px'
+    },
+    tabBtn: (active) => ({
+        padding: '10px 18px',
+        borderRadius: '12px',
+        border: active ? '1px solid #059669' : '1px solid #cbd5e1',
+        background: active ? '#059669' : 'rgba(255,255,255,0.95)',
+        color: active ? '#ffffff' : '#334155',
+        fontSize: '13px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+    }),
+    refreshBtn: {
+        padding: '9px 16px',
+        borderRadius: '10px',
+        border: 'none',
+        background: '#0f172a',
+        color: '#fbbf24',
+        fontSize: '12px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+    },
+    card: {
+        background: 'rgba(255, 255, 255, 0.97)',
+        borderRadius: '16px',
+        padding: '20px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        border: '1px solid #e2e8f0'
+    },
+    grid2: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+        gap: '18px',
+        alignItems: 'start'
+    },
+    label: {
+        display: 'block',
+        fontSize: '12px',
+        fontWeight: 700,
+        color: '#475569',
+        marginBottom: '6px'
+    },
+    input: {
+        width: '100%',
+        padding: '10px 12px',
+        borderRadius: '10px',
+        border: '1px solid #cbd5e1',
+        fontSize: '13px',
+        color: '#0f172a',
+        boxSizing: 'border-box',
+        background: '#ffffff'
+    },
+    submitBtn: {
+        width: '100%',
+        padding: '12px',
+        borderRadius: '12px',
+        border: 'none',
+        background: '#059669',
+        color: '#ffffff',
+        fontSize: '13px',
+        fontWeight: 800,
+        cursor: 'pointer'
+    },
+    docItem: (isActive) => ({
+        background: '#ffffff',
+        borderRadius: '14px',
+        padding: '16px',
+        marginBottom: '12px',
+        border: isActive ? '2px solid #10b981' : '1px solid #e2e8f0',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)'
+    }),
+    docContentBox: {
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '10px',
+        padding: '12px',
+        fontSize: '12px',
+        color: '#334155',
+        whiteSpace: 'pre-line',
+        maxHeight: '160px',
+        overflowY: 'auto',
+        lineHeight: 1.6,
+        margin: '10px 0'
+    },
+    table: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '12px'
+    },
+    th: {
+        textAlign: 'left',
+        padding: '10px 12px',
+        borderBottom: '2px solid #e2e8f0',
+        color: '#475569',
+        fontWeight: 700
+    },
+    td: {
+        padding: '12px',
+        borderBottom: '1px solid #f1f5f9',
+        color: '#1e293b',
+        verticalAlign: 'top'
+    }
+};
+
 export default function LegalDocumentManager() {
-    const [activeTab, setActiveTab] = useState('DOCS'); // DOCS | CONSENTS
+    const [activeTab, setActiveTab] = useState('DOCS');
     const [documents, setDocuments] = useState([]);
     const [consents, setConsents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQ, setSearchQ] = useState('');
     const [feedback, setFeedback] = useState(null);
 
-    // ฟอร์มเพิ่มเอกสารเวอร์ชันใหม่
     const [version, setVersion] = useState('1.1');
     const [titleTh, setTitleTh] = useState('คำขอเปิดบัญชีกระเป๋าเงินอิเล็กทรอนิกส์และข้อตกลงการใช้บริการ (BAN RAO WALLET)');
     const [contentTh, setContentTh] = useState('');
@@ -116,167 +264,124 @@ export default function LegalDocumentManager() {
     };
 
     return (
-        <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
+        <div style={styles.page}>
             {/* หัวข้อหน้า */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div style={styles.headerCard}>
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <ShieldCheck size={24} className="text-emerald-600" />
+                    <h2 style={styles.title}>
+                        <ShieldCheck size={24} color="#059669" />
                         จัดการเอกสารทางกฎหมายขอเปิดบัญชี (BAN RAO WALLET)
-                    </h1>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    </h2>
+                    <p style={styles.subtitle}>
                         บันทึกแบบ Append-Only ห้ามลบ เพื่อเก็บหลักฐานการยินยอมเปิดบัญชีและยืนยัน PIN 6 หลักของลูกค้า
                     </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={loadAll}
-                    className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5"
-                >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> รีเฟรชข้อมูล
+                <button type="button" onClick={loadAll} style={styles.refreshBtn}>
+                    <RefreshCw size={14} /> {loading ? 'กำลังโหลด...' : 'รีเฟรชข้อมูล'}
                 </button>
             </div>
 
             {/* แท็บสลับ 2 โหมด */}
-            <div className="flex flex-wrap gap-2">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('DOCS')}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition ${
-                        activeTab === 'DOCS'
-                            ? 'bg-emerald-600 text-white border-emerald-600'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
+            <div style={styles.tabBar}>
+                <button type="button" onClick={() => setActiveTab('DOCS')} style={styles.tabBtn(activeTab === 'DOCS')}>
                     <FileText size={16} /> 1. เพิ่ม / แก้ไขเอกสารข้อตกลง ({documents.length})
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('CONSENTS')}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition ${
-                        activeTab === 'CONSENTS'
-                            ? 'bg-emerald-600 text-white border-emerald-600'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
+                <button type="button" onClick={() => setActiveTab('CONSENTS')} style={styles.tabBtn(activeTab === 'CONSENTS')}>
                     <ShieldCheck size={16} /> 2. ทะเบียนหลักฐานลูกค้าที่เปิดบัญชีแล้ว ({consents.length})
                 </button>
             </div>
 
             {feedback && (
                 <div
-                    className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 border ${
-                        feedback.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : 'bg-red-50 text-red-700 border-red-200'
-                    }`}
+                    style={{
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        marginBottom: '16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: feedback.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                        color: feedback.type === 'success' ? '#065f46' : '#b91c1c',
+                        border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`
+                    }}
                 >
                     {feedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                     <span>{feedback.text}</span>
                 </div>
             )}
 
-            {/* ================= TAB 1: จัดการเอกสารทางกฎหมาย ================= */}
+            {/* TAB 1: จัดการเอกสาร */}
             {activeTab === 'DOCS' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    {/* ฟอร์มเพิ่มฉบับใหม่ */}
-                    <form onSubmit={handleCreateDoc} className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs h-fit">
-                        <div className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                            <PlusCircle size={18} className="text-emerald-600" />
+                <div style={styles.grid2}>
+                    <form onSubmit={handleCreateDoc} style={styles.card}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+                            <PlusCircle size={18} color="#059669" />
                             เพิ่มเอกสารขอเปิดบัญชีเวอร์ชันใหม่
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '10px', marginBottom: '12px' }}>
                             <div>
-                                <label className="block text-xs font-bold text-slate-600 mb-1">เวอร์ชัน *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={version}
-                                    onChange={(e) => setVersion(e.target.value)}
-                                    placeholder="เช่น 1.1"
-                                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold"
-                                />
+                                <label style={styles.label}>เวอร์ชัน *</label>
+                                <input type="text" required value={version} onChange={(e) => setVersion(e.target.value)} style={styles.input} />
                             </div>
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-600 mb-1">ชื่อเอกสาร (ภาษาไทย) *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={titleTh}
-                                    onChange={(e) => setTitleTh(e.target.value)}
-                                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-bold"
-                                />
+                            <div>
+                                <label style={styles.label}>ชื่อเอกสาร (ภาษาไทย) *</label>
+                                <input type="text" required value={titleTh} onChange={(e) => setTitleTh(e.target.value)} style={styles.input} />
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">เนื้อหาข้อตกลงทางกฎหมาย *</label>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={styles.label}>เนื้อหาข้อตกลงทางกฎหมาย *</label>
                             <textarea
                                 rows={10}
                                 required
                                 value={contentTh}
                                 onChange={(e) => setContentTh(e.target.value)}
                                 placeholder="พิมพ์รายละเอียดข้อตกลงทางกฎหมาย ข้อ 1, 2, 3..."
-                                className="w-full p-3 rounded-xl border border-slate-300 text-xs leading-relaxed"
+                                style={{ ...styles.input, resize: 'vertical', lineHeight: 1.6 }}
                             />
                         </div>
 
-                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={setActiveNow}
-                                onChange={(e) => setSetActiveNow(e.target.checked)}
-                                className="w-4 h-4 accent-emerald-600"
-                            />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '16px', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={setActiveNow} onChange={(e) => setSetActiveNow(e.target.checked)} />
                             เปิดใช้งานเป็นฉบับปัจจุบันทันที (แสดงให้ลูกค้าใหม่ทุกคนเห็น)
                         </label>
 
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold disabled:opacity-50"
-                        >
+                        <button type="submit" disabled={saving} style={{ ...styles.submitBtn, opacity: saving ? 0.6 : 1 }}>
                             {saving ? 'กำลังบันทึก...' : '+ บันทึกเอกสารเวอร์ชันใหม่'}
                         </button>
                     </form>
 
-                    {/* รายการเอกสารทุกเวอร์ชัน */}
-                    <div className="lg:col-span-7 space-y-3">
+                    <div>
                         {documents.map((doc) => (
-                            <div
-                                key={doc.doc_id}
-                                className={`bg-white rounded-2xl border p-4 space-y-2.5 shadow-xs ${
-                                    doc.is_active ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200'
-                                }`}
-                            >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="px-2 py-0.5 rounded-md bg-slate-900 text-amber-300 font-mono text-[11px] font-bold">
+                            <div key={doc.doc_id} style={styles.docItem(doc.is_active)}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#0f172a', color: '#fbbf24', fontSize: '11px', fontWeight: 800 }}>
                                             v{doc.version}
                                         </span>
-                                        <span className="text-sm font-extrabold text-slate-900">{doc.title_th}</span>
+                                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{doc.title_th}</span>
                                     </div>
                                     {doc.is_active ? (
-                                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold">
+                                        <span style={{ padding: '4px 10px', borderRadius: '99px', background: '#d1fae5', color: '#065f46', fontSize: '11px', fontWeight: 800 }}>
                                             ✓ ใช้งานอยู่ปัจจุบัน
                                         </span>
                                     ) : (
                                         <button
                                             type="button"
                                             onClick={() => handleActivateDoc(doc.doc_id)}
-                                            className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-[11px] font-bold border border-slate-200"
+                                            style={{ padding: '5px 10px', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                                         >
                                             ตั้งเป็นฉบับใช้งานปัจจุบัน
                                         </button>
                                     )}
                                 </div>
 
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 whitespace-pre-line max-h-40 overflow-y-auto">
-                                    {doc.content_th}
-                                </div>
+                                <div style={styles.docContentBox}>{doc.content_th}</div>
 
-                                <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
                                     <span>รหัสเอกสาร: {doc.doc_code} (#{doc.doc_id})</span>
                                     <span>บันทึกเมื่อ: {formatThaiDateTime(doc.created_at)}</span>
                                 </div>
@@ -286,70 +391,68 @@ export default function LegalDocumentManager() {
                 </div>
             )}
 
-            {/* ================= TAB 2: ทะเบียนหลักฐานลูกค้าที่กดยอมรับเปิดบัญชี ================= */}
+            {/* TAB 2: ทะเบียนหลักฐานลูกค้า */}
             {activeTab === 'CONSENTS' && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <div className="relative flex-1 min-w-[220px]">
-                            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                value={searchQ}
-                                onChange={(e) => setSearchQ(e.target.value)}
-                                placeholder="ค้นหาชื่อลูกค้า, Account ID หรือ IP Address..."
-                                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs"
-                            />
-                        </div>
+                <div style={styles.card}>
+                    <div style={{ position: 'relative', maxWidth: '400px', marginBottom: '16px' }}>
+                        <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input
+                            type="text"
+                            value={searchQ}
+                            onChange={(e) => setSearchQ(e.target.value)}
+                            placeholder="ค้นหาชื่อลูกค้า, Account ID หรือ IP Address..."
+                            style={{ ...styles.input, paddingLeft: '36px' }}
+                        />
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-xs">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={styles.table}>
                             <thead>
-                                <tr className="border-b border-slate-200 text-slate-500">
-                                    <th className="py-2.5 px-3">วันเวลาที่ยินยอม (พ.ศ.)</th>
-                                    <th className="py-2.5 px-3">ผู้ขอเปิดบัญชี</th>
-                                    <th className="py-2.5 px-3">เอกสาร / PIN</th>
-                                    <th className="py-2.5 px-3">ผู้อนุมัติ</th>
-                                    <th className="py-2.5 px-3">IP Address</th>
+                                <tr>
+                                    <th style={styles.th}>วันเวลาที่ยินยอม (พ.ศ.)</th>
+                                    <th style={styles.th}>ผู้ขอเปิดบัญชี</th>
+                                    <th style={styles.th}>เอกสาร / PIN</th>
+                                    <th style={styles.th}>ผู้อนุมัติ</th>
+                                    <th style={styles.th}>IP Address</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody>
                                 {consents.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-10 text-center text-slate-400">
+                                        <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
                                             ยังไม่มีรายการลูกค้าที่ยื่นคำขอเปิดบัญชี
                                         </td>
                                     </tr>
                                 ) : (
                                     consents.map((c) => (
-                                        <tr key={c.consent_id} className="hover:bg-slate-50">
-                                            <td className="py-3 px-3 whitespace-nowrap text-slate-700 font-semibold">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Clock size={13} className="text-slate-400" />
+                                        <tr key={c.consent_id}>
+                                            <td style={styles.td}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                                    <Clock size={13} color="#64748b" />
                                                     {formatThaiDateTime(c.accepted_at)}
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-3">
-                                                <div className="font-extrabold text-slate-900">{c.applicant_name || '-'}</div>
-                                                <div className="text-[10px] font-mono text-slate-400">{c.account_id}</div>
+                                            <td style={styles.td}>
+                                                <div style={{ fontWeight: 800 }}>{c.applicant_name || '-'}</div>
+                                                <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>{c.account_id}</div>
                                             </td>
-                                            <td className="py-3 px-3">
-                                                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-bold mr-1.5">
+                                            <td style={styles.td}>
+                                                <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', fontSize: '10px', fontWeight: 700, marginRight: '6px' }}>
                                                     v{c.doc_version}
                                                 </span>
                                                 {c.pin_verified && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 6px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '10px', fontWeight: 700 }}>
                                                         <KeyRound size={10} /> ยืนยัน PIN แล้ว
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="py-3 px-3 text-slate-700">
-                                                <div className="font-bold text-emerald-700">{c.approved_by_dept}</div>
-                                                <div className="text-[10px] text-slate-400">{c.approved_by_name}</div>
+                                            <td style={styles.td}>
+                                                <div style={{ fontWeight: 700, color: '#059669' }}>{c.approved_by_dept}</div>
+                                                <div style={{ fontSize: '10px', color: '#64748b' }}>{c.approved_by_name}</div>
                                             </td>
-                                            <td className="py-3 px-3 font-mono text-[11px] text-slate-600">
-                                                <div className="flex items-center gap-1">
-                                                    <Globe size={12} className="text-slate-400" />
+                                            <td style={styles.td}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'monospace', fontSize: '11px' }}>
+                                                    <Globe size={12} color="#64748b" />
                                                     {c.ip_address || '-'}
                                                 </div>
                                             </td>
