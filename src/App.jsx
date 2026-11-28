@@ -19,7 +19,7 @@ import BankReconciliationPage from './pages/BankReconciliationPage';
 import SlipReconcileManager from './pages/SlipReconcileManager';
 import CompanyProfileManager from './pages/CompanyProfileManager';
 import LegalDocumentManager from './pages/LegalDocumentManager';
-import PremiumNumberManager from './pages/PremiumNumberManagerr';
+import PremiumNumberManager from './pages/PremiumNumberManager';
 // เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
