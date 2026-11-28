@@ -17,7 +17,7 @@ import SuperAdminPackages from './pages/SuperAdminPackages';
 import BankAndReceiptManager from './pages/BankAndReceiptManager';
 import BankReconciliationPage from './pages/BankReconciliationPage';
 import SlipReconcileManager from './pages/SlipReconcileManager';
-
+import CompanyProfileManager from './pages/CompanyProfileManager';
 
 // เช็กว่าล็อกอินแล้วหรือยัง   BankAndReceiptManager
 const ProtectedRoute = ({ children }) => {
@@ -55,6 +55,7 @@ function App() {
            <Route path="/bank-and-receipt-manager" element={<BankAndReceiptManager />} />
            <Route path="bank-reconciliation" element={<BankReconciliationPage/>} />
            <Route path="/slip-reconcile-manager" element={<SlipReconcileManager />} />
+           <Route path="/company-profile" element={<CompanyProfileManager />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
