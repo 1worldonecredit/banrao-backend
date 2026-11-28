@@ -618,7 +618,22 @@ export default function LegalDocumentManager() {
                                 <X size={18} />
                             </button>
                         </div>
-
+                                {feedback?.type === 'error' && (
+                            <div
+                                style={{
+                                    padding: '10px 12px',
+                                    borderRadius: '10px',
+                                    marginBottom: '12px',
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    color: '#b91c1c',
+                                    fontSize: '12px',
+                                    fontWeight: 700
+                                }}
+                            >
+                                ⚠ {feedback.text}
+                            </div>
+                        )}
                         <div style={{ marginBottom: '14px' }}>
                             <label style={styles.label}>ข้อความข้อย่อย *</label>
                             <textarea
